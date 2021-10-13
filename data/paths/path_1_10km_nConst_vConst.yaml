@@ -1,0 +1,7 @@
+---
+path:
+  name: "10 km, no gradient, 160 km/h"
+  sectionStarts:       # with path speed limt (in m/s)
+  sectionStarts_kmh:   # with path speed limt (in km/h)   # [s in m, v_limit in km/h, n in ‰]
+   - [0, 160, 0]
+   - [10000, 160, 0]

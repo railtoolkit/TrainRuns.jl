@@ -1,0 +1,11 @@
+---
+settings:
+# settings for the simulation
+  massModel: "mass point"                       # model type of train mass "mass point" or "homogeneous strip"
+  stepVariable: "s in m"                        # step variable of the step method "s in m", "t in s" or "v in m/s"
+  stepSize: 10                                  # step size (unit depends on stepVariable s in m, t in s and v in m/s)
+  operationModeMinimumRunningTime: true         # operation mode "minimum running time"
+  operationModeMinimumEnergyConsumption: true   # operation mode "minimum energy consumption"
+  typeOfOutput: "CSV"                           # output as "julia dictionary" or as "CSV"
+  detailOfOutput: "driving course"              # should the output be "reduced" or "driving course"?
+  csvFolderPath: "~/Desktop/RailwayDrivingDynamics"

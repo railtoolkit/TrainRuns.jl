@@ -8,4 +8,4 @@ settings:
   operationModeMinimumEnergyConsumption: true   # operation mode "minimum energy consumption"
   typeOfOutput: "CSV"                           # output as "julia dictionary" or as "CSV"
   detailOfOutput: "driving course"              # should the output be "reduced" or "driving course"?
-  csvFolderPath: "~/Desktop/RailwayDrivingDynamics"
+  csvFolderPath: "~/Desktop/TrainRun"

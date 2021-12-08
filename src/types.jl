@@ -1,6 +1,6 @@
 module types
 # definition of all the additional types and their constructors
-export Settings, Vehicle, PathSection, Path, Waypoint, BehaviorSection, CharacteristicSection, EnergySavingModification, MovingSection
+export Settings, Train, PathSection, Path, Waypoint, BehaviorSection, CharacteristicSection, EnergySavingModification, MovingSection # tried to insert copy on 15.07.2021 , copy
 
 ## settings for the simulation
 mutable struct Settings
@@ -17,16 +17,16 @@ end # mutable struct Settings
 Settings()=Settings("", "", 0.0, false, false, "", "", "")
 
 
-## vehicle
-mutable struct Vehicle
-    name::String                # vehicles name
-    id                          # vehicles identifier
-    vehicleType::String         # type of vehicle "passenger" or "freight" or "motor coach train"
+## train
+mutable struct Train
+    name::String                # trains name
+    id                          # trains identifier
+    trainType::String         # type of train "passenger" or "freight" or "motor coach train"
     l_union::AbstractFloat      # total length (in m)
-    v_limit::AbstractFloat      # vehicles speed limit (in m/s)
+    v_limit::AbstractFloat      # trains speed limit (in m/s)
     a_braking::AbstractFloat    # braking acceleration (in m/s^2)
     m_union::AbstractFloat      # total mass (in kg)
-    ξ_union::AbstractFloat      # rotation mass factor of the whole vehicle union (without unit)
+    ξ_union::AbstractFloat      # rotation mass factor of the whole train union (without unit)
                                 # if not available use ξ_t and ξ_w
 
     # traction unit
@@ -51,8 +51,8 @@ mutable struct Vehicle
     f_Rw1::AbstractFloat        # coefficient for resistance to rolling of the set of wagons (in ‰)
     f_Rw2::AbstractFloat        # coefficient for air resistance of the set of wagons (in ‰)
     Δv_w::AbstractFloat         # coefficient for velocitiy difference between set of wagons and outdoor air (in m/s)
-end # mutable struct Vehicle
-Vehicle()=Vehicle("", 0, "", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, [], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+end # mutable struct Train
+Train()=Train("", 0, "", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, [], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
 
 ## path separated in smaler sections
@@ -100,6 +100,7 @@ mutable struct Waypoint
     F_Rw::AbstractFloat     # set of wagons resistance (in N)
 end # mutable struct Waypoint
 Waypoint()=Waypoint(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+# tried to insert copy on 15.07.2021 copy(original::Waypoint)=Waypoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W_T, original.ΔW_T, original.E, original.ΔE, original.F_T, original.F_R, original.F_Rp, original.F_Runion, original.F_Rt, original.F_Rw)
 Waypoint(original::Waypoint)=Waypoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W_T, original.ΔW_T, original.E, original.ΔE, original.F_T, original.F_R, original.F_Rp, original.F_Runion, original.F_Rt, original.F_Rw)
 
 

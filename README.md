@@ -1,4 +1,4 @@
-# RailwayDrivingDynamics
+# TrainRun
 
 ------------
 
@@ -22,6 +22,11 @@ See folder examples.
 ------------
 
 # History
+
+## Version 0.2
+
+Modules and variables were renamed.
+
 
 ## Version 0.1
 

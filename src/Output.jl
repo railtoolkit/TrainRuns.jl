@@ -1,4 +1,4 @@
-module RailwayDrivingDynamicsOutput
+module Output
 
 using ..types
 using Plots
@@ -7,26 +7,26 @@ using CSV, DataFrames, Dates
 export createOutput
 export plotDrivingCourse, printImportantValues, printSectionInformation # functions for showing results during the development
 
-function createOutput(settings::Settings, pathName::String, vehicleName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
+function createOutput(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
     # method of function createOutput for one operation mode
     if settings.typeOfOutput == "CSV"
-        return createOutputCsv(settings, pathName, vehicleName, drivingCourse, movingSection)
+        return createOutputCsv(settings, pathName, trainName, drivingCourse, movingSection)
     else
-        return createOutputDict(settings, pathName, vehicleName, drivingCourse, movingSection)
+        return createOutputDict(settings, pathName, trainName, drivingCourse, movingSection)
     end
 end # funtion createOutput
 
-function createOutput(settings::Settings, pathName::String, vehicleName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
+function createOutput(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
     # method of function createOutput for two operation modes
     if settings.typeOfOutput == "CSV"
-        return createOutputCsv(settings, pathName, vehicleName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
+        return createOutputCsv(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
     else
-        return createOutputDict(settings, pathName, vehicleName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
+        return createOutputDict(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
     end
 end # funtion createOutput
 
 
-function createOutputDict(settings::Settings, pathName::String, vehicleName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
+function createOutputDict(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
     # method of function createOutputDict for one operation mode
     if settings.operationModeMinimumRunningTime
         if settings.operationModeMinimumEnergyConsumption
@@ -44,7 +44,7 @@ function createOutputDict(settings::Settings, pathName::String, vehicleName::Str
         end
     end
 
-    outputDict=Dict([("path name", pathName), ("vehicle name", vehicleName), ("operation mode", operationMode), ("mass model", settings.massModel), ("step variable", settings.stepVariable), ("step size", settings.stepSize)])
+    outputDict=Dict([("path name", pathName), ("train name", trainName), ("operation mode", operationMode), ("mass model", settings.massModel), ("step variable", settings.stepVariable), ("step size", settings.stepSize)])
 
     # creating an output array
     outputArray=Array{Any, 1}[]
@@ -72,10 +72,10 @@ function createOutputDict(settings::Settings, pathName::String, vehicleName::Str
     return outputDict
 end # function createOutputDict
 
-function createOutputDict(settings::Settings, pathName::String, vehicleName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
+function createOutputDict(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
     # method of function createOutputDict for two operation modes
     if settings.operationModeMinimumRunningTime
-        outputDict=createOutputDict(settings, pathName, vehicleName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime)
+        outputDict=createOutputDict(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime)
 
         if settings.operationModeMinimumEnergyConsumption
             # creating the second output array
@@ -95,7 +95,7 @@ function createOutputDict(settings::Settings, pathName::String, vehicleName::Str
             merge!(outputDict, Dict("outputArrayMinimumEnergyConsumption"=>outputArrayMinimumEnergyConsumption))
         end
     else
-        outputDict=createOutputDict(settings, pathName, vehicleName, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
+        outputDict=createOutputDict(settings, pathName, trainName, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
     end
 
         # println("The output dictionary has been created for minimum running time and minimum energy consumption.")
@@ -103,9 +103,9 @@ function createOutputDict(settings::Settings, pathName::String, vehicleName::Str
 end # function createOutputDict
 
 
-function createOutputCsv(settings::Settings, pathName::String, vehicleName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
+function createOutputCsv(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
     # method of function createOutputDict for one operation mode
-    outputDict=createOutputDict(settings, pathName, vehicleName, drivingCourse, movingSection)
+    outputDict=createOutputDict(settings, pathName, trainName, drivingCourse, movingSection)
 
     if length(movingSection.energySavingModifications)>0   # if the moving section hast energy saving modifications the moving section is modified for minimum energy consumption
         operationMode="minimum energy consumption"
@@ -123,8 +123,8 @@ function createOutputCsv(settings::Settings, pathName::String, vehicleName::Stri
 
     # creating information block
     infoColumns=Array{Any,1}[]
-    push!(infoColumns, ["path name", "vehicle name", "operation mode", "mass model", "step variable", "step size", ""])
-    push!(infoColumns, [pathName, vehicleName, operationMode, settings.massModel, settings.stepVariable, string(settings.stepSize), ""])
+    push!(infoColumns, ["path name", "train name", "operation mode", "mass model", "step variable", "step size", ""])
+    push!(infoColumns, [pathName, trainName, operationMode, settings.massModel, settings.stepVariable, string(settings.stepSize), ""])
     for column in 3:length(outputDict[outputArray][1])
         push!(infoColumns, ["", "", "", "", "", "", ""])
     end # for
@@ -156,16 +156,16 @@ function createOutputCsv(settings::Settings, pathName::String, vehicleName::Stri
     return outputDict
 end #function createOutputCsv
 
-function createOutputCsv(settings::Settings, pathName::String, vehicleName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
+function createOutputCsv(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
     # method of function createOutputDict for two operation modes
-    outputDict=createOutputDict(settings, pathName, vehicleName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
+    outputDict=createOutputDict(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
 
     if settings.operationModeMinimumRunningTime
         #creating information block
         infoColumns=Array{Any,1}[]
-        push!(infoColumns, ["path name", "vehicle name", "operation mode", "mass model", "step variable", "step size", ""])
-        #push!(infoColumns, [pathName, vehicleName, "minimum running time", settings.massModel, settings.stepVariable, settings.stepSize, ""])
-        push!(infoColumns, [pathName, vehicleName, "minimum running time", settings.massModel, settings.stepVariable, string(settings.stepSize), ""])
+        push!(infoColumns, ["path name", "train name", "operation mode", "mass model", "step variable", "step size", ""])
+        #push!(infoColumns, [pathName, trainName, "minimum running time", settings.massModel, settings.stepVariable, settings.stepSize, ""])
+        push!(infoColumns, [pathName, trainName, "minimum running time", settings.massModel, settings.stepVariable, string(settings.stepSize), ""])
 
         for column in 3:length(outputDict["outputArrayMinimumRunningTime"][1])
             push!(infoColumns, ["", "", "", "", "", "", ""])
@@ -204,8 +204,8 @@ function createOutputCsv(settings::Settings, pathName::String, vehicleName::Stri
     if settings.operationModeMinimumEnergyConsumption
         #creating information block
         infoColumns=Array{Any,1}[]
-        push!(infoColumns, ["path name", "vehicle name", "operation mode", "mass model", "step variable", "step size", ""])
-        push!(infoColumns, [pathName, vehicleName, "minimum energy consumption", settings.massModel, settings.stepVariable, settings.stepSize, ""])
+        push!(infoColumns, ["path name", "train name", "operation mode", "mass model", "step variable", "step size", ""])
+        push!(infoColumns, [pathName, trainName, "minimum energy consumption", settings.massModel, settings.stepVariable, settings.stepSize, ""])
         for column in 3:length(outputDict["outputArrayMinimumEnergyConsumption"][1])
             push!(infoColumns, ["", "", "", "", "", "", ""])
         end # for
@@ -287,15 +287,16 @@ function plotDrivingCourse(drivingCourse::Vector{Waypoint})
 
     p2=plot([t], [v], title = "v in m/s", label = ["v"], xlabel = "t in s")
 
-    p3=plot([s], [t], title = "t in s", label = ["t"], xlabel = "s in m")
+#    p3=plot([s], [t], title = "t in s", label = ["t"], xlabel = "s in m")
 
-    p4=plot([t], [s], title = "s in m", label = ["s"], xlabel = "t in s")
+#    p4=plot([t], [s], title = "s in m", label = ["s"], xlabel = "t in s")
 
     p5=plot([s], [E], title = "E in Ws", label = ["E"], xlabel = "s in m")
 
     p6=plot([t], [E], title = "E in Ws", label = ["E"], xlabel = "t in s")
 
-    all=plot(p1, p2, p3, p4, p5, p6, layout = (3, 2), legend = false)
+    all=plot(p1, p2, p5, p6, layout = (2, 2), legend = false)
+#    all=plot(p1, p2, p3, p4, p5, p6, layout = (3, 2), legend = false)
     display(all)
     println("Plots for different variables have been created.")
 end #function plotDrivingCourse
@@ -339,17 +340,17 @@ function plotDrivingCourse(drivingCourseMinimumRunningTime::Vector{Waypoint},dri
         label = ["v for t_min" "v for E_min"],
         xlabel = "t in s")
 
-    p3=plot([s_minTime,s_minEnergy],
-        [t_minTime,t_minEnergy],
-        title = "t in s",
-        label = ["t for t_min" "t for E_min"],
-        xlabel = "s in m")
+#    p3=plot([s_minTime,s_minEnergy],
+#        [t_minTime,t_minEnergy],
+#        title = "t in s",
+#        label = ["t for t_min" "t for E_min"],
+#        xlabel = "s in m")
 
-    p4=plot([t_minTime,t_minEnergy],
-        [s_minTime,s_minEnergy],
-        title = "s in m",
-        label = ["s for t_min" "s for E_min"],
-        xlabel = "t in s")
+#    p4=plot([t_minTime,t_minEnergy],
+#        [s_minTime,s_minEnergy],
+#        title = "s in m",
+#        label = ["s for t_min" "s for E_min"],
+#        xlabel = "t in s")
 
     p5=plot([s_minTime,s_minEnergy],
         [E_minTime,E_minEnergy],
@@ -363,9 +364,10 @@ function plotDrivingCourse(drivingCourseMinimumRunningTime::Vector{Waypoint},dri
         label = ["E for t_min" "E for E_min"],
         xlabel = "t in s")
 
-    all=plot(p1, p2, p3, p4, p5, p6, layout = (3, 2), legend = false)
+#    all=plot(p1, p2, p3, p4, p5, p6, layout = (3, 2), legend = false)
+    all=plot(p1, p2, p5, p6, layout = (2, 2), legend = false)
     display(all)
     println("Plots for different variables have been created.")
 end #function plotDrivingCourse
 
-end # module RailwayDrivingDynamicsOutput
+end # module Output

@@ -1,14 +1,16 @@
-module RailwayDrivingDynamicsMovingPhases
+module MovingPhases
 
 using ..types
-export addAccelerationPhase!, addAccelerationPhaseWithIntersection!, addCruisingPhase!, addCoastingPhaseWithIntersection!, addBrakingPhase!
+export addAccelerationPhase!, addAccelerationPhaseUntilBraking!, addCruisingPhase!, addCoastingPhaseUntilBraking!, addBrakingPhase!
 
 v00=100/3.6     # velocity constant (in m/s)
 g=9.81          # acceleration due to gravity (in m/s^2)            # TODO: should more digits of g be used?  g=9,80665 m/s^2
 
 ## functions for calculating tractive effort and resisting forces
+"""
+calculate the trains tractive effort dependend on the velocity
+"""
 function calculateTractiveEffort(v::AbstractFloat, tractiveEffortArray)
-    # this function calculates the vehicles tractive effort dependend on the velocity
     for row in 1:length(tractiveEffortArray)
         if  tractiveEffortArray[row][1]<=v && v<=tractiveEffortArray[row][2]
             return tractiveEffortArray[row][3]
@@ -24,18 +26,25 @@ function calculateTractiveEffort(v::AbstractFloat, tractiveEffortArray)
     end #for
 end #function calculateTractiveEffort
 
-function calculateTractionUnitResistance(v::AbstractFloat, vehicle::Vehicle)
-    # this function calculates and returns the traction units vehicle resistance dependend on the velocity
-    return vehicle.f_Rtd0/1000*vehicle.m_td*g+vehicle.f_Rtc0/1000*vehicle.m_tc*g+vehicle.F_Rt2*((v+vehicle.Δv_t)/v00)^2    # /1000 because of the unit ‰
+"""
+calculate and return the traction units vehicle resistance dependend on the velocity
+"""
+function calculateTractionUnitResistance(v::AbstractFloat, train::Train)
+    return train.f_Rtd0/1000*train.m_td*g+train.f_Rtc0/1000*train.m_tc*g+train.F_Rt2*((v+train.Δv_t)/v00)^2    # /1000 because of the unit ‰
 end #function calculateTractionUnitResistance
 
-function calculateWagonsResistance(v::AbstractFloat, vehicle::Vehicle)
-    # this function calculates and returns the wagons vehicle resistance dependend on the velocity
-    return vehicle.m_w*g*(vehicle.f_Rw0/1000+vehicle.f_Rw1/1000*v/v00+vehicle.f_Rw2/1000*((v+vehicle.Δv_w)/v00)^2)          # /1000 because of the unit ‰
+"""
+calculate and return the wagons vehicle resistance dependend on the velocity
+"""
+function calculateWagonsResistance(v::AbstractFloat, train::Train)
+    return train.m_w*g*(train.f_Rw0/1000+train.f_Rw1/1000*v/v00+train.f_Rw2/1000*((v+train.Δv_w)/v00)^2)          # /1000 because of the unit ‰
 end #function calculateWagonsResistance
 
-function calculatePathResistance(s::AbstractFloat, massModel::String, vehicle::Vehicle, allCs::Vector{CharacteristicSection})
-    # looking for the characteristic section with the unions head position
+"""
+calculate and return the path resistance dependend on the trains position and mass model
+"""
+function calculatePathResistance(s::AbstractFloat, massModel::String, train::Train, allCs::Vector{CharacteristicSection})
+    # looking for the characteristic section with the trains head position
     id=length(allCs)
     while s<allCs[id].s_start
         id=id-1
@@ -45,15 +54,15 @@ function calculatePathResistance(s::AbstractFloat, massModel::String, vehicle::V
     end #while
 
     if massModel=="mass point"
-        pathResistance=allCs[id].f_Rp/1000*vehicle.m_union*g        # /1000 because of the unit ‰
+        pathResistance=allCs[id].f_Rp/1000*train.m_union*g        # /1000 because of the unit ‰
     elseif massModel=="homogeneous strip"
         pathResistance=0.0
-        while id>0 && s-vehicle.l_union<allCs[id].s_end
-            pathResistance=pathResistance+(min(s, allCs[id].s_end)-max(s-vehicle.l_union, allCs[id].s_start))/vehicle.l_union*(allCs[id].f_Rp/1000*vehicle.m_union*g)      # /1000 because of the unit ‰
+        while id>0 && s-train.l_union<allCs[id].s_end
+            pathResistance=pathResistance+(min(s, allCs[id].s_end)-max(s-train.l_union, allCs[id].s_start))/train.l_union*(allCs[id].f_Rp/1000*train.m_union*g)      # /1000 because of the unit ‰
             id=id-1
             if id==0
                 # TODO: currently for values  < movingSection.s_start the values of movingSection.s_start  will be used
-                return pathResistance+(allCs[1].s_start-(s-vehicle.l_union))/vehicle.l_union*(allCs[1].f_Rp/1000*vehicle.m_union*g)        # /1000 because of the unit ‰
+                return pathResistance+(allCs[1].s_start-(s-train.l_union))/train.l_union*(allCs[1].f_Rp/1000*train.m_union*g)        # /1000 because of the unit ‰
             end #if
         end #while
     else
@@ -63,12 +72,33 @@ function calculatePathResistance(s::AbstractFloat, massModel::String, vehicle::V
     return pathResistance
 end #function pathResistance
 
+"""
+calculate and return tractive and resisting forces for a waypoint
+"""
+function calculateForces!(waypoint::Waypoint, train::Train, massModel::String,  allCs::Vector{CharacteristicSection}, bsType::String)
+    # calculate resisting forces
+    waypoint.F_Rt=calculateTractionUnitResistance(waypoint.v, train)
+    waypoint.F_Rw=calculateWagonsResistance(waypoint.v, train)
+    waypoint.F_Runion=waypoint.F_Rt+waypoint.F_Rw
+    waypoint.F_Rp=calculatePathResistance(waypoint.s, massModel, train, allCs)
+    waypoint.F_R=waypoint.F_Runion+waypoint.F_Rp
+
+    #calculate tractive effort
+    if bsType == "acceleration"
+        waypoint.F_T = calculateTractiveEffort(waypoint.v, train.tractiveEffortArray)
+    elseif bsType == "cruising"
+        waypoint.F_T = min(max(0.0, waypoint.F_R), calculateTractiveEffort(waypoint.v, train.tractiveEffortArray))
+    else
+        waypoint.F_T = 0.0
+    end
+return waypoint
+end #function calculateForces
+
 
 ## This function calculates the waypoints of the starting phase.
 # Therefore it gets its first waypoint and the characteristic section and returns the characteristic section including the behavior section for starting if needed.
-# TODO: currently the values of the starting phase will be calculated like in the acceleration phase
-function addStartingPhase!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, vehicle::Vehicle, allCs::Vector{CharacteristicSection})
-
+# Info: currently the values of the starting phase will be calculated like in the acceleration phase
+function addStartingPhase!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, train::Train, allCs::Vector{CharacteristicSection})
     if drivingCourse[end].v==0.0 && drivingCourse[end].s<characteristicSection.s_end
         startingSection=BehaviorSection()
         startingSection.type="starting"                         # type of behavior section
@@ -76,16 +106,19 @@ function addStartingPhase!(characteristicSection::CharacteristicSection, driving
         startingSection.v_entry=drivingCourse[end].v            # entry speed (in m/s)
         push!(startingSection.waypoints, drivingCourse[end].i)  # list of containing waypoints
 
+
+
         # traction effort and resisting forces (in N):
-        drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, vehicle.tractiveEffortArray)
-        drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, vehicle)
-        drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, vehicle)
-        drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
-        drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, vehicle, allCs)
-        drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+        drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, settings.massModel,  allCs, "acceleration"))    # currently the tractive effort is calculated like in the acceleration phase
+    #07/16    drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, train.tractiveEffortArray)
+    #07/16    drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, train)
+    #07/16    drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, train)
+    #07/16    drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
+    #07/16    drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, train, allCs)
+    #07/16    drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
 
         # acceleration (in m/s^2):
-        drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/vehicle.m_union/vehicle.ξ_union
+        drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train.m_union/train.ξ_union
         if drivingCourse[end].a<0.0
             error("ERROR: a<0 m/s^2 in the starting phase !")
         elseif drivingCourse[end].a==0.0
@@ -141,27 +174,27 @@ end #function addStartingPhase!
 
 ## This function calculates the waypoints of the acceleration phase.
  #  Therefore it gets its previous driving course and the characteristic section and returns the characteristic section and driving course including the acceleration section
-function addAccelerationPhase!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, vehicle::Vehicle, allCs::Vector{CharacteristicSection})
+function addAccelerationPhase!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, train::Train, allCs::Vector{CharacteristicSection})
     if drivingCourse[end].v==0.0
-        (characteristicSection, drivingCourse)=addStartingPhase!(characteristicSection, drivingCourse, settings, vehicle, allCs)
+        (characteristicSection, drivingCourse)=addStartingPhase!(characteristicSection, drivingCourse, settings, train, allCs)
     end #if
 
-    # if the tail of the vehicle is still in a former characteristic section it has to be checked if its speed limit can be kept
+    # if the tail of the train is still in a former characteristic section it has to be checked if its speed limit can be kept
     formerSpeedLimits=[]
-    if characteristicSection.id>1 && drivingCourse[end].s-vehicle.l_union<characteristicSection.s_start
+    if characteristicSection.id>1 && drivingCourse[end].s-train.l_union<characteristicSection.s_start
         if abs(allCs[characteristicSection.id-1].v_limit-drivingCourse[end].v)<0.000001
-            s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking, digits=10))
-            s_cruisingBeforeAcceleration=min(characteristicSection.s_end-drivingCourse[end].s-s_braking, vehicle.l_union)
+            s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=10))
+            s_cruisingBeforeAcceleration=min(characteristicSection.s_end-drivingCourse[end].s-s_braking, train.l_union)
 
             if s_cruisingBeforeAcceleration>0.0
-                (characteristicSection, drivingCourse)=addCruisingPhase!(characteristicSection, drivingCourse, s_cruisingBeforeAcceleration, settings, vehicle, allCs, "cruisingBeforeAcceleration")
+                (characteristicSection, drivingCourse)=addCruisingPhase!(characteristicSection, drivingCourse, s_cruisingBeforeAcceleration, settings, train, allCs, "cruisingBeforeAcceleration")
             else
                 error("ERROR: cruisingBeforeAcceleration <=0.0 although it has to be >0.0 in CS ",characteristicSection.id)
             end
         else # detecting the lower speed limits of former sections
             csId=characteristicSection.id-1
-            while csId>0 && drivingCourse[end].s-vehicle.l_union<allCs[csId].s_end
-                if allCs[csId].v_limit<characteristicSection.v_limit    # TODO: is the position of vehicles tail < movingSection.s_start, v_limit of the first CS is used
+            while csId>0 && drivingCourse[end].s-train.l_union<allCs[csId].s_end
+                if allCs[csId].v_limit<characteristicSection.v_limit    # TODO: is the position of trains tail < movingSection.s_start, v_limit of the first CS is used
                     push!(formerSpeedLimits, [allCs[csId].s_end, allCs[csId].v_limit])
                     for i in 1:length(formerSpeedLimits)-1
                         if formerSpeedLimits[i][2]<=formerSpeedLimits[end][2]
@@ -186,15 +219,18 @@ function addAccelerationPhase!(characteristicSection::CharacteristicSection, dri
                                             # in the fifth cycle the interpolated values are corrected in case v_reach is still to high although s==s_end
             while length(formerSpeedLimits)>0 && drivingCourse[end].v<characteristicSection.v_reach && drivingCourse[end].s<characteristicSection.s_end && drivingCourse[end].v>0.0
                 push!(accelerationSection.waypoints, drivingCourse[end].i)
-                drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, vehicle.tractiveEffortArray)
-                drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, vehicle)
-                drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, vehicle)
-                drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
-                drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, vehicle, allCs)
-                drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+
+                drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, settings.massModel,  allCs, accelerationSection.type))
+            #07/16    drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, train.tractiveEffortArray)
+            #07/16    drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, train)
+            #07/16    drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, train)
+            #07/16    drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
+            #07/16    drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, train, allCs)
+            #07/16    drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+
 
                 # acceleration (in m/s^2):
-                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/vehicle.m_union/vehicle.ξ_union
+                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train.m_union/train.ξ_union
                 if drivingCourse[end].a==0.0
                     error("ERROR: a=0 m/s^2 in the acceleration phase !   with  F_T=",drivingCourse[end].F_T,"  F_Rt=",drivingCourse[end].F_Rt,"  F_Rw=",drivingCourse[end].F_Rw,"  F_Rp=",drivingCourse[end].F_Rp)
                 end
@@ -207,7 +243,7 @@ function addAccelerationPhase!(characteristicSection::CharacteristicSection, dri
                 if settings.stepVariable=="s in m"                                                           # distance step method
                     drivingCourse[end].Δs=currentStepSize                                                    # step size (in m)
                     if ((drivingCourse[end-1].v/drivingCourse[end-1].a)^2+2*drivingCourse[end].Δs/drivingCourse[end-1].a)<0.0 || (drivingCourse[end-1].v^2+2*drivingCourse[end].Δs*drivingCourse[end-1].a)<0.0  # checking if the parts of the following square roots will be <0.0
-                        error("ERROR: The vehicle stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
+                        error("ERROR: The train stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
                         "       Before the stop the last point has the values s=",drivingCourse[end-1].s,"  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
                         "       F_T=",drivingCourse[end-1].F_T," N  F_Rt=",drivingCourse[end-1].F_Rt," N  F_Rw=",drivingCourse[end-1].F_Rw," N  F_Rp=",drivingCourse[end-1].F_Rp," N.")
                     end
@@ -231,7 +267,7 @@ function addAccelerationPhase!(characteristicSection::CharacteristicSection, dri
                 drivingCourse[end].ΔE=drivingCourse[end].ΔW_T                                              # energy consumption in this step (in Ws)
                 drivingCourse[end].E=drivingCourse[end-1].E+drivingCourse[end].ΔE                            # energy consumption (in Ws)
 
-                while length(formerSpeedLimits)>0 && drivingCourse[end].s-vehicle.l_union>=formerSpeedLimits[end][1]
+                while length(formerSpeedLimits)>0 && drivingCourse[end].s-train.l_union>=formerSpeedLimits[end][1]
                     pop!(formerSpeedLimits)
                 end
 
@@ -247,11 +283,11 @@ function addAccelerationPhase!(characteristicSection::CharacteristicSection, dri
                     end
 
                     # creating a cruisingBeforeAcceleration section
-                    s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking, digits=10))
-                    s_cruisingBeforeAcceleration=min(characteristicSection.s_end-drivingCourse[end].s-s_braking, formerSpeedLimits[end][1]-(drivingCourse[end].s-vehicle.l_union))
+                    s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=10))
+                    s_cruisingBeforeAcceleration=min(characteristicSection.s_end-drivingCourse[end].s-s_braking, formerSpeedLimits[end][1]-(drivingCourse[end].s-train.l_union))
 
                     if s_cruisingBeforeAcceleration>0.0
-                        (characteristicSection, drivingCourse)=addCruisingPhase!(characteristicSection, drivingCourse, s_cruisingBeforeAcceleration, settings, vehicle, allCs, "cruisingBeforeAcceleration")
+                        (characteristicSection, drivingCourse)=addCruisingPhase!(characteristicSection, drivingCourse, s_cruisingBeforeAcceleration, settings, train, allCs, "cruisingBeforeAcceleration")
                     else
                         error("ERROR: cruisingBeforeAcceleration <=0.0 although it has to be >0.0 in CS ",characteristicSection.id)
                     end
@@ -269,22 +305,23 @@ function addAccelerationPhase!(characteristicSection::CharacteristicSection, dri
                 end
             end
 
-            # from here on the head and tail of the union are located in the current characteristic section
+            # from here on the head and tail of the train are located in the current characteristic section
 
-            # acceleration with all parts of the vehicle in the current characteristic section
+            # acceleration with all parts of the train inside the current characteristic section
             while drivingCourse[end].v<characteristicSection.v_reach && drivingCourse[end].s<characteristicSection.s_end && drivingCourse[end].v>0.0
                 push!(accelerationSection.waypoints, drivingCourse[end].i)
 
                 # traction effort and resisting forces (in N):
-                drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, vehicle.tractiveEffortArray)
-                drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, vehicle)
-                drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, vehicle)
-                drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
-                drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, vehicle, allCs)
-                drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+                drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, settings.massModel,  allCs, accelerationSection.type))
+            #07/16    drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, train.tractiveEffortArray)
+            #07/16    drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, train)
+            #07/16    drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, train)
+            #07/16    drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
+            #07/16    drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, train, allCs)
+            #07/16    drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
 
                 # acceleration (in m/s^2):
-                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/vehicle.m_union/vehicle.ξ_union
+                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train.m_union/train.ξ_union
                 if drivingCourse[end].a==0.0
                     error("ERROR: a=0.0 m/s^2 in the acceleration phase !   with  F_T=",drivingCourse[end].F_T,"  F_Rt=",drivingCourse[end].F_Rt,"  F_Rw=",drivingCourse[end].F_Rw,"  F_Rp=",drivingCourse[end].F_Rp)
                 end
@@ -297,7 +334,7 @@ function addAccelerationPhase!(characteristicSection::CharacteristicSection, dri
                 if settings.stepVariable=="s in m"                                                           # distance step method
                     drivingCourse[end].Δs=currentStepSize                                                    # step size (in m)
                     if ((drivingCourse[end-1].v/drivingCourse[end-1].a)^2+2*drivingCourse[end].Δs/drivingCourse[end-1].a)<0.0 || (drivingCourse[end-1].v^2+2*drivingCourse[end].Δs*drivingCourse[end-1].a)<0.0  # checking if the parts of the following square roots will be <0.0
-                        error("ERROR: The vehicle stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
+                        error("ERROR: The train stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
                         "       Before the stop the last point has the values s=",drivingCourse[end-1].s,"  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
                         "       F_T=",drivingCourse[end-1].F_T," N  F_Rt=",drivingCourse[end-1].F_Rt," N  F_Rw=",drivingCourse[end-1].F_Rw," N  F_Rp=",drivingCourse[end-1].F_Rp," N.")
                     end
@@ -330,7 +367,7 @@ function addAccelerationPhase!(characteristicSection::CharacteristicSection, dri
                 elseif cycle==3 || cycle==4  # new step size is calculated with interpolation
                     currentStepSize=abs((characteristicSection.v_reach-drivingCourse[end-1].v)*(drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))   # step size (in m/s)
                 elseif cycle==5
-                    error("ERROR: The vehicle stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
+                    error("ERROR: The train stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
                     "       Before the stop the last point has the values s=",drivingCourse[end-1].s,"  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
                     "       F_T=",drivingCourse[end-1].F_T," N  F_Rt=",drivingCourse[end-1].F_Rt," N  F_Rw=",drivingCourse[end-1].F_Rw," N  F_Rp=",drivingCourse[end-1].F_Rp," N.")
                 end
@@ -442,27 +479,27 @@ end #function addAccelerationPhase!
 
 
 ## This function calculates the waypoints of the acceleration phase.
-function addAccelerationPhaseWithIntersection!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, vehicle::Vehicle, allCs::Vector{CharacteristicSection})
+function addAccelerationPhaseUntilBraking!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, train::Train, allCs::Vector{CharacteristicSection})
     if drivingCourse[end].v==0.0
-        (characteristicSection, drivingCourse)=addStartingPhase!(characteristicSection, drivingCourse, settings, vehicle, allCs)
+        (characteristicSection, drivingCourse)=addStartingPhase!(characteristicSection, drivingCourse, settings, train, allCs)
     end #if
 
-    # if the tail of the vehicle is still in a former characteristic section it has to be checked if its speed limit can be kept
+    # if the tail of the train is still in a former characteristic section it has to be checked if its speed limit can be kept
     formerSpeedLimits=[]
-    if characteristicSection.id>1 && drivingCourse[end].s-vehicle.l_union<characteristicSection.s_start
+    if characteristicSection.id>1 && drivingCourse[end].s-train.l_union<characteristicSection.s_start
         if abs(allCs[characteristicSection.id-1].v_limit-drivingCourse[end].v)<0.000001
-            s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking, digits=10))
-            s_cruisingBeforeAcceleration=min(characteristicSection.s_end-drivingCourse[end].s-s_braking, vehicle.l_union)
+            s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=10))
+            s_cruisingBeforeAcceleration=min(characteristicSection.s_end-drivingCourse[end].s-s_braking, train.l_union)
 
             if s_cruisingBeforeAcceleration>0.0
-                (characteristicSection, drivingCourse)=addCruisingPhase!(characteristicSection, drivingCourse, s_cruisingBeforeAcceleration, settings, vehicle, allCs, "cruisingBeforeAcceleration")
+                (characteristicSection, drivingCourse)=addCruisingPhase!(characteristicSection, drivingCourse, s_cruisingBeforeAcceleration, settings, train, allCs, "cruisingBeforeAcceleration")
             else
                 error("ERROR: cruisingBeforeAcceleration <=0.0 although it has to be >0.0 in CS ",characteristicSection.id)
             end
         else # detecting the lower speed limits of former sections
             csId=characteristicSection.id-1
-            while csId>0 && drivingCourse[end].s-vehicle.l_union<allCs[csId].s_end
-                if allCs[csId].v_limit<characteristicSection.v_limit    # TODO: is the position of vehicles end < movingSection.s_start, v_limit of the first CS is used
+            while csId>0 && drivingCourse[end].s-train.l_union<allCs[csId].s_end
+                if allCs[csId].v_limit<characteristicSection.v_limit    # TODO: is the position of trains end < movingSection.s_start, v_limit of the first CS is used
                     push!(formerSpeedLimits, [allCs[csId].s_end, allCs[csId].v_limit])
                     for i in 1:length(formerSpeedLimits)-1
                         if formerSpeedLimits[i][2]<=formerSpeedLimits[end][2]
@@ -484,21 +521,22 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
 
         currentStepSize=settings.stepSize   # initializing the step size that can be reduced near intersections
         for cycle in 1:5                    # first cycle with normal step size, second cycle with reduced step size, third cycle with more reduced step size. fourth and fith are needed in case the velocity approaches 0.0 or v_reach
-            s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking, digits=10))
+            s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=10))
 
             while length(formerSpeedLimits)>0 && drivingCourse[end].v<characteristicSection.v_reach && drivingCourse[end].s<characteristicSection.s_end && drivingCourse[end].v>0.0
                 push!(accelerationSection.waypoints, drivingCourse[end].i)
 
                 # traction effort and resisting forces (in N):
-                drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, vehicle.tractiveEffortArray)
-                drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, vehicle)
-                drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, vehicle)
-                drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
-                drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, vehicle, allCs)
-                drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+                drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, settings.massModel,  allCs, accelerationSection.type))
+            #07/16    drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, train.tractiveEffortArray)
+            #07/16    drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, train)
+            #07/16    drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, train)
+            #07/16    drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
+            #07/16    drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, train, allCs)
+            #07/16    drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
 
                 # acceleration (in m/s^2):
-                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/vehicle.m_union/vehicle.ξ_union
+                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train.m_union/train.ξ_union
                 if drivingCourse[end].a==0.0
                     error("ERROR: a=0.0 m/s^2 in the acceleration phase !   with  F_T=",drivingCourse[end].F_T,"  F_Rt=",drivingCourse[end].F_Rt,"  F_Rw=",drivingCourse[end].F_Rw,"  F_Rp=",drivingCourse[end].F_Rp)
                 end
@@ -511,7 +549,7 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                 if settings.stepVariable=="s in m"                    # distance step method
                     drivingCourse[end].Δs=currentStepSize             # step size (in m)
                     if ((drivingCourse[end-1].v/drivingCourse[end-1].a)^2+2*drivingCourse[end].Δs/drivingCourse[end-1].a)<0.0 || (drivingCourse[end-1].v^2+2*drivingCourse[end].Δs*drivingCourse[end-1].a)<0.0  # checking if the parts of the following square roots will be <0.0
-                        error("ERROR: The vehicle stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
+                        error("ERROR: The train stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
                         "       Before the stop the last point has the values s=",drivingCourse[end-1].s,"  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
                         "       F_T=",drivingCourse[end-1].F_T," N  F_Rt=",drivingCourse[end-1].F_Rt," N  F_Rw=",drivingCourse[end-1].F_Rw," N  F_Rp=",drivingCourse[end-1].F_Rp," N.")
                     end
@@ -531,7 +569,7 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                 drivingCourse[end].t=drivingCourse[end-1].t+drivingCourse[end].Δt                            # point in time (in s)
                 drivingCourse[end].v=drivingCourse[end-1].v+drivingCourse[end].Δv                            # velocity (in m/s)
                 if drivingCourse[end].v<=0.0
-                    error("ERROR: The vehicle stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
+                    error("ERROR: The train stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
                     "       Before the stop the last point has the values s=",drivingCourse[end-1].s,"  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
                     "       F_T=",drivingCourse[end-1].F_T," N  F_Rt=",drivingCourse[end-1].F_Rt," N  F_Rw=",drivingCourse[end-1].F_Rw," N  F_Rp=",drivingCourse[end-1].F_Rp," N.")
                 end
@@ -540,7 +578,7 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                 drivingCourse[end].ΔE=drivingCourse[end].ΔW_T                                                # energy consumption in this step (in Ws)
                 drivingCourse[end].E=drivingCourse[end-1].E+drivingCourse[end].ΔE                            # energy consumption (in Ws)
 
-                while length(formerSpeedLimits)>0 && drivingCourse[end].s-vehicle.l_union>=formerSpeedLimits[end][1]
+                while length(formerSpeedLimits)>0 && drivingCourse[end].s-train.l_union>=formerSpeedLimits[end][1]
                     pop!(formerSpeedLimits)
                 end
                 if length(formerSpeedLimits)>0 && drivingCourse[end].v>formerSpeedLimits[end][2]
@@ -553,11 +591,11 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                         delete!(characteristicSection.behaviorSections, "cruisingBeforeAcceleration")
                     end
 
-                    s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking, digits=10))
-                    s_cruisingBeforeAcceleration=min(characteristicSection.s_end-drivingCourse[end].s-s_braking, formerSpeedLimits[end][1]-(drivingCourse[end].s-vehicle.l_union))
+                    s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=10))
+                    s_cruisingBeforeAcceleration=min(characteristicSection.s_end-drivingCourse[end].s-s_braking, formerSpeedLimits[end][1]-(drivingCourse[end].s-train.l_union))
 
                     if s_cruisingBeforeAcceleration>0.0
-                        (characteristicSection, drivingCourse)=addCruisingPhase!(characteristicSection, drivingCourse, s_cruisingBeforeAcceleration, settings, vehicle, allCs, "cruisingBeforeAcceleration")
+                        (characteristicSection, drivingCourse)=addCruisingPhase!(characteristicSection, drivingCourse, s_cruisingBeforeAcceleration, settings, train, allCs, "cruisingBeforeAcceleration")
                     else
                         println("Error: cruisingBeforeAcceleration <=0.0 ")
                     end
@@ -573,25 +611,26 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                         return (characteristicSection, drivingCourse)
                     end
                 end
-                s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking, digits=10))
+                s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=10))
             end
 
-            # from here on the head and tail of the union are located in the current characteristic section
+            # from here on the head and tail of the train are located in the current characteristic section
 
-            # acceleration with all parts of the vehicle in the current characteristic section
+            # acceleration with all parts of the train in the current characteristic section
             while drivingCourse[end].v<characteristicSection.v_reach && (drivingCourse[end].s+s_braking)<characteristicSection.s_end && drivingCourse[end].v>0.0       # as long as s_i + s_braking < s_CSend
                 push!(accelerationSection.waypoints, drivingCourse[end].i)
 
                 # traction effort and resisting forces (in N):
-                drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, vehicle.tractiveEffortArray)
-                drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, vehicle)
-                drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, vehicle)
-                drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
-                drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, vehicle, allCs)
-                drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+                drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, settings.massModel,  allCs, accelerationSection.type))
+            #07/16    drivingCourse[end].F_T=calculateTractiveEffort(drivingCourse[end].v, train.tractiveEffortArray)
+            #07/16    drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, train)
+            #07/16    drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, train)
+            #07/16    drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
+            #07/16    drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, train, allCs)
+            #07/16    drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
 
                 # acceleration (in m/s^2):
-                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/vehicle.m_union/vehicle.ξ_union
+                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train.m_union/train.ξ_union
                 if drivingCourse[end].a==0.0
                     error("ERROR: a=0.0 m/s^2 in the acceleration phase !   with  F_T=",drivingCourse[end].F_T,"  F_Rt=",drivingCourse[end].F_Rt,"  F_Rw=",drivingCourse[end].F_Rw,"  F_Rp=",drivingCourse[end].F_Rp)
                 end
@@ -604,7 +643,7 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                 if settings.stepVariable=="s in m"                                                           # distance step method
                     drivingCourse[end].Δs=currentStepSize                                                    # step size (in m)
                     if ((drivingCourse[end-1].v/drivingCourse[end-1].a)^2+2*drivingCourse[end].Δs/drivingCourse[end-1].a)<0.0 || (drivingCourse[end-1].v^2+2*drivingCourse[end].Δs*drivingCourse[end-1].a)<0.0  # checking if the parts of the following square roots will be <0.0
-                        error("ERROR: The vehicle stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
+                        error("ERROR: The train stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
                         "       Before the stop the last point has the values s=",drivingCourse[end-1].s,"  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
                         "       F_T=",drivingCourse[end-1].F_T," N  F_Rt=",drivingCourse[end-1].F_Rt," N  F_Rw=",drivingCourse[end-1].F_Rw," N  F_Rp=",drivingCourse[end-1].F_Rp," N.")
                     end
@@ -628,7 +667,7 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                 drivingCourse[end].ΔE=drivingCourse[end].ΔW_T                                                # energy consumption in this step (in Ws)
                 drivingCourse[end].E=drivingCourse[end-1].E+drivingCourse[end].ΔE                            # energy consumption (in Ws)
 
-                s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking, digits=10))
+                s_braking=max(0.0, ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=10))
             end #while
 
             # checking which limit was reached and adjusting the currentStepSize for the next cycle
@@ -638,7 +677,7 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                 elseif cycle==3 || cycle==4  # new step size is calculated with interpolation
                     currentStepSize=abs((characteristicSection.v_reach-drivingCourse[end-1].v)*(drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))   # step size (in m/s)
                 elseif cycle==5
-                    error("ERROR: The vehicle stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
+                    error("ERROR: The train stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
                     "       Before the stop the last point has the values s=",drivingCourse[end-1].s,"  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
                     "       F_T=",drivingCourse[end-1].F_T," N  F_Rt=",drivingCourse[end-1].F_Rt," N  F_Rw=",drivingCourse[end-1].F_Rw," N  F_Rp=",drivingCourse[end-1].F_Rp," N.")
                 end
@@ -653,9 +692,9 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
                 elseif cycle==3
                     ## for the intersection:
                     # correcting the step size for the last waypoint
-                    v_intersection=vehicle.a_braking*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))+sign(drivingCourse[end].v-drivingCourse[end-1].v)*sqrt(vehicle.a_braking^2*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))^2-2*vehicle.a_braking*(characteristicSection.s_end-drivingCourse[end-1].s+drivingCourse[end-1].v*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v)))+characteristicSection.v_exit^2)
+                    v_intersection=train.a_braking*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))+sign(drivingCourse[end].v-drivingCourse[end-1].v)*sqrt(train.a_braking^2*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))^2-2*train.a_braking*(characteristicSection.s_end-drivingCourse[end-1].s+drivingCourse[end-1].v*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v)))+characteristicSection.v_exit^2)
 
-                    s_intersection=characteristicSection.s_end-(characteristicSection.v_exit^2-v_intersection^2)/2/vehicle.a_braking
+                    s_intersection=characteristicSection.s_end-(characteristicSection.v_exit^2-v_intersection^2)/2/train.a_braking
                         #     s_intersection_2=(v_intersection-drivingCourse[end-1].v)*(drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v)+drivingCourse[end-1].s
 
                     drivingCourse[end].v=v_intersection
@@ -729,12 +768,12 @@ function addAccelerationPhaseWithIntersection!(characteristicSection::Characteri
         merge!(characteristicSection.behaviorSections, Dict("acceleration"=>accelerationSection))
     end # else: just return the given waypoint number without changes due to the acceleration phase
     return (characteristicSection, drivingCourse)
-end #function addAccelerationPhaseWithIntersection!
+end #function addAccelerationPhaseUntilBraking!
 
 
 ## This function calculates the waypoints of the cruising phase.
 #   Therefore it gets its first waypoint and the characteristic section and returns the characteristic section including the behavior section for cruising if needed.
-function addCruisingPhase!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, s_cruising::AbstractFloat, settings::Settings, vehicle::Vehicle, allCs::Vector{CharacteristicSection}, cruisingType::String)
+function addCruisingPhase!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, s_cruising::AbstractFloat, settings::Settings, train::Train, allCs::Vector{CharacteristicSection}, cruisingType::String)
     if drivingCourse[end].v>0.0 && drivingCourse[end].v<=characteristicSection.v_reach && drivingCourse[end].s<characteristicSection.s_end
         cruisingSection=BehaviorSection()
         cruisingSection.type=cruisingType                                                       # type of behavior section
@@ -752,12 +791,13 @@ function addCruisingPhase!(characteristicSection::CharacteristicSection, driving
             push!(cruisingSection.waypoints, drivingCourse[end].i)
 
             # traction effort and resisting forces (in N)
-            drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, vehicle)
-            drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, vehicle)
-            drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
-            drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, vehicle, allCs)
-            drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
-            drivingCourse[end].F_T=min(max(0.0, drivingCourse[end].F_R), calculateTractiveEffort(drivingCourse[end].v, vehicle.tractiveEffortArray))
+            drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, settings.massModel,  allCs, "cruising")) # TODO: or give cruisingSection.type instead of "cruising"?
+        #07/16    drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, train)
+        #07/16    drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, train)
+        #07/16    drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
+        #07/16    drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, train, allCs)
+        #07/16    drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+        #07/16    drivingCourse[end].F_T=min(max(0.0, drivingCourse[end].F_R), calculateTractiveEffort(drivingCourse[end].v, train.tractiveEffortArray))
 
 
             if drivingCourse[end].F_T>=drivingCourse[end].F_R
@@ -780,7 +820,7 @@ function addCruisingPhase!(characteristicSection::CharacteristicSection, driving
                 drivingCourse[end].ΔE=drivingCourse[end].ΔW_T                          # energy consumption in this step (in Ws)
                 drivingCourse[end].E=drivingCourse[end-1].E+drivingCourse[end].ΔE        # energy consumption (in Ws)
             else
-                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/vehicle.m_union/vehicle.ξ_union
+                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train.m_union/train.ξ_union
 
                 # creating the next waypoint
                 push!(drivingCourse, Waypoint())
@@ -821,7 +861,7 @@ function addCruisingPhase!(characteristicSection::CharacteristicSection, driving
                         if currentStepSize>settings.stepSize/100.0
                             currentStepSize=currentStepSize/10.0
                         else
-                            error("ERROR: The vehicle stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
+                            error("ERROR: The train stops during the acceleration phase in CS",characteristicSection.id," m because the tractive effort is lower than the resistant forces.",
                             "       Before the stop the last point has the values s=",drivingCourse[end-1].s,"  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
                             "       F_T=",drivingCourse[end-1].F_T," N  F_Rt=",drivingCourse[end-1].F_Rt," N  F_Rw=",drivingCourse[end-1].F_Rw," N  F_Rp=",drivingCourse[end-1].F_Rp," N.")
                         end
@@ -852,7 +892,7 @@ end #function addCruisingPhase!
 
 ## This function calculates the waypoints of the coasting phase.
 # Therefore it gets its previous driving course and the characteristic section and returns the characteristic section and driving course including the coasting section
-function addCoastingPhaseWithIntersection!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, vehicle::Vehicle, allCs::Vector{CharacteristicSection})
+function addCoastingPhaseUntilBraking!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, train::Train, allCs::Vector{CharacteristicSection})
    if drivingCourse[end].v>characteristicSection.v_exit && drivingCourse[end].s<characteristicSection.s_end
        coastingSection=BehaviorSection()
        coastingSection.type="coasting"             # type of behavior section
@@ -861,20 +901,21 @@ function addCoastingPhaseWithIntersection!(characteristicSection::Characteristic
 
        currentStepSize=settings.stepSize  # initializing the step size that can be reduced near intersections
        for cycle in 1:3                   # first cycle with normal step size, second cycle with reduced step size, third cycle with more reduced step size
-           s_braking=ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking, digits=10)
+           s_braking=ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=10)
            while drivingCourse[end].v>characteristicSection.v_exit && drivingCourse[end].v<=characteristicSection.v_reach && (drivingCourse[end].s+s_braking)<characteristicSection.s_end # as long as s_i + s_braking < s_CSend
                push!(coastingSection.waypoints, drivingCourse[end].i)
 
                # traction effort and resisting forces (in N):
-               drivingCourse[end].F_T=0
-               drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, vehicle)
-               drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, vehicle)
-               drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
-               drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, vehicle, allCs)
-               drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+               drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, settings.massModel,  allCs, coastingSection.type))
+        #07/16       drivingCourse[end].F_T=0
+        #07/16       drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, train)
+        #07/16       drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, train)
+        #07/16       drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
+        #07/16       drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, settings.massModel, train, allCs)
+        #07/16       drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
 
                # acceleration (in m/s^2):
-               drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/vehicle.m_union/vehicle.ξ_union
+               drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train.m_union/train.ξ_union
 
                # creating the next waypoint
                push!(drivingCourse, Waypoint())
@@ -896,7 +937,7 @@ function addCoastingPhaseWithIntersection!(characteristicSection::Characteristic
                end #if
 
                drivingCourse[end].v=drivingCourse[end-1].v+drivingCourse[end].Δv                            # velocity (in m/s)
-               if drivingCourse[end].v>characteristicSection.v_reach            # if the vehicle gets to fast, it will brake
+               if drivingCourse[end].v>characteristicSection.v_reach            # if the train gets to fast, it will brake
                    drivingCourse[end].v=characteristicSection.v_reach
                    drivingCourse[end].Δv=characteristicSection.v_reach-drivingCourse[end-1].v                       # step size (in m/s)
                    if drivingCourse[end].Δv==0.0
@@ -921,7 +962,7 @@ function addCoastingPhaseWithIntersection!(characteristicSection::Characteristic
                drivingCourse[end].ΔE=drivingCourse[end].ΔW_T                                                # energy consumption in this step (in Ws)
                drivingCourse[end].E=drivingCourse[end-1].E+drivingCourse[end].ΔE                            # energy consumption (in Ws)
 
-               s_braking=ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/vehicle.a_braking)
+               s_braking=ceil((characteristicSection.v_exit^2-drivingCourse[end].v^2)/2/train.a_braking)
            end # while
 
            # checking which limit was reached and adjusting the currentStepSize for the next cycle
@@ -931,9 +972,9 @@ function addCoastingPhaseWithIntersection!(characteristicSection::Characteristic
                    pop!(drivingCourse)
                    pop!(coastingSection.waypoints) # TODO: hier soll wohl ein leeres Array gepoppt werden ..
                elseif cycle==3
-                   v_intersection=vehicle.a_braking*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))+sign(drivingCourse[end].v-drivingCourse[end-1].v)*sqrt(vehicle.a_braking^2*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))^2-2*vehicle.a_braking*(characteristicSection.s_end-drivingCourse[end-1].s+drivingCourse[end-1].v*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v)))+characteristicSection.v_exit^2)
+                   v_intersection=train.a_braking*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))+sign(drivingCourse[end].v-drivingCourse[end-1].v)*sqrt(train.a_braking^2*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v))^2-2*train.a_braking*(characteristicSection.s_end-drivingCourse[end-1].s+drivingCourse[end-1].v*((drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v)))+characteristicSection.v_exit^2)
 
-                   s_intersection=characteristicSection.s_end-(characteristicSection.v_exit^2-v_intersection^2)/2/vehicle.a_braking
+                   s_intersection=characteristicSection.s_end-(characteristicSection.v_exit^2-v_intersection^2)/2/train.a_braking
                    # s_intersection_2=(v_intersection-drivingCourse[end-1].v)*(drivingCourse[end].s-drivingCourse[end-1].s)/(drivingCourse[end].v-drivingCourse[end-1].v)+drivingCourse[end-1].s
 
                    drivingCourse[end].v=v_intersection
@@ -998,11 +1039,11 @@ function addCoastingPhaseWithIntersection!(characteristicSection::Characteristic
        merge!(characteristicSection.behaviorSections, Dict("coasting"=>coastingSection))
    end ## else: just return the given waypoint number without changes due to the coasting phase
    return (characteristicSection, drivingCourse)
-end #function addCoastingPhaseWithIntersection!
+end #function addCoastingPhaseUntilBraking!
 
 ## This function calculates the waypoints of the braking phase.
 #    Therefore it gets its first waypoint and the characteristic section and returns the characteristic section including the behavior section for braking if needed.
-function addBrakingPhase!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, massModel::String, vehicle::Vehicle, allCs::Vector{CharacteristicSection}) #, s_braking::AbstractFloat)
+function addBrakingPhase!(characteristicSection::CharacteristicSection, drivingCourse::Vector{Waypoint}, massModel::String, train::Train, allCs::Vector{CharacteristicSection}) #, s_braking::AbstractFloat)
     if drivingCourse[end].v>characteristicSection.v_exit && drivingCourse[end].s<characteristicSection.s_end
         brakingSection=BehaviorSection()
         brakingSection.type="braking"                           # type of behavior section
@@ -1012,12 +1053,13 @@ function addBrakingPhase!(characteristicSection::CharacteristicSection, drivingC
         push!(brakingSection.waypoints, drivingCourse[end].i)   # refering from the breaking section to the first of its waypoints
 
         # traction effort and resisting forces (in N)
-        drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, vehicle)
-        drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, vehicle)
-        drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
-        drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, massModel, vehicle, allCs)
-        drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
-        drivingCourse[end].F_T=0.0
+        drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, massModel,  allCs, brakingSection.type))
+    #07/16    drivingCourse[end].F_Rt=calculateTractionUnitResistance(drivingCourse[end].v, train)
+    #07/16    drivingCourse[end].F_Rw=calculateWagonsResistance(drivingCourse[end].v, train)
+    #07/16    drivingCourse[end].F_Runion=drivingCourse[end].F_Rt+drivingCourse[end].F_Rw
+    #07/16    drivingCourse[end].F_Rp=calculatePathResistance(drivingCourse[end].s, massModel, train, allCs)
+    #07/16    drivingCourse[end].F_R=drivingCourse[end].F_Runion+drivingCourse[end].F_Rp
+    #07/16    drivingCourse[end].F_T=0.0
 
         push!(drivingCourse, Waypoint())
         drivingCourse[end].i=drivingCourse[end-1].i+1                       # incrementing the number of the waypoint
@@ -1029,8 +1071,8 @@ function addBrakingPhase!(characteristicSection::CharacteristicSection, drivingC
         drivingCourse[end].Δv=drivingCourse[end].v-drivingCourse[end-1].v   # step size (in m/s)
 
         drivingCourse[end-1].a=round((drivingCourse[end].v^2-drivingCourse[end-1].v^2)/2/drivingCourse[end].Δs, digits=10)   # acceleration (in m/s^2) (rounding because it should not be less than a_braking
-        if drivingCourse[end-1].a<vehicle.a_braking || drivingCourse[end-1].a>=0.0
-            println("Warning: a_braking gets to high in CS ",characteristicSection.id, "   with a=",drivingCourse[end-1].a  ,"  >  ",vehicle.a_braking)
+        if drivingCourse[end-1].a<train.a_braking || drivingCourse[end-1].a>=0.0
+            println("Warning: a_braking gets to high in CS ",characteristicSection.id, "   with a=",drivingCourse[end-1].a  ,"  >  ",train.a_braking)
         end
         drivingCourse[end].Δt=drivingCourse[end].Δv/drivingCourse[end-1].a          # step size (in s)
         drivingCourse[end].t=drivingCourse[end-1].t+drivingCourse[end].Δt           # point in time (in s)
@@ -1055,4 +1097,4 @@ function addBrakingPhase!(characteristicSection::CharacteristicSection, drivingC
 end #function addBrakingPhase!
 
 
-end #module
+end #module MovingPhases

@@ -88,17 +88,16 @@ end #function secureBrakingBehavior!
 function secureAccelerationBehavior!(movingSection::MovingSection, settings::Settings, train::Train)
     # this function limits the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises aterwards
     movingSection.characteristicSections[1].v_entry=0.0     # the entry velocity of the first characteristic section is 0.0 m/s
-    startingPoint=Waypoint()
+    startingPoint=DataPoint()
     startingPoint.i=1
 
     previousCSv_exit=movingSection.characteristicSections[1].v_entry
-
     for csId in 1:length(movingSection.characteristicSections)
         movingSection.characteristicSections[csId].v_entry=min(movingSection.characteristicSections[csId].v_entry, previousCSv_exit)
 
         startingPoint.s=movingSection.characteristicSections[csId].s_start
         startingPoint.v=movingSection.characteristicSections[csId].v_entry
-        accelerationCourse=[startingPoint]    # List of waypoints
+        accelerationCourse=[startingPoint]    # List of data points
 
         if movingSection.characteristicSections[csId].v_entry<movingSection.characteristicSections[csId].v_reach
             (movingSection.characteristicSections[csId], accelerationCourse)=addAccelerationPhase!(movingSection.characteristicSections[csId], accelerationCourse, settings, train, movingSection.characteristicSections)        # this function changes the accelerationCourse
@@ -120,7 +119,7 @@ end #function secureAccelerationBehavior!
 ## define the intersection velocities between the characterisitc sections to secure cruising behavior
 function secureCruisingBehavior!(movingSection::MovingSection, settings::Settings, train::Train)
     # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_reach
-    startingPoint=Waypoint()
+    startingPoint=DataPoint()
     startingPoint.i=1
 
     previousCSv_exit=movingSection.characteristicSections[1].v_entry
@@ -130,7 +129,7 @@ function secureCruisingBehavior!(movingSection::MovingSection, settings::Setting
 
         startingPoint.s=movingSection.characteristicSections[csId].s_start
         startingPoint.v=movingSection.characteristicSections[csId].v_reach
-        cruisingCourse=[startingPoint]    # List of waypoints
+        cruisingCourse=[startingPoint]    # List of data points
 
         (movingSection.characteristicSections[csId], cruisingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], cruisingCourse, movingSection.characteristicSections[csId].s_total, settings, train, movingSection.characteristicSections, "cruising")        # this function changes the cruisingCourse
         movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_exit, cruisingCourse[end].v)
@@ -152,7 +151,7 @@ end #module Preparation
 function secureAccelerationBehavior!(movingSection::MovingSection, settings::Settings, train::Train)
     # this function limits the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises aterwards
     movingSection.characteristicSections[1].v_entry=0.0     # the entry velocity of the first characteristic section is 0.0 m/s
-    startingPoint=Waypoint()
+    startingPoint=DataPoint()
     startingPoint.i=1
 
     previousCSv_exit=0.0
@@ -162,7 +161,7 @@ function secureAccelerationBehavior!(movingSection::MovingSection, settings::Set
 
         startingPoint.s=movingSection.characteristicSections[csId].s_start
         startingPoint.v=movingSection.characteristicSections[csId].v_entry
-        cruisingCourse=[startingPoint]    # List of waypoints
+        cruisingCourse=[startingPoint]    # List of data points
 
 
         if movingSection.characteristicSections[csId].v_entry<movingSection.characteristicSections[csId].v_reach
@@ -176,7 +175,7 @@ function secureAccelerationBehavior!(movingSection::MovingSection, settings::Set
                 delete!(movingSection.characteristicSections[csId].behaviorSections, "acceleration")
                 movingSection.characteristicSections[csId].E_total=0.0
                 movingSection.characteristicSections[csId].t_total=0.0
-                accelerationCourse=[startingPoint]    # List of waypoints
+                accelerationCourse=[startingPoint]    # List of data points
 
                 (movingSection.characteristicSections[csId], accelerationCourse)=addAccelerationPhase!(movingSection.characteristicSections[csId], accelerationCourse, settings, train, movingSection.characteristicSections)        # this function changes the accelerationCourse
             end

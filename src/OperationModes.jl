@@ -13,10 +13,10 @@ approximationLevel = 6      # TODO: define it in TrainRun and give it to each fu
 
 function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Settings, train::Train)
     # simulate a train run focussing on using the minimum possible running time
-    startingPoint=Waypoint()
+    startingPoint=DataPoint()
     startingPoint.i=1
     startingPoint.s=movingSection.characteristicSections[1].s_start
-    drivingCourse=[startingPoint]    # List of waypoints
+    drivingCourse=[startingPoint]    # List of data points
 
     for csId in 1:length(movingSection.characteristicSections)
     #    println("CS",csId)
@@ -87,8 +87,8 @@ function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Set
         end =#
     end #for
 
-    # calculate the last waypoints resiting forces
-    drivingCourse[end]=Waypoint(calculateForces!(drivingCourse[end], train, settings.massModel,  movingSection.characteristicSections, "braking"))
+    # calculate the last data points resiting forces
+    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings.massModel,  movingSection.characteristicSections, "braking"))
 
     movingSection.t_total=drivingCourse[end].t            # total running time (in s)
     movingSection.E_total=drivingCourse[end].E            # total energy consumption (in Ws)
@@ -97,7 +97,7 @@ function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Set
 end #function simulateMinimumRunningTime
 
 
-function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumRunningTime::Vector{Waypoint}, settings::Settings, train::Train)
+function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumRunningTime::Vector{DataPoint}, settings::Settings, train::Train)
 # simulate a train run focussing on using the minimum possible energy consumption
     # booleans for choosing which methods are used for saving energy
     doMethod1=true
@@ -111,9 +111,9 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
     movingSectionOriginal=MovingSection(movingSectionMinimumRunningTime)
 
     # create a new driving course for the minimum energy consumption
-    drivingCourseOriginal=Waypoint[]
+    drivingCourseOriginal=DataPoint[]
     for i in 1:length(drivingCourseMinimumRunningTime)
-        push!(drivingCourseOriginal, Waypoint(drivingCourseMinimumRunningTime[i]))    # List of waypoints till the start of energy saving
+        push!(drivingCourseOriginal, DataPoint(drivingCourseMinimumRunningTime[i]))    # List of data points till the start of energy saving
     end
 
     # calculate the recovery time
@@ -224,12 +224,12 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
 
         movingSectionOriginal.t_recoveryAvailable = movingSectionOriginal.t_recoveryAvailable - movingSectionOriginal.energySavingModifications[end].Δt
 
-        lastIdOfSelectedCsOriginal = get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "braking", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruisingAfterCoasting", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "coasting", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruising", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "acceleration", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruisingBeforeAcceleration", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "starting", BehaviorSection()))))))).waypoints[end]
+        lastIdOfSelectedCsOriginal = get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "braking", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruisingAfterCoasting", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "coasting", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruising", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "acceleration", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruisingBeforeAcceleration", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "starting", BehaviorSection()))))))).dataPoints[end]
 
         # create new driving course
-        drivingCourseNew=Vector{Waypoint}()
+        drivingCourseNew=Vector{DataPoint}()
         for i in 1:length(movingSectionOriginal.energySavingModifications[end].drivingCourseModified)
-            push!(drivingCourseNew, Waypoint(movingSectionOriginal.energySavingModifications[end].drivingCourseModified[i]))
+            push!(drivingCourseNew, DataPoint(movingSectionOriginal.energySavingModifications[end].drivingCourseModified[i]))
         end
 
     #    # for testing if the modifications driving course and the original one have the same speed value at their transition point
@@ -274,7 +274,7 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
 
         i=lastIdOfSelectedCsOriginal+1
         while i <= length(drivingCourseOriginal)
-            push!(drivingCourseNew, Waypoint(drivingCourseOriginal[i]))
+            push!(drivingCourseNew, DataPoint(drivingCourseOriginal[i]))
             drivingCourseNew[end].i=length(drivingCourseNew)
             drivingCourseNew[end].t=drivingCourseNew[end-1].t+drivingCourseNew[end].Δt
             drivingCourseNew[end].E=drivingCourseNew[end-1].E+drivingCourseNew[end].ΔE
@@ -288,21 +288,21 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
         movingSectionOriginal.t_total=drivingCourseOriginal[end].t            # total running time (in s)
         movingSectionOriginal.E_total=drivingCourseOriginal[end].E            # total energy consumption (in Ws)
 
-        # update all the waypoint references in the behaviour sections of the following characteristic sections and the other modified characteristic sections
+        # update all the data point references in the behaviour sections of the following characteristic sections and the other modified characteristic sections
         if difference!= 0
-            # update the waypoint references in the behaviour sections of the following characteristic sections
+            # update the data point references in the behaviour sections of the following characteristic sections
             allBs=["starting", "cruisingBeforeAcceleration", "acceleration", "cruising", "coasting", "cruisingAfterCoasting", "braking"]
             for csId in csIdMax+1:length(movingSectionOriginal.characteristicSections)
                 for bs in 1: length(allBs)
                     if haskey(movingSectionOriginal.characteristicSections[csId].behaviorSections, allBs[bs])
-                        for point in 1:length(get(movingSectionOriginal.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).waypoints)
-                            get(movingSectionOriginal.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).waypoints[point]=get(movingSectionOriginal.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).waypoints[point]+difference
+                        for point in 1:length(get(movingSectionOriginal.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).dataPoints)
+                            get(movingSectionOriginal.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).dataPoints[point]=get(movingSectionOriginal.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).dataPoints[point]+difference
                         end
                     end #if
                 end #for
             end #for
 
-            # update the waypoints in the following modified charateristic sections and the following points in the driving course
+            # update the data points in the following modified charateristic sections and the following points in the driving course
             energySavingModificationsWithCoasting = updateEnergySavingModifications(energySavingModificationsWithCoasting, csIdMax, drivingCourseNew, endOfModificationId, lastIdOfSelectedCsOriginal)
             energySavingModificationsWithMaximumSpeed = updateEnergySavingModifications(energySavingModificationsWithMaximumSpeed, csIdMax, drivingCourseNew, endOfModificationId, lastIdOfSelectedCsOriginal)
             energySavingModificationsWithCombination = updateEnergySavingModifications(energySavingModificationsWithCombination, csIdMax, drivingCourseNew, endOfModificationId, lastIdOfSelectedCsOriginal)
@@ -337,7 +337,7 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
 end #function simulateMinimumEnergyConsumption
 
 
-function modifyCs(movingSectionOriginal::MovingSection, drivingCourseOriginal::Vector{Waypoint}, csId::Integer, modificationType::String, settings::Settings, train::Train)
+function modifyCs(movingSectionOriginal::MovingSection, drivingCourseOriginal::Vector{DataPoint}, csId::Integer, modificationType::String, settings::Settings, train::Train)
     #println("drin: ",modificationType)
     if modificationType == "increasing coasting"
         # method 1: increase coasting
@@ -393,7 +393,7 @@ function findBestModification(energySavingModifications::Vector{EnergySavingModi
     return (energySavingModifications, ratioMax, csIdMax, typeMax)
 end #function findBestModification
 
-function updateEnergySavingModifications(energySavingModifications::Vector{EnergySavingModification}, csIdMax::Integer, drivingCourseNew::Vector{Waypoint}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
+function updateEnergySavingModifications(energySavingModifications::Vector{EnergySavingModification}, csIdMax::Integer, drivingCourseNew::Vector{DataPoint}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
     allBs = ["starting", "cruisingBeforeAcceleration", "acceleration", "cruising", "coasting", "cruisingAfterCoasting", "braking"]
     difference = endOfModificationId-lastIdOfSelectedCsOriginal
     for modNr in csIdMax+1:length(energySavingModifications)
@@ -401,20 +401,20 @@ function updateEnergySavingModifications(energySavingModifications::Vector{Energ
             # update the behavior sections of the modified charateristic section
             for bs in 1: length(allBs)
                 if haskey(energySavingModifications[modNr].csModified.behaviorSections, allBs[bs])
-                    for point in 1:length(get(energySavingModifications[modNr].csModified.behaviorSections, allBs[bs], BehaviorSection()).waypoints)
-                        get(energySavingModifications[modNr].csModified.behaviorSections, allBs[bs], BehaviorSection()).waypoints[point] = get(energySavingModifications[modNr].csModified.behaviorSections, allBs[bs], BehaviorSection()).waypoints[point]+difference
+                    for point in 1:length(get(energySavingModifications[modNr].csModified.behaviorSections, allBs[bs], BehaviorSection()).dataPoints)
+                        get(energySavingModifications[modNr].csModified.behaviorSections, allBs[bs], BehaviorSection()).dataPoints[point] = get(energySavingModifications[modNr].csModified.behaviorSections, allBs[bs], BehaviorSection()).dataPoints[point]+difference
                     end
                 end #if
             end #for
 
-            # correct the points of previous CS in the modified driving course. Copy the new driving course till the beginning of the current CS and change total values of the current modified CS waypoints accordingly
-            drivingCourseModifiedNew=Vector{Waypoint}()
+            # correct the points of previous CS in the modified driving course. Copy the new driving course till the beginning of the current CS and change total values of the current modified CS data points accordingly
+            drivingCourseModifiedNew=Vector{DataPoint}()
             for i in 1:endOfModificationId
-                push!(drivingCourseModifiedNew, Waypoint(drivingCourseNew[i]))
+                push!(drivingCourseModifiedNew, DataPoint(drivingCourseNew[i]))
             end # for
             i=lastIdOfSelectedCsOriginal+1
             while i <= length(energySavingModifications[modNr].drivingCourseModified)
-                push!(drivingCourseModifiedNew, Waypoint(energySavingModifications[modNr].drivingCourseModified[i]))
+                push!(drivingCourseModifiedNew, DataPoint(energySavingModifications[modNr].drivingCourseModified[i]))
                 drivingCourseModifiedNew[end].i=length(drivingCourseModifiedNew)
                 drivingCourseModifiedNew[end].t=drivingCourseModifiedNew[end-1].t+drivingCourseModifiedNew[end].Δt
                 drivingCourseModifiedNew[end].E=drivingCourseModifiedNew[end-1].E+drivingCourseModifiedNew[end].ΔE

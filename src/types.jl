@@ -1,6 +1,6 @@
 module types
 # definition of all the additional types and their constructors
-export Settings, Train, PathSection, Path, Waypoint, BehaviorSection, CharacteristicSection, EnergySavingModification, MovingSection # tried to insert copy on 15.07.2021 , copy
+export Settings, Train, PathSection, Path, DataPoint, BehaviorSection, CharacteristicSection, EnergySavingModification, MovingSection # tried to insert copy on 15.07.2021 , copy
 
 ## settings for the simulation
 mutable struct Settings
@@ -78,8 +78,8 @@ end # struct Path
 Path()=("", 0, Vector{PathSection}())
 
 
-## a waypoint is the smallest element of the driving course. A step of the step approach is between two waypoints
-mutable struct Waypoint
+## a data point is the smallest element of the driving course. One step of the step approach is between two data points
+mutable struct DataPoint
     i::Integer              # identifier and counter variable of the dricing course
     s::AbstractFloat        # position (in m)
     Δs::AbstractFloat       # step size (in m)
@@ -98,15 +98,15 @@ mutable struct Waypoint
     F_Runion::AbstractFloat # vehicle resistance (in N)
     F_Rt::AbstractFloat     # traction unit resistance (in N)
     F_Rw::AbstractFloat     # set of wagons resistance (in N)
-end # mutable struct Waypoint
-Waypoint()=Waypoint(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-# tried to insert copy on 15.07.2021 copy(original::Waypoint)=Waypoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W_T, original.ΔW_T, original.E, original.ΔE, original.F_T, original.F_R, original.F_Rp, original.F_Runion, original.F_Rt, original.F_Rw)
-Waypoint(original::Waypoint)=Waypoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W_T, original.ΔW_T, original.E, original.ΔE, original.F_T, original.F_R, original.F_Rp, original.F_Runion, original.F_Rt, original.F_Rw)
+end # mutable struct DataPoint
+DataPoint()=DataPoint(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+# tried to insert copy on 15.07.2021 copy(original::DataPoint)=DataPoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W_T, original.ΔW_T, original.E, original.ΔE, original.F_T, original.F_R, original.F_Rp, original.F_Runion, original.F_Rt, original.F_Rw)
+DataPoint(original::DataPoint)=DataPoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W_T, original.ΔW_T, original.E, original.ΔE, original.F_T, original.F_R, original.F_Rp, original.F_Runion, original.F_Rt, original.F_Rw)
 
 
 
 ## different sections the whole path can be devided in the following
-## smallest section of the path is the behavior section. It relates to the containing waypoints via their identifier.
+## smallest section of the path is the behavior section. It relates to the containing data points via their identifier.
 mutable struct BehaviorSection
     type::String                # type of behavior section: "starting", "cruisingBeforeAcceleration", "acceleration", "cruising", "coasting", "cruisingAfterCoasting" or "braking"
     s_total::AbstractFloat      # total length  (in m)
@@ -116,15 +116,15 @@ mutable struct BehaviorSection
     E_total::AbstractFloat      # total energy consumption (in Ws)
     v_entry::AbstractFloat      # entry speed (in m/s)
     v_exit::AbstractFloat       # exit speed (in m/s)
-    waypoints::Vector{Integer}  # list of identifiers of the containing waypoints
+    dataPoints::Vector{Integer}  # list of identifiers of the containing data points
 end # mutable struct BehaviorSection
 BehaviorSection()=BehaviorSection("", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
 function BehaviorSection(original::BehaviorSection)
-    bsWaypoints=[]
-    for i in 1:length(original.waypoints)
-        push!(bsWaypoints, original.waypoints[i])
+    bsDataPoints=[]
+    for i in 1:length(original.dataPoints)
+        push!(bsDataPoints, original.dataPoints[i])
     end
-    return BehaviorSection(original.type, original.s_total, original.s_start, original.s_end, original.t_total, original.E_total, original.v_entry, original.v_exit, bsWaypoints)
+    return BehaviorSection(original.type, original.s_total, original.s_start, original.s_end, original.t_total, original.E_total, original.v_entry, original.v_exit, bsDataPoints)
 end
 
 ## a characteristic section is a part of the moving section. It contains behavior sections.
@@ -162,14 +162,14 @@ mutable struct EnergySavingModification
     Δt::AbstractFloat                           # time loss (in s)
     ratio::AbstractFloat                        # ratio of ΔE and Δt (in Ws/s)
     csModified::CharacteristicSection           # the modified characteristic section
-    drivingCourseModified::Vector{Waypoint}     #drivingCourse for the modified characteristic section
+    drivingCourseModified::Vector{DataPoint}     #drivingCourse for the modified characteristic section
 end # mutable struct EnergySavingModification
 EnergySavingModification()=EnergySavingModification(0, "", 0.0, 0.0, 0.0, CharacteristicSection(), [])
 function EnergySavingModification(original::EnergySavingModification)
-    copy=EnergySavingModification(original.csId, original.type, original.ΔE, original.Δt, original.ratio, CharacteristicSection(), Waypoint[])
+    copy=EnergySavingModification(original.csId, original.type, original.ΔE, original.Δt, original.ratio, CharacteristicSection(), DataPoint[])
     copy.csModified=CharacteristicSection(original.csModified)
     for i in 1:length(original.drivingCourseModified)
-        push!(copy.drivingCourseModified, Waypoint(original.drivingCourseModified[i]))
+        push!(copy.drivingCourseModified, DataPoint(original.drivingCourseModified[i]))
     end
     return copy
 end #function EnergySavingModification
@@ -189,6 +189,7 @@ mutable struct MovingSection
     energySavingModifications::Vector{EnergySavingModification}   # list of containing all the used energy saving modifications
 end # mutable struct MovingSection
 MovingSection()=MovingSection(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, [], [])
+
 function MovingSection(original::MovingSection)
     copy=MovingSection(original.id, original.s_total, original.s_start, original.s_end, original.t_total, original.E_total, original.t_recovery, original.t_recoveryAvailable, [], [])
     for csId in 1:length(original.characteristicSections)

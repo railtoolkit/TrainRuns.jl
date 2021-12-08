@@ -23,18 +23,26 @@ See folder examples.
 
 # History
 
+## Version 0.4.1
+
+Rename waypoints
+
+- rename "waypoints" to "dataPoints" and "Waypoint" to "DataPoint"
+
 ## Version 0.4
 
 Refactor and fix modules EnergySaving, OperationModes and MovingPhases
 
-The general used level of accuracy from v0.3 was added to EnergySaving and OperationModes. OperationModes and MovingPhases were fixed for steep ascents were a train runs with maximum tractive effort while the driving resistances are even higher.
+- add the general used level of accuracy from v0.3 to EnergySaving and OperationModes.
+- fix OperationModes and MovingPhases for steep ascents where a train runs with maximum tractive effort while the driving resistances are even higher.
 
 
 ## Version 0.3
 
 Refactor module MovingPhases
 
-Repeatedly occuring code lines were extracted and smaller functions created (e.g. the function moveAStep). A new approach for calculating the waypoints near intersections was integrated (e.g. including an editable level of accuracy).
+- extract repeatedly occuring code lines and create smaller functions (e.g. the function moveAStep)
+- integrate a new approach for calculating the waypoints near intersections (e.g. including an editable level of accuracy).
 
 
 ## Version 0.2

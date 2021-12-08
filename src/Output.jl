@@ -7,7 +7,7 @@ using CSV, DataFrames, Dates
 export createOutput
 export plotDrivingCourse, printImportantValues, printSectionInformation # functions for showing results during the development
 
-function createOutput(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
+function createOutput(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{DataPoint}, movingSection::MovingSection)
     # method of function createOutput for one operation mode
     if settings.typeOfOutput == "CSV"
         return createOutputCsv(settings, pathName, trainName, drivingCourse, movingSection)
@@ -16,7 +16,7 @@ function createOutput(settings::Settings, pathName::String, trainName::String, d
     end
 end # funtion createOutput
 
-function createOutput(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
+function createOutput(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{DataPoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{DataPoint}, movingSectionMinimumEnergyConsumption::MovingSection)
     # method of function createOutput for two operation modes
     if settings.typeOfOutput == "CSV"
         return createOutputCsv(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
@@ -26,7 +26,7 @@ function createOutput(settings::Settings, pathName::String, trainName::String, d
 end # funtion createOutput
 
 
-function createOutputDict(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
+function createOutputDict(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{DataPoint}, movingSection::MovingSection)
     # method of function createOutputDict for one operation mode
     if settings.operationModeMinimumRunningTime
         if settings.operationModeMinimumEnergyConsumption
@@ -72,7 +72,7 @@ function createOutputDict(settings::Settings, pathName::String, trainName::Strin
     return outputDict
 end # function createOutputDict
 
-function createOutputDict(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
+function createOutputDict(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{DataPoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{DataPoint}, movingSectionMinimumEnergyConsumption::MovingSection)
     # method of function createOutputDict for two operation modes
     if settings.operationModeMinimumRunningTime
         outputDict=createOutputDict(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime)
@@ -103,7 +103,7 @@ function createOutputDict(settings::Settings, pathName::String, trainName::Strin
 end # function createOutputDict
 
 
-function createOutputCsv(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{Waypoint}, movingSection::MovingSection)
+function createOutputCsv(settings::Settings, pathName::String, trainName::String, drivingCourse::Vector{DataPoint}, movingSection::MovingSection)
     # method of function createOutputDict for one operation mode
     outputDict=createOutputDict(settings, pathName, trainName, drivingCourse, movingSection)
 
@@ -156,7 +156,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
     return outputDict
 end #function createOutputCsv
 
-function createOutputCsv(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Waypoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{Waypoint}, movingSectionMinimumEnergyConsumption::MovingSection)
+function createOutputCsv(settings::Settings, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{DataPoint}, movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumEnergyConsumption::Vector{DataPoint}, movingSectionMinimumEnergyConsumption::MovingSection)
     # method of function createOutputDict for two operation modes
     outputDict=createOutputDict(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
 
@@ -245,7 +245,7 @@ end #function createOutputCsv
 
 
 
-function printImportantValues(drivingCourse::Vector{Waypoint})
+function printImportantValues(drivingCourse::Vector{DataPoint})
     println("i      s in m                 v in km/h                t in min               a in m/s^2                F_R in k N                F_T in k N                E in k Wh")
     for i in 1:length(drivingCourse)
         println(drivingCourse[i].i,".   ",drivingCourse[i].s,"  ",drivingCourse[i].v*3.6,"  ",drivingCourse[i].t/60,"  ",drivingCourse[i].a,"  ",drivingCourse[i].F_R/1000,"  ",drivingCourse[i].F_T/1000,"  ",drivingCourse[i].E/3600/1000)
@@ -261,15 +261,15 @@ function printSectionInformation(movingSection::MovingSection)
         for bs in 1: length(allBs)
             if haskey(movingSection.characteristicSections[csId].behaviorSections, allBs[bs])
                 println("BS ",allBs[bs], "   mit s_start=",get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).s_start, "   und t_total=",get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).t_total)
-        #        for point in 1:length(get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).waypoints)
-        #            println(get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).waypoints[point])
+        #        for point in 1:length(get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).dataPoints)
+        #            println(get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).dataPoints[point])
         #        end
             end #if
         end #for
     end #for
 end #function printSectionInformation
 
-function plotDrivingCourse(drivingCourse::Vector{Waypoint})
+function plotDrivingCourse(drivingCourse::Vector{DataPoint})
     a=[]
     E=[]
     s=[]
@@ -301,7 +301,7 @@ function plotDrivingCourse(drivingCourse::Vector{Waypoint})
     println("Plots for different variables have been created.")
 end #function plotDrivingCourse
 
-function plotDrivingCourse(drivingCourseMinimumRunningTime::Vector{Waypoint},drivingCourseMinimumEnergyConsumption::Vector{Waypoint}) #,movingSection1::MovingSection,movingSection2::MovingSection)
+function plotDrivingCourse(drivingCourseMinimumRunningTime::Vector{DataPoint},drivingCourseMinimumEnergyConsumption::Vector{DataPoint}) #,movingSection1::MovingSection,movingSection2::MovingSection)
     a_minTime=[]
     E_minTime=[]
     s_minTime=[]

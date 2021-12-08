@@ -5,6 +5,9 @@ using ..MovingPhases
 
 export calculateRecoveryTime, increaseCoastingSection, decreaseMaximumVelocity, combineEnergySavingMethods
 
+approximationLevel = 6  # value for approximation to intersections
+    # TODO: define it in TrainRun and give it to each function?
+
 function calculateRecoveryTime(s_MS::AbstractFloat, t_MS::AbstractFloat, train::Train)
     # function for calculating the recovery time that can be used for energy saving
     # MS: Moving Section
@@ -86,22 +89,22 @@ function calculateRecoveryTime(s_MS::AbstractFloat, t_MS::AbstractFloat, train::
     end # if train.trainType
 end #function calculateRecoveryTime
 
-
 function increaseCoastingSection(csOriginal::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, train::Train, allCSs::Vector{CharacteristicSection}, t_recoveryAvailable::AbstractFloat)
     if haskey(csOriginal.behaviorSections, "cruising") && haskey(csOriginal.behaviorSections, "braking")
         cruisingReduction=settings.stepSize
-        while cruisingReduction>=settings.stepSize/100
-            while cruisingReduction>=settings.stepSize/100 # will be done once and repeated twice with smaller cruisingReduction unless !(drivingCourseModified[end].v<=csModified.v_exit && drivingCourseModified[end].s<csModified.s_end) -> see below at the end of the while loop
+        while cruisingReduction>=settings.stepSize/10^approximationLevel
+        #while cruisingReduction>=settings.stepSize/100
+            while cruisingReduction>=settings.stepSize/10^approximationLevel # will be done once and then depending on approximationLevel repeated with smaller cruisingReduction unless !(drivingCourseModified[end].v<=csModified.v_exit && drivingCourseModified[end].s<csModified.s_end) -> see below at the end of the while loop
 
-                # creating a drivingCourse for the characteristic section
+                # create a copy for the characteristic sections drivingCourse
                 energySavingStartId=get(csOriginal.behaviorSections, "cruising", BehaviorSection()).waypoints[1]
                 if energySavingStartId==0
                     error("ERROR at creating a new driving course for energy saving with coasting !")
                 end
-                # tried to insert copy on 15.07.2021 drivingCourseModified=[copy(drivingCourse[1])]
+                    # TODO: tried to insert copy on 15.07.2021 drivingCourseModified=[copy(drivingCourse[1])]
                 drivingCourseModified=[Waypoint(drivingCourse[1])]
                 for i in 2:energySavingStartId
-                    # tried to insert copy on 15.07.2021 push!(drivingCourseModified, copy(drivingCourse[i]))    # List of waypoints till the start of energy saving
+                        # TODO: tried to insert copy on 15.07.2021 push!(drivingCourseModified, copy(drivingCourse[i]))    # List of waypoints till the start of energy saving
                     push!(drivingCourseModified, Waypoint(drivingCourse[i]))    # List of waypoints till the start of energy saving
                 end
 
@@ -109,14 +112,18 @@ function increaseCoastingSection(csOriginal::CharacteristicSection, drivingCours
                 if settings.stepVariable=="s in m"                                                           # distance step method
                     s_cruising=get(csOriginal.behaviorSections, "cruising", BehaviorSection()).s_total-cruisingReduction
                 elseif settings.stepVariable=="t in s"                                                       # time step method
-                    t_cruising=get(csOriginal.behaviorSections, "cruising", BehaviorSection()).t_total-cruisingReduction
-                    s_cruising=t_cruising*drivingCourseModified[end].v
+                    # 09/20 old: doesn't work for non constant cruising
+                        # t_cruising=get(csOriginal.behaviorSections, "cruising", BehaviorSection()).t_total-cruisingReduction
+                        # s_cruising=t_cruising*drivingCourseModified[end].v
+                    wayReduction=drivingCourse(get(csOriginal.behaviorSections, "cruising", BehaviorSection()).waypoints[end]).v*cruisingReduction
+                    s_cruising=get(csOriginal.behaviorSections, "cruising", BehaviorSection()).s_total-wayReduction
+
                 elseif settings.stepVariable=="v in m/s"                                                       # velocity step method
                     s_cruising=get(csOriginal.behaviorSections, "cruising", BehaviorSection()).s_total-cruisingReduction*10 # TODO: or better: *100 ?
                 end #if
                 s_cruising=max(0.0, s_cruising)
 
-                # copying csOriginal to csModified
+                # copy csOriginal to csModified
                 csModified=CharacteristicSection(csOriginal.id, csOriginal.s_total, csOriginal.s_start, csOriginal.s_end, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_reach, csOriginal.v_entry, csOriginal.v_exit, csOriginal.f_Rp, Dict{String, BehaviorSection}())
                 if haskey(csOriginal.behaviorSections, "starting")
                     startingSection=BehaviorSection(get(csOriginal.behaviorSections, "starting", BehaviorSection()))
@@ -137,14 +144,14 @@ function increaseCoastingSection(csOriginal::CharacteristicSection, drivingCours
                     csModified.t_total=csModified.t_total+get(csModified.behaviorSections, "acceleration", BehaviorSection()).t_total
                 end
 
-                # calculating the new and now shorter cruising section
+                # simulate the new and now shorter cruising section
                 if s_cruising>0.0
                     (csModified, drivingCourseModified)=addCruisingPhase!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
                 end
 
                 (csModified, drivingCourseModified)=addCoastingPhaseUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
 
-                if drivingCourseModified[end].v<csModified.v_exit || drivingCourseModified[end].s>csModified.s_end
+                if drivingCourseModified[end].v < csModified.v_exit || drivingCourseModified[end].s > csModified.s_end
                     # the train reaches v_exit before reaching s_end. The cruising and coasting sections have to be calculated again with a larger cruising section (so with a smaller reduction of the cruising section)
                     cruisingReduction=cruisingReduction/10
                 else
@@ -152,15 +159,16 @@ function increaseCoastingSection(csOriginal::CharacteristicSection, drivingCours
                 end
             end # while cruisingReduction
 
-            if drivingCourseModified[end].v>csModified.v_exit
-                (csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings.massModel, train, allCSs)
-            elseif drivingCourseModified[end].v==csModified.v_exit && drivingCourseModified[end].s<csModified.s_end
-                # v_exit is already reached. Now cruising till the end of the CS
+            if drivingCourseModified[end].v > csModified.v_exit
+                #(csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings.massModel, train, allCSs)
+                (csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings, train, allCSs)
+            elseif drivingCourseModified[end].v == csModified.v_exit && drivingCourseModified[end].s < csModified.s_end
+                # v_exit is already reached. Now cruise till the end of the CS
                 s_cruisingAfterCoasting=csModified.s_end-drivingCourseModified[end].s
                 (csModified, drivingCourseModified)=addCruisingPhase!(csModified, drivingCourseModified, s_cruisingAfterCoasting, settings, train, allCSs, "cruisingAfterCoasting")
             end
 
-            if t_recoveryAvailable<(csModified.t_total-csOriginal.t_total) || drivingCourseModified[end].v!=csModified.v_exit || drivingCourseModified[end].s!=csModified.s_end # time loss is to high and the CS has to be calculated again with larger cruising section (so with a smaller reduction of the cruising section) or v_exit or s_end are not reached excatly
+            if t_recoveryAvailable < csModified.t_total-csOriginal.t_total || drivingCourseModified[end].v != csModified.v_exit || drivingCourseModified[end].s != csModified.s_end # time loss is to high and the CS has to be calculated again with larger cruising section (so with a smaller reduction of the cruising section) or v_exit or s_end are not reached excatly
                 cruisingReduction=cruisingReduction/10
             else
                 return (csModified, drivingCourseModified, true)
@@ -175,70 +183,104 @@ function increaseCoastingSection(csOriginal::CharacteristicSection, drivingCours
 end # function increaseCoastingSection
 
 
-
 # method 2 with shortening the acceleration by stepsize
 function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCourse, settings::Settings, train::Train, allCSs::Vector{CharacteristicSection}, t_recoveryAvailable::AbstractFloat)
  #function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, train::Train, allCSs::Vector{CharacteristicSection}, t_recoveryAvailable::AbstractFloat)
-    if haskey(csOriginal.behaviorSections, "acceleration") && csOriginal.v_reach>csOriginal.v_entry && csOriginal.v_reach>csOriginal.v_exit
-                # instead of calculating the new final velocity of the acceleration phase with the step sizes for the different step variables, the velocity of the point before the last will be the new v_reach
-            # because it it easier at the moment (TODO)
-        lastIdOfOldAccelerationSection=get(csOriginal.behaviorSections, "acceleration", BehaviorSection()).waypoints[end]
-        accelerationReduction=drivingCourse[lastIdOfOldAccelerationSection].Δv    # with step size it would be accelerationReduction=settings.stepSize
+    if haskey(csOriginal.behaviorSections, "acceleration") && csOriginal.v_reach > csOriginal.v_entry && csOriginal.v_reach > csOriginal.v_exit
+        accelerationSection=BehaviorSection(get(csOriginal.behaviorSections, "acceleration", BehaviorSection()))
+        if drivingCourse[accelerationSection.waypoints[end]-1].v < csOriginal.v_exit
+            return (CharacteristicSection(), [], false)
+            # TODO: or calculate a new acceleration phase with v_exit as v_reach? it will be very short, shorter than the step size.
+        end
 
-        while accelerationReduction>=drivingCourse[lastIdOfOldAccelerationSection].Δv/100 # will be done once and repeated twice with smaller accelerationReduction unless t_recoveryAvailable>=(csModified.t_total-csOriginal.t_total) && 0.0<(csModified.t_total-csOriginal.t_total) -> see below at the end of the while loop
-            # copying csOriginal to csModified
-            csModified=CharacteristicSection(csOriginal.id, csOriginal.s_total, csOriginal.s_start, csOriginal.s_end, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_reach, csOriginal.v_entry, csOriginal.v_exit, csOriginal.f_Rp, Dict{String, BehaviorSection}())
-            if haskey(csOriginal.behaviorSections, "starting")
-                startingSection=BehaviorSection(get(csOriginal.behaviorSections, "starting", BehaviorSection()))
-                merge!(csModified.behaviorSections, Dict("starting"=>startingSection))
-                csModified.E_total=csModified.E_total+get(csModified.behaviorSections, "starting", BehaviorSection()).E_total
-                csModified.t_total=csModified.t_total+get(csModified.behaviorSections, "starting", BehaviorSection()).t_total
+        # copy csOriginal to csModified
+        csModified=CharacteristicSection(csOriginal.id, csOriginal.s_total, csOriginal.s_start, csOriginal.s_end, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_reach, csOriginal.v_entry, csOriginal.v_exit, csOriginal.f_Rp, Dict{String, BehaviorSection}())
+
+        if haskey(csOriginal.behaviorSections, "starting")
+            startingSection=BehaviorSection(get(csOriginal.behaviorSections, "starting", BehaviorSection()))
+            merge!(csModified.behaviorSections, Dict("starting"=>startingSection))
+            csModified.E_total=csModified.E_total+get(csModified.behaviorSections, "starting", BehaviorSection()).E_total
+            csModified.t_total=csModified.t_total+get(csModified.behaviorSections, "starting", BehaviorSection()).t_total
+        end
+
+        #accelerationSection=BehaviorSection(get(csOriginal.behaviorSections, "acceleration", BehaviorSection()))
+
+        if length(accelerationSection.waypoints) > 2
+            if haskey(csOriginal.behaviorSections, "cruisingBeforeAcceleration")
+                cruisingBeforeAccelerationSection=BehaviorSection(get(csOriginal.behaviorSections, "cruisingBeforeAcceleration", BehaviorSection()))
+                merge!(csModified.behaviorSections, Dict("cruisingBeforeAcceleration"=>cruisingBeforeAccelerationSection))
+                csModified.E_total=csModified.E_total+get(csModified.behaviorSections, "cruisingBeforeAcceleration", BehaviorSection()).E_total
+                csModified.t_total=csModified.t_total+get(csModified.behaviorSections, "cruisingBeforeAcceleration", BehaviorSection()).t_total
             end
 
-            # creating a drivingCourse for the characteristic section
+            # remove the last acceleration waypoint
+            pop!(accelerationSection.waypoints)
+
+            accelerationSection.v_exit=drivingCourse[accelerationSection.waypoints[end]].v                               # exit speed (in m/s)
+            accelerationSection.s_end=drivingCourse[accelerationSection.waypoints[end]].s                                # last position (in m)
+            accelerationSection.s_total=accelerationSection.s_end-accelerationSection.s_start           # total length  (in m)
+            accelerationSection.t_total=drivingCourse[accelerationSection.waypoints[end]].t-drivingCourse[accelerationSection.waypoints[1]].t       # total running time (in s)
+            accelerationSection.E_total=drivingCourse[accelerationSection.waypoints[end]].E-drivingCourse[accelerationSection.waypoints[1]].E       # total energy consumption (in Ws)
+
+            merge!(csModified.behaviorSections, Dict("acceleration"=>accelerationSection))
+            csModified.E_total=csModified.E_total+get(csModified.behaviorSections, "acceleration", BehaviorSection()).E_total
+            csModified.t_total=csModified.t_total+get(csModified.behaviorSections, "acceleration", BehaviorSection()).t_total
+
+            energySavingStartId=accelerationSection.waypoints[end]
+        else
+            # The acceleration section is only one step. This step is removed and if ther ist a cruisingBeforeAcceleration section it will be combined with the new cruising section.
             energySavingStartId=get(csOriginal.behaviorSections, "cruisingBeforeAcceleration", get(csOriginal.behaviorSections, "acceleration", BehaviorSection())).waypoints[1]
+        end
 
-            drivingCourseModified=Vector{Waypoint}()
-            for i in 1:energySavingStartId
-                # tried to insert copy on 15.07.2021 push!(drivingCourseModified, copy(drivingCourse[i]))  # List of waypoints till the start of energy saving
-                push!(drivingCourseModified, Waypoint(drivingCourse[i]))  # List of waypoints till the start of energy saving
+        # TODO: should v_reach be reduced or is it enough to pop the waypoints?
+            #    characteristicSection.v_reach=drivingCourse[end].v      # setting v_reach to the last waypoints velocity which is the highest reachable value in this characteristic section
+
+        # copy the drivingCourse till the beginning of energy saving
+        drivingCourseModified=Vector{Waypoint}()
+        for i in 1:energySavingStartId
+            push!(drivingCourseModified, Waypoint(drivingCourse[i]))  # List of waypoints till the start of energy saving
+        end
+
+        #s_braking=max(0.0, ceil((csModified.v_exit^2-csModified.v_reach^2)/2/train.a_braking, digits=approximationLevel))       # ceil is used to be sure that the train stops at s_end in spite of rounding errors
+        s_braking=max(0.0, ceil((csModified.v_exit^2-drivingCourseModified[end].v^2)/2/train.a_braking, digits=approximationLevel))       # ceil is used to be sure that the train stops at s_end in spite of rounding errors
+        s_cruising=csModified.s_end-drivingCourseModified[end].s-s_braking
+
+        if s_cruising >0.001
+            (csModified, drivingCourseModified)=addCruisingPhase!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
+        end #if
+
+        # s_brakingAfterCruising=ceil((csModified.v_exit^2-drivingCourseModified[end].v^2)/2/train.a_braking, digits=10) #  TODO: check if s_braking and s_brakingAfterCruising are really always the same
+        if drivingCourseModified[end].v>csModified.v_exit
+            #(csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings.massModel, train, allCSs)
+            (csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings, train, allCSs)
+        elseif drivingCourseModified[end].s<csModified.s_end
+            if (csModified.s_end-drivingCourseModified[end].s)>0.001
+                # if (csModified.s_end-drivingCourseModified[end].s)>10^(-approximationLevel)
+            #    println("INFO: The end of new CS",csModified.id," is not reached while saving energy with lowering v_reach.")
+            #    println("      Therefore the calculation of this method can not continue for this CS.")
+                return (CharacteristicSection(), [], false)
             end
+            println("WARNING: The end of new CS",csModified.id," is not reached while saving energy with lowering v_reach.")
+            println("         Therefore   s=",drivingCourseModified[end].s," will be set s_end=",csModified.s_end," because the difference is only ",csModified.s_end-drivingCourseModified[end].s," m.")
+            println("          v=",drivingCourseModified[end].v," m/s   v_exit=",csOriginal.v_exit ," m/s")
 
-            csModified.v_reach=max(csModified.v_entry, csModified.v_exit, csOriginal.v_reach-accelerationReduction)
+            drivingCourseModified[end].s=csModified.s_end       # rounding up to s_end
+        end #if
 
-            # calculation of the new and now shorter acceleration section
-            if drivingCourseModified[end].v<csModified.v_reach
-                (csModified, drivingCourseModified)=addAccelerationPhase!(csModified, drivingCourseModified, settings, train, allCSs)
-            end #if
-            # TODO: instead of copying the drivingCourse till the start of acceleration and calculating the acceleration again till the point before the last it would be possible to copy the drivingCouse until this point. Then it would not be necessary to calculate the accelerationPhase again. But then it is difficult to reduce accelerationReduction.
+        if t_recoveryAvailable>=(csModified.t_total-csOriginal.t_total)
+            return (csModified, drivingCourseModified, true)
+        else # time loss is to high. so there is no energy saving modification for this CS with the available recovery time
+            # 09/06 old: else # time loss is to high and the CS has to be calculated again with larger acceleration section (so with a smaller reduction of the acceleration section)
+            # 09/06 old: accelerationReduction=min(accelerationReduction/10, csModified.v_reach-csModified.v_entry, csModified.v_reach-csModified.v_exit)
+                # TODO: just return false or take smaller steps?
 
-            s_braking=max(0.0, ceil((csModified.v_exit^2-csModified.v_reach^2)/2/train.a_braking, digits=10))       # ceil is used to be sure that the train stops at s_end in spite of rounding errors
-            s_cruising=csModified.s_end-drivingCourseModified[end].s-s_braking
+            return (CharacteristicSection(), [], false)
+        end
 
-            if s_cruising >0.001
-                (csModified, drivingCourseModified)=addCruisingPhase!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
-            end #if
-
-            # s_brakingAfterCruising=ceil((csModified.v_exit^2-drivingCourseModified[end].v^2)/2/train.a_braking, digits=10) #  TODO: check if s_braking and s_brakingAfterCruising are really always the same
-            if drivingCourseModified[end].v>csModified.v_exit
-                (csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings.massModel, train, allCSs)
-            elseif drivingCourseModified[end].s<csModified.s_end
-                if (csModified.s_end-drivingCourseModified[end].s)>0.001
-                    println("WARNING: The end of new CS",csModified.id," is not reached while saving energy with lowering v_reach.")
-                    println("         Therefore   s=",drivingCourseModified[end].s," will be set s_end=",csModified.s_end," because the difference is only ",csModified.s_end-drivingCourseModified[end].s," m.")
-                end
-                drivingCourseModified[end].s=csModified.s_end       # rounding up to s_end
-            end #if
-
-            if t_recoveryAvailable>=(csModified.t_total-csOriginal.t_total)
-                return (csModified, drivingCourseModified, true)
-            else # time loss is to high and the CS has to be calculated again with larger acceleration section (so with a smaller reduction of the acceleration section)
-                accelerationReduction=min(accelerationReduction/10, csModified.v_reach-csModified.v_entry, csModified.v_reach-csModified.v_exit)
-            end
-        end #while
-
-        # there is no energy saving modification for this CS with the available recovery time
-        return (CharacteristicSection(), [], false)
+    # 09/06 old:   end #while
+    #
+    # 09/06 old:   # there is no energy saving modification for this CS with the available recovery time
+    # 09/06 old:   return (CharacteristicSection(), [], false)
 
     else
         # there is no energy saving modification for this CS because v_reach can not be lowered below v_entry or v_exit or because there is no acceleration section that can be transformed into a cruising section
@@ -248,16 +290,18 @@ end # function decreaseMaximumVelocity
 
 # combination of method 1 and method 2
 function combineEnergySavingMethods(csOriginal::CharacteristicSection, drivingCourse::Vector{Waypoint}, settings::Settings, train::Train, allCSs::Vector{CharacteristicSection}, t_recoveryAvailable::AbstractFloat)
-    if haskey(csOriginal.behaviorSections, "acceleration") && (haskey(csOriginal.behaviorSections, "braking") || haskey(csOriginal.behaviorSections, "coasting")) && csOriginal.v_reach>csOriginal.v_entry && csOriginal.v_reach>csOriginal.v_exit
+ #    if haskey(csOriginal.behaviorSections, "acceleration") && (haskey(csOriginal.behaviorSections, "braking") || haskey(csOriginal.behaviorSections, "coasting")) && csOriginal.v_reach>csOriginal.v_entry && csOriginal.v_reach>csOriginal.v_exit
+    if haskey(csOriginal.behaviorSections, "acceleration") && (haskey(csOriginal.behaviorSections, "braking") || haskey(csOriginal.behaviorSections, "coasting")) && drivingCourse[get(csOriginal.behaviorSections, "acceleration", BehaviorSection()).waypoints[end]].v > max(csOriginal.v_entry, csOriginal.v_exit)
         csCombined=CharacteristicSection(csOriginal)
         drivingCourseCombined=Vector{Waypoint}()
         for i in 1:length(drivingCourse)
-            # tried to insert copy on 15.07.2021 push!(drivingCourseCombined, copy(drivingCourse[i]))
+            # TODO: tried to insert copy on 15.07.2021 push!(drivingCourseCombined, copy(drivingCourse[i]))
             push!(drivingCourseCombined, Waypoint(drivingCourse[i]))
         end
         ΔE=0.0      # saved energy (in Ws)
         Δt=0.0      # time loss (in s)
-        while (Δt<t_recoveryAvailable && ΔE<=0.0)
+        #while (Δt<t_recoveryAvailable && ΔE<=0.0)
+        while (Δt<t_recoveryAvailable && (Δt<=0.0 || ΔE<=0.0)) #ΔE<=0.0)
             (csCombined, drivingCourseCombined, newMaximumVelocity)=decreaseMaximumVelocity(csCombined, drivingCourseCombined, settings, train, allCSs, t_recoveryAvailable)
             if newMaximumVelocity
                 ΔE=csOriginal.E_total-csCombined.E_total      # saved energy (in Ws)

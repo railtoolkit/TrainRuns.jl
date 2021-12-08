@@ -23,6 +23,20 @@ See folder examples.
 
 # History
 
+## Version 0.4
+
+Refactor and fix modules EnergySaving, OperationModes and MovingPhases
+
+The general used level of accuracy from v0.3 was added to EnergySaving and OperationModes. OperationModes and MovingPhases were fixed for steep ascents were a train runs with maximum tractive effort while the driving resistances are even higher.
+
+
+## Version 0.3
+
+Refactor module MovingPhases
+
+Repeatedly occuring code lines were extracted and smaller functions created (e.g. the function moveAStep). A new approach for calculating the waypoints near intersections was integrated (e.g. including an editable level of accuracy).
+
+
 ## Version 0.2
 
 Modules and variables were renamed.
@@ -36,7 +50,7 @@ Proof of concept and master thesis submission.
 
 # Acknowledgement
 
-This work was supervides by South Westphalia University of Applied Sciences and Technical University Braunschweig.
+This work was supervised by South Westphalia University of Applied Sciences and Technical University Braunschweig.
 
 ------------
 

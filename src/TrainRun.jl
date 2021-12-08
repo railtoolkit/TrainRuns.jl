@@ -19,9 +19,9 @@ export calculateDrivingDynamics
     # TODO:  define it here and give it to each function? (MovingPhases, EnergySaving)
 
 """
-    calculateDrivingDynamics(trainFilePath::String, pathFilePath::String, settingsFilePath::String)
+    calculateDrivingDynamics(trainDirectory::String, pathDirectory::String, settingsDirectory::String)
 
-Calculate the driving dynamics of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainFilePath`, `pathFilePath`, `settingsFilePath`.
+Calculate the driving dynamics of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
 
 # Examples
 ```julia-repl
@@ -29,11 +29,11 @@ julia> calculateDrivingDynamics(C:\\folder\\train.yaml, C:\\folder\\path.yaml, C
 todo !!!
 ```
 """
-function calculateDrivingDynamics(trainFilePath::String, pathFilePath::String, settingsFilePath::String)
+function calculateDrivingDynamics(trainDirectory::String, pathDirectory::String, settingsDirectory::String)
     print("\n\n\n")
 
     # input
-    (train, path, settings)=readInput(trainFilePath, pathFilePath, settingsFilePath)
+    (train, path, settings)=readInput(trainDirectory, pathDirectory, settingsDirectory)
     println("The input has been saved.")
 
 
@@ -53,7 +53,7 @@ function calculateDrivingDynamics(trainFilePath::String, pathFilePath::String, s
     if settings.operationModeMinimumEnergyConsumption==true
         (movingSectionMinimumEnergyConsumption, drivingCourseMinimumEnergyConsumption)=simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime, drivingCourseMinimumRunningTime, settings, train)
        # printSectionInformation(movingSectionMinimumEnergyConsumption)
-        println("The driving course for lowest the energy consumption has been calculated.")
+        println("The driving course for the lowest energy consumption has been calculated.")
     end #if
 
     #output

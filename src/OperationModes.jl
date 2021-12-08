@@ -11,13 +11,15 @@ export simulateMinimumRunningTime!, simulateMinimumEnergyConsumption
 
 approximationLevel = 6      # TODO: define it in TrainRun and give it to each function?
 
+ # simulate a train run focussing on using the minimum possible running time
 function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Settings, train::Train)
-    # simulate a train run focussing on using the minimum possible running time
+# CSs=movingSection.characteristicSections
     startingPoint=DataPoint()
     startingPoint.i=1
     startingPoint.s=movingSection.characteristicSections[1].s_start
     drivingCourse=[startingPoint]    # List of data points
 
+    #    for CS in CSs
     for csId in 1:length(movingSection.characteristicSections)
     #    println("CS",csId)
         # check if the CS has a cruising section
@@ -33,6 +35,7 @@ function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Set
         delete!(movingSection.characteristicSections[csId].behaviorSections, "starting")
         delete!(movingSection.characteristicSections[csId].behaviorSections, "cruisingBeforeAcceleration")
         delete!(movingSection.characteristicSections[csId].behaviorSections, "acceleration")
+        delete!(movingSection.characteristicSections[csId].behaviorSections, "diminishing") # 11/22 added new
         delete!(movingSection.characteristicSections[csId].behaviorSections, "cruising")
         movingSection.characteristicSections[csId].E_total=0.0
         movingSection.characteristicSections[csId].t_total=0.0
@@ -98,7 +101,7 @@ end #function simulateMinimumRunningTime
 
 
 function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumRunningTime::Vector{DataPoint}, settings::Settings, train::Train)
-# simulate a train run focussing on using the minimum possible energy consumption
+ # simulate a train run focussing on using the minimum possible energy consumption
     # booleans for choosing which methods are used for saving energy
     doMethod1=true
     #doMethod1=false

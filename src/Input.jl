@@ -8,10 +8,10 @@ export readInput
 """
 Read the input information from YAML files for train, path and settings, save it in different objects and return them.
 """
-function readInput(trainFilePath::String, pathFilePath::String, settingsFilePath::String)
-     train=inputTrain(trainFilePath)
-     path=inputPath(pathFilePath)
-     settings=inputSettings(settingsFilePath)
+function readInput(trainDirectory::String, pathDirectory::String, settingsDirectory::String)
+     train=inputTrain(trainDirectory)
+     path=inputPath(pathDirectory)
+     settings=inputSettings(settingsDirectory)
 
      return (train, path, settings)
  end #function readInput
@@ -19,8 +19,8 @@ function readInput(trainFilePath::String, pathFilePath::String, settingsFilePath
 """
 Read the train information from a YAML file, save it in a Train object and return it.
 """
-function inputTrain(trainFilePath::String)
-    data = YAML.load(open(trainFilePath))
+function inputTrain(trainDirectory::String)
+    data = YAML.load(open(trainDirectory))
     collect(keys(data))
     collect(values(data))
 
@@ -54,8 +54,6 @@ function inputTrain(trainFilePath::String)
     else
         error("ERROR at reading the train yaml file: The keyword length is missing. It has to be added with a value of type real floating point number >0.0.")
     end
-
-
 
 
     # speed limit:                                                                      # trains speed limit (in m/s)
@@ -189,11 +187,13 @@ function inputTrain(trainFilePath::String)
     delete!(data["train"], "rotationMassFactor_w")
 
 
-    # input for function tractiveEffort(v)
-        # TODO: Should the arrays check and the arrays copy be in the same "for" loop?
+    # pairs of velocity and tractive effort
     if haskey(data["train"],"F_T_pairs") && data["train"]["F_T_pairs"]!=nothing
         F_T_pairs=data["train"]["F_T_pairs"]
 
+        train.tractiveEffortVelocityPairs=checkAndDefineTractiveEffortInput(F_T_pairs, 1.0)
+
+        #= old 2021-11-04: now it is pairs and no scope
         # check if the elements of the array have the correct type
         errorDetected=false
         for row in 1:length(F_T_pairs)
@@ -207,17 +207,33 @@ function inputTrain(trainFilePath::String)
                 errorDetected=true
                 println("ERROR at reading the train yaml file: The tractive effort value of F_T_pairs in row ", row ," is no real floating point number >=0.0.")
             end
+
+            if row>=2 && F_T_pairs[row][1] <= F_T_pairs[row-1][1]
+                errorDetected=true
+                println("ERROR at reading the train yaml file: The speed value of F_T_pairs in row ", row ," (v=",F_T_pairs[row][1]," m/s) is not higher than the speed value in the previous row (v=",F_T_pairs[row-1][1]," m/s).")
+            end
         end # for
         if errorDetected
-            error("ERROR at reading the train yaml file: Only real floating point number >=0.0 are allowed for speed and tractive effort.")
+            error("ERROR at reading the train yaml file: Only real floating point number >=0.0 are allowed for speed and tractive effort. The speed values have to be listed from low to high.")
         end
+
+        # create tractiveEffortVelocityPairs
+        if F_T_pairs[1][1]>0.0    # if there is no F_T for v=0.0, the first known value is used
+            push!(train.tractiveEffortVelocityPairs, [0.0, F_T_pairs[1][2]])
+            println("WARNING at reading the train yaml file: The tractive effort for v=0 m/s is missing. Therefore the first given value F_T(v=",F_T_pairs[1][1]," m/s)=",F_T_pairs[1][2]," N will be used." )
+        end
+
+        for row in 1:length(F_T_pairs)
+            push!(train.tractiveEffortVelocityPairs, [F_T_pairs[row][1]], F_T_pairs[row][2]])
+        end # for
+
 
         # create tractiveEffortArray
         train.tractiveEffortArray=[]
         if F_T_pairs[1][1]==0.0
             push!(train.tractiveEffortArray, [F_T_pairs[1][1], F_T_pairs[1][1], F_T_pairs[1][2]])
         elseif F_T_pairs[1][1]>0.0    # if there is no F_T for v=0.0, the first value is used
-            push!(train.tractiveEffortArray, [0.0, F_T_pairs[1][1]/3.6, F_T_pairs[1][2]])
+            push!(train.tractiveEffortArray, [0.0, F_T_pairs[1][1], F_T_pairs[1][2]])
             println("WARNING at reading the train yaml file: The tractive effort for v=0 m/s is missing. Therefore the first given value F_T(v=",F_T_pairs[1][1]," m/s)=",F_T_pairs[1][2]," N will be used." )
         else
             error("ERROR at reading the train yaml file: There is a negative speed value in the list. Only positive values for speed and tractive effort are allowed in F_T_pairs.")
@@ -234,9 +250,11 @@ function inputTrain(trainFilePath::String)
                 error("ERROR at reading the train yaml file: The F_T_pairs are not in the correct order. They have to be arranged by speed values from low to high.")
             end
         end # for
+
         if length(F_T_pairs[1])>2
             println("INFO according the train yaml file: Only the first two columns of F_T_pairs are used in this tool.")
         end
+        =#
 
         if haskey(data["train"],"F_T_pairs_kmh") && data["train"]["F_T_pairs_kmh"]!=nothing
             println("WARNING at reading the train yaml file: There are values for F_T_pairs and F_T_pairs_kmh. The values for F_T_pairs are used." )
@@ -245,6 +263,9 @@ function inputTrain(trainFilePath::String)
     elseif haskey(data["train"],"F_T_pairs_kmh") && data["train"]["F_T_pairs_kmh"]!=nothing
         F_T_pairs_kmh=data["train"]["F_T_pairs_kmh"]
 
+        train.tractiveEffortVelocityPairs=checkAndDefineTractiveEffortInput(F_T_pairs_kmh, 1000/3600)
+
+        #= old 2021-11-04: now it is pairs and no scope
         # check if the elements of the array have the correct type
         errorDetected=false
         for row in 1:length(F_T_pairs_kmh)
@@ -285,6 +306,7 @@ function inputTrain(trainFilePath::String)
         if length(F_T_pairs_kmh[1])>2
             println("INFO at reading the train yaml file: Only the first two columns of F_T_pairs_kmh are used in this tool.")
         end
+        =#
     else
         error("ERROR at reading the train yaml file: There has to be one of the keywords F_T_pairs or F_T_pairs_kmh filled with a list of pairs of velocity and tractive effort.")
     end # if
@@ -398,10 +420,53 @@ function inputTrain(trainFilePath::String)
     return train
 end #function inputTrain
 
+function checkAndDefineTractiveEffortInput(F_T_pairs, velocityMultiplier::AbstractFloat)
+ # TODO: check if its numbers are real ? function checkAndDefineTractiveEffortInput(F_T_pairs::Array{Array{Real,1},1}, velocityMultiplier::AbstractFloat)
+    # check if the elements of the array have the correct type
+    errorDetected=false
+    for row in 1:length(F_T_pairs)
+        if typeof(F_T_pairs[row][1]) <: Real && F_T_pairs[row][1]>=0.0
+        else
+            errorDetected=true
+            println("ERROR at reading the train yaml file: The speed value of F_T_pairs in row ", row ," is no real floating point number >=0.0.")
+        end
+        if typeof(F_T_pairs[row][2]) <: Real && F_T_pairs[row][2]>=0.0
+        else
+            errorDetected=true
+            println("ERROR at reading the train yaml file: The tractive effort value of F_T_pairs in row ", row ," is no real floating point number >=0.0.")
+        end
 
-function inputPath(pathFilePath::String)
+        if row>=2 && F_T_pairs[row][1] <= F_T_pairs[row-1][1]
+            errorDetected=true
+            println("ERROR at reading the train yaml file: The speed value of F_T_pairs in row ", row ," (v=",F_T_pairs[row][1]," m/s) is not higher than the speed value in the previous row (v=",F_T_pairs[row-1][1]," m/s).")
+        end
+    end # for
+    if errorDetected
+        error("ERROR at reading the train yaml file: Only real floating point number >=0.0 are allowed for speed and tractive effort. The speed values have to be listed from low to high.")
+    end
+
+    # create tractiveEffortVelocityPairs
+    tractiveEffortVelocityPairs=[]
+    if F_T_pairs[1][1]>0.0    # if there is no F_T for v=0.0, the first known value is used
+        push!(tractiveEffortVelocityPairs, [0.0, F_T_pairs[1][2]])
+        println("WARNING at reading the train yaml file: The tractive effort for v=0 m/s is missing. Therefore the first given value F_T(v=",F_T_pairs[1][1]," m/s)=",F_T_pairs[1][2]," N will be used." )
+    end
+
+    for row in 1:length(F_T_pairs)
+        push!(tractiveEffortVelocityPairs, [F_T_pairs[row][1]*velocityMultiplier, F_T_pairs[row][2]])
+    end # for
+
+
+    if length(F_T_pairs[1])>2
+        println("INFO according the train yaml file: Only the first two columns of F_T_pairs are used in this tool.")
+    end
+    return tractiveEffortVelocityPairs
+end #function checkAndDefineTractiveEffortInput
+
+
+function inputPath(pathDirectory::String)
  # this function reads path information from a YAML file, saves it in a Path object and returns it
-    data = YAML.load(open(pathFilePath))
+    data = YAML.load(open(pathDirectory))
     collect(keys(data))
     collect(values(data))
 
@@ -504,9 +569,9 @@ end # function inputPath
 
 
 
-function inputSettings(settingsFilePath::String)
+function inputSettings(settingsDirectory::String)
  # this function reads setting information from a YAML file, saves it in a Setting object and returns it
-    data = YAML.load(open(settingsFilePath))
+    data = YAML.load(open(settingsDirectory))
     collect(keys(data))
     collect(values(data))
 
@@ -594,16 +659,16 @@ function inputSettings(settingsFilePath::String)
 
     # TODO: it could be checked if the path is existing on the pc
     if settings.typeOfOutput=="CSV"
-        if haskey(data["settings"],"csvFolderPath")
-                if typeof(data["settings"]["csvFolderPath"])==String
-                settings.csvFolderPath=data["settings"]["csvFolderPath"]
+        if haskey(data["settings"],"csvDirectory")
+                if typeof(data["settings"]["csvDirectory"])==String
+                settings.csvDirectory=data["settings"]["csvDirectory"]
             else
-                error("ERROR at reading the settings yaml file: The value of csvFolderPath is wrong. It has to be of type String.")
+                error("ERROR at reading the settings yaml file: The value of csvDirectory is wrong. It has to be of type String.")
             end
         else
-            error("ERROR at reading the settings yaml file: The keyword csvFolderPath is missing. It has to be added.")
+            error("ERROR at reading the settings yaml file: The keyword csvDirectory is missing. It has to be added.")
         end
-        delete!(data["settings"], "csvFolderPath")
+        delete!(data["settings"], "csvDirectory")
     end # if
 
 

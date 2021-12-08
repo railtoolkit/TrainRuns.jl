@@ -112,13 +112,13 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         outputArray="outputArrayMinimumEnergyConsumption"
         date = Dates.now()
         dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-        csvFilePath=settings.csvFolderPath*"\\"*dateString*"_MinimumEnergyConsumption.csv"
+        csvFilePath=settings.csvDirectory*"\\"*dateString*"_MinimumEnergyConsumption.csv"
     else
         operationMode="minimum running time"
         outputArray="outputArrayMinimumRunningTime"
         date = Dates.now()
         dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-        csvFilePath=settings.csvFolderPath*"\\"*dateString*"_MinimumRunningTime.csv"
+        csvFilePath=settings.csvDirectory*"\\"*dateString*"_MinimumRunningTime.csv"
     end
 
     # creating information block
@@ -144,7 +144,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
     end # for
 
 
-    # combining the columns in a data frame and saving it as a CSV-file at csvFolderPath
+    # combining the columns in a data frame and saving it as a CSV-file at csvDirectory
     if settings.detailOfOutput=="reduced"
         df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3])
     elseif settings.detailOfOutput=="driving course"
@@ -187,7 +187,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
             push!(allColumns, infoColumns[column])
         end # for
 
-        #combining the columns in a data frame and saving it as a CSV-file at csvFolderPath
+        #combining the columns in a data frame and saving it as a CSV-file at csvDirectory
         if settings.detailOfOutput=="reduced"
             df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3])
         elseif settings.detailOfOutput=="driving course"
@@ -195,7 +195,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         end
         date = Dates.now()
         dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-        csvFilePath=settings.csvFolderPath*"\\"*dateString*"_dataMinimumRunningTime.csv"
+        csvFilePath=settings.csvDirectory*"\\"*dateString*"_dataMinimumRunningTime.csv"
         CSV.write(csvFilePath, df, header=false)
         println("The output CSV file has been created for minimum running time at ",csvFilePath)
     end #if settings.operationModeMinimumRunningTime
@@ -232,10 +232,10 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
             df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16], c17=allColumns[17], c18=allColumns[18])
         end
 
-        # creating a CSV-file at csvFolderPath
+        # creating a CSV-file at csvDirectory
         date = Dates.now()
         dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-        csvFilePath=settings.csvFolderPath*"\\"*dateString*"_dataMinimumEnergyConsumption.csv"
+        csvFilePath=settings.csvDirectory*"\\"*dateString*"_dataMinimumEnergyConsumption.csv"
         CSV.write(csvFilePath, df, header=false)
         println("The output CSV file has been created for minimum energy consumption at ",csvFilePath)
     end # if settings.operationModeMinimumEnergyConsumption
@@ -255,7 +255,7 @@ end #function printImportantValues
 
 function printSectionInformation(movingSection::MovingSection)
     println("MS   mit s_total=", movingSection.s_total," mit t_total=", movingSection.t_total)
-    allBs=["starting", "cruisingBeforeAcceleration","acceleration", "cruising", "coasting","cruisingAfterCoasting", "braking"]
+    allBs=["starting", "cruisingBeforeAcceleration","acceleration", "cruising", "diminishing", "coasting","cruisingAfterCoasting", "braking"]
     for csId in 1:length(movingSection.characteristicSections)
         println("CS ",csId,"  mit s_total=", movingSection.characteristicSections[csId].s_total," mit t_total=", movingSection.characteristicSections[csId].t_total)
         for bs in 1: length(allBs)

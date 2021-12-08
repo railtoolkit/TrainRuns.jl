@@ -23,18 +23,28 @@ See folder examples.
 
 # History
 
+## Version 0.5
+
+Refactor modules for diminishing run and tractive effort velocity pairs
+
+- Add the seperate moving phase "diminishing run" for steep ascents where a train runs with maximum tractive effort while the driving resistances are even higher
+- Refactor tractiveEffortArray to tractiveEffortVelocityPairs
+- Rename file path and folder path to directory
+
+
 ## Version 0.4.1
 
 Rename waypoints
 
 - rename "waypoints" to "dataPoints" and "Waypoint" to "DataPoint"
 
+
 ## Version 0.4
 
 Refactor and fix modules EnergySaving, OperationModes and MovingPhases
 
-- add the general used level of accuracy from v0.3 to EnergySaving and OperationModes.
-- fix OperationModes and MovingPhases for steep ascents where a train runs with maximum tractive effort while the driving resistances are even higher.
+- add the general used level of accuracy from v0.3 to EnergySaving and OperationModes
+- fix OperationModes and MovingPhases for steep ascents where a train runs with maximum tractive effort while the driving resistances are even higher
 
 
 ## Version 0.3
@@ -42,7 +52,7 @@ Refactor and fix modules EnergySaving, OperationModes and MovingPhases
 Refactor module MovingPhases
 
 - extract repeatedly occuring code lines and create smaller functions (e.g. the function moveAStep)
-- integrate a new approach for calculating the waypoints near intersections (e.g. including an editable level of accuracy).
+- integrate a new approach for calculating the waypoints near intersections (e.g. including an editable level of accuracy)
 
 
 ## Version 0.2

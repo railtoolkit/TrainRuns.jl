@@ -15,6 +15,9 @@ using .Output
 
 export calculateDrivingDynamics
 
+# approximationLevel = 6  # value for approximation to intersections
+    # TODO:  define it here and give it to each function? (MovingPhases, EnergySaving)
+
 """
     calculateDrivingDynamics(trainFilePath::String, pathFilePath::String, settingsFilePath::String)
 

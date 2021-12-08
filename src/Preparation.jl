@@ -102,8 +102,9 @@ function secureAccelerationBehavior!(movingSection::MovingSection, settings::Set
 
         if movingSection.characteristicSections[csId].v_entry<movingSection.characteristicSections[csId].v_reach
             (movingSection.characteristicSections[csId], accelerationCourse)=addAccelerationPhase!(movingSection.characteristicSections[csId], accelerationCourse, settings, train, movingSection.characteristicSections)        # this function changes the accelerationCourse
-            movingSection.characteristicSections[csId].v_reach=accelerationCourse[end].v
-            movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_exit, movingSection.characteristicSections[csId].v_reach)
+            movingSection.characteristicSections[csId].v_reach=max(movingSection.characteristicSections[csId].v_entry,accelerationCourse[end].v)
+
+            movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_exit, movingSection.characteristicSections[csId].v_reach, accelerationCourse[end].v)
         else #movingSection.characteristicSections[csId].v_entry==movingSection.characteristicSections[csId].v_reach
             # v_exit stays the same
         end #if
@@ -139,8 +140,6 @@ function secureCruisingBehavior!(movingSection::MovingSection, settings::Setting
 
     return movingSection
 end #function secureCruisingBehavior!
-
-
 
 end #module Preparation
 

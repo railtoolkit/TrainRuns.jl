@@ -7,6 +7,7 @@ export calculateRecoveryTime, increaseCoastingSection, decreaseMaximumVelocity, 
 
 function calculateRecoveryTime(s_MS::AbstractFloat, t_MS::AbstractFloat, train::Train)
     # function for calculating the recovery time that can be used for energy saving
+    # MS: Moving Section
     if train.trainType=="motor coach train"
         if s_MS<= 30000
             c_s=0.0

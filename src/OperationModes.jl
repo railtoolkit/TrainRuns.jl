@@ -35,7 +35,8 @@ function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Set
         movingSection.characteristicSections[csId].t_total=0.0
 
         if s_cruisingBeforeAcceleration == movingSection.characteristicSections[csId].s_total
-            (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruisingBeforeAcceleration, settings, train, movingSection.characteristicSections, "cruisingBeforeAcceleration")
+            (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruisingBeforeAcceleration, settings, train, movingSection.characteristicSections, "cruising")
+                # 09/06 "cruising" is used in EnergySaving and not cruisingBeforeAcceleration (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruisingBeforeAcceleration, settings, train, movingSection.characteristicSections, "cruisingBeforeAcceleration")
         elseif s_cruising == movingSection.characteristicSections[csId].s_total
             (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruising, settings, train, movingSection.characteristicSections, "cruising")
         elseif s_cruising > 0.01 # if the cruising section is longer than 1 cm (because of rounding issues not >0.0)
@@ -91,6 +92,7 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
     doMethod1=true
     doMethod2=true
     doCombinationOfMethods=true
+    #doCombinationOfMethods=false
 
     #create a new moving section for the minimum energy consumption
     movingSectionOriginal=MovingSection(movingSectionMinimumRunningTime)

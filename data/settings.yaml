@@ -1,3 +1,4 @@
+%YAML 1.2
 ---
 settings:
 # settings for the simulation
@@ -6,6 +7,6 @@ settings:
   stepSize: 10                                  # step size (unit depends on stepVariable s in m, t in s and v in m/s)
   operationModeMinimumRunningTime: true         # operation mode "minimum running time"
   operationModeMinimumEnergyConsumption: true   # operation mode "minimum energy consumption"
-  typeOfOutput: "CSV"                           # output as "julia dictionary" or as "CSV"
+  typeOfOutput: "julia dictionary"              # output as "julia dictionary" or as "CSV"
   detailOfOutput: "driving course"              # should the output be "reduced" or "driving course"?
-  csvFolderPath: "~/Desktop/TrainRun"
+  # csvDirectory: "~/Desktop/TrainRun"

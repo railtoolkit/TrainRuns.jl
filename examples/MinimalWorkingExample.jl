@@ -11,14 +11,14 @@ allPaths=[]
 push!(allPaths, "../data/paths/path_1_10km_nConst_vConst.yaml")
 push!(allPaths, "../data/paths/path_2_10km_nVar_vConst.yaml")
 push!(allPaths, "../data/paths/path_3_10km_nConst_vVar.yaml")
-push!(allPaths, "../data/paths/path_4_real_Ostsachsen_DG-DN_spp_5.yaml")
+push!(allPaths, "../data/paths/path_4_real_Germany_EastSaxony_DG-DN.yaml")
 
 allSettings=[]
 push!(allSettings, "../data/settings.yaml")
 
 allTrains=[]
 push!(allTrains, "../data/trains/train_freight_V90withOreConsist.yaml")
-push!(allTrains, "../data/trains/train_yaml_files\\train_passenger_SiemensDesiroClassic.yaml")
+push!(allTrains, "../data/trains/train_passenger_SiemensDesiroClassic.yaml")
 push!(allTrains, "../data/trains/train_passenger_IC2.yaml")
 
 for pathDirectory in allPaths

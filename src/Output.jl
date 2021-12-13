@@ -112,13 +112,13 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         outputArray="outputArrayMinimumEnergyConsumption"
         date = Dates.now()
         dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-        csvFilePath=settings.csvDirectory*"\\"*dateString*"_MinimumEnergyConsumption.csv"
+        csvFilePath=settings.csvDirectory*"/"*dateString*"_MinimumEnergyConsumption.csv"
     else
         operationMode="minimum running time"
         outputArray="outputArrayMinimumRunningTime"
         date = Dates.now()
         dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-        csvFilePath=settings.csvDirectory*"\\"*dateString*"_MinimumRunningTime.csv"
+        csvFilePath=settings.csvDirectory*"/"*dateString*"_MinimumRunningTime.csv"
     end
 
     # creating information block
@@ -195,7 +195,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         end
         date = Dates.now()
         dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-        csvFilePath=settings.csvDirectory*"\\"*dateString*"_dataMinimumRunningTime.csv"
+        csvFilePath=settings.csvDirectory*"/"*dateString*"_dataMinimumRunningTime.csv"
         CSV.write(csvFilePath, df, header=false)
         println("The output CSV file has been created for minimum running time at ",csvFilePath)
     end #if settings.operationModeMinimumRunningTime
@@ -235,7 +235,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         # creating a CSV-file at csvDirectory
         date = Dates.now()
         dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-        csvFilePath=settings.csvDirectory*"\\"*dateString*"_dataMinimumEnergyConsumption.csv"
+        csvFilePath=settings.csvDirectory*"/"*dateString*"_dataMinimumEnergyConsumption.csv"
         CSV.write(csvFilePath, df, header=false)
         println("The output CSV file has been created for minimum energy consumption at ",csvFilePath)
     end # if settings.operationModeMinimumEnergyConsumption

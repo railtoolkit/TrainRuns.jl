@@ -5,13 +5,14 @@
 # __copyright__     = "2021"
 # __license__       = "ISC"
 
-using TrainRun, Test
+include("../src/TrainRun.jl")
+using .TrainRun
 
 allPaths=[]
 push!(allPaths, "data/paths/path_1_10km_nConst_vConst.yaml")
 push!(allPaths, "data/paths/path_2_10km_nVar_vConst.yaml")
 push!(allPaths, "data/paths/path_3_10km_nConst_vVar.yaml")
-push!(allPaths, "data/paths/path_4_real_Ostsachsen_DG-DN_spp_5.yaml")
+push!(allPaths, "data/paths/path_4_real_Germany_EastSaxony_DG-DN.yaml")
 
 allSettings=[]
 push!(allSettings, "data/settings.yaml")
@@ -22,18 +23,23 @@ push!(allTrains, "data/trains/train_passenger_SiemensDesiroClassic.yaml")
 push!(allTrains, "data/trains/train_passenger_IC2.yaml")
 
 for pathDirectory in allPaths
-  for trainDirectory in allTrains
-    for settingsDirectory in allSettings
-      testDict=calculateDrivingDynamics(trainDirectory, pathDirectory, settingsDirectory)
+    # println(" -    -    -     -     -     -      -     -    -")
+    # println("path: ", pathDirectory)
+   for trainDirectory in allTrains
+       # println("train: ", trainDirectory)
+       for settingsDirectory in allSettings
+           testDict=calculateDrivingDynamics(trainDirectory, pathDirectory, settingsDirectory)
 
-      sleep(2)
+           sleep(2)
 
-      # TODO:
-      # compare result to test data set
-    end
-  end
+           # println("")
+           # println("")
+           # println("")
+       end
+   end
+   # println("")
 end
 
-println("test finished")
-# TODO:
-# print test results
+# println("")
+# println("________________________")
+# println("")

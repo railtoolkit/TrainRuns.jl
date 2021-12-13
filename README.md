@@ -17,11 +17,25 @@ Review the settings.yaml file for your appropriate settings.
 
 # Minimal working example
 
-See folder examples.
+```julia
+include("../src/TrainRun.jl")
+using .TrainRun
 
+train =  "data/trains/train_freight_V90withOreConsist.yaml"
+running_path = "data/paths/path_1_10km_nConst_vConst.yaml"
+settings = "data/settings.yaml"
+
+train_run = calculateDrivingDynamics(train, running_path, settings)
+```
 ------------
 
 # History
+
+## Version 0.5.2
+Merge fixing branches
+
+## Version 0.5.1
+Rename the real world path file
 
 ## Version 0.5
 

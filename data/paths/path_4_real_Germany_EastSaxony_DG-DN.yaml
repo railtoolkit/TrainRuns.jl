@@ -3,8 +3,8 @@
 path:
   name: "'infra_Ostsachsen': track id='tr_80.6212_2' name='DG-DN' -> spp_5"
   # source: https://www.railml.org/en/user/exampledata.html -> "Real world railway examples from professional tools" -> "East Saxony railway network by FBS" -> "Ostsachsen_V220.railml" -> 'infra_Ostsachsen': track id='tr_80.6212_2' name='DG-DN' -> spp_5
-  sectionStarts:       # with path speed limt (in m/s)
-  sectionStarts_kmh:   # with path speed limt (in km/h)   # [s in m, v_limit in km/h, n in ‰]
+  sectionStarts:       # with path speed limt (in m/s)    # [s in m, v_limit in m/s, f_Rp in ‰]
+  sectionStarts_kmh:   # with path speed limt (in km/h)   # [s in m, v_limit in km/h, f_Rp in ‰]
    - [0.0, 40, 0]
    - [318.0, 40, 2]
    - [399.0, 40, -3]

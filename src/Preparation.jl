@@ -21,14 +21,14 @@ function createMovingSection(path::Path, v_trainLimit::AbstractFloat)
     movingSection=MovingSection()
 
     movingSection.id=1          # identifier          # if there is more than one moving section in a later version of this tool the id should not be constant anymore
-    movingSection.t_total=0.0   # total running time (in s)
-    movingSection.E_total=0.0   # total energy consumption (in Ws)
+    movingSection.t=0.0   # total running time (in s)
+    movingSection.E=0.0   # total energy consumption (in Ws)
 
-    movingSection.s_start=path.sections[1].s_start                          # first position (in m)
-    movingSection.s_end=path.sections[length(path.sections)].s_startNext    # last position (in m)
-    movingSection.s_total=movingSection.s_end-movingSection.s_start         # total length (in m)
+    movingSection.s_entry=path.sections[1].s_start                          # first position (in m)
+    movingSection.s_exit=path.sections[length(path.sections)].s_end         # last position (in m)
+    movingSection.length=movingSection.s_exit-movingSection.s_entry         # total length (in m)
 
-    s_csStart=movingSection.s_start
+    s_csStart=movingSection.s_entry
     csId=1
     for row in 2:length(path.sections)
         if min(path.sections[row-1].v_limit, v_trainLimit) != min(path.sections[row].v_limit, v_trainLimit) || path.sections[row-1].f_Rp != path.sections[row].f_Rp
@@ -48,15 +48,15 @@ function createCharacteristicSection(csId::Integer, s_csStart::AbstractFloat, se
     # this function creates and returns a characteristic section dependent on the paths attributes
     characteristicSection=CharacteristicSection()
     characteristicSection.id=csId                                                               # identifier
-    characteristicSection.s_start=s_csStart                                                     # first position (in m)
-    characteristicSection.s_end=section.s_startNext                                             # last position  (in m)
-    characteristicSection.s_total=characteristicSection.s_end-characteristicSection.s_start     # total length  (in m)
-    characteristicSection.t_total=0.0                                                           # total running time (in s)
-    characteristicSection.E_total=0.0                                                           # total energy consumption (in Ws)
+    characteristicSection.s_entry=s_csStart                                                     # first position (in m)
+    characteristicSection.s_exit=section.s_end                                                  # last position  (in m)
+    characteristicSection.length=characteristicSection.s_exit-characteristicSection.s_entry     # total length  (in m)
+    characteristicSection.t=0.0                                                                 # total running time (in s)
+    characteristicSection.E=0.0                                                                 # total energy consumption (in Ws)
     characteristicSection.v_limit=v_csLimit                                                     # speed limit (in m/s)
 
-    # initializing v_entry, v_reach and v_exit with v_limit
-    characteristicSection.v_reach=characteristicSection.v_limit                                 # maximum reachable speed (in m/s)
+    # initializing v_entry, v_target and v_exit with v_limit
+    characteristicSection.v_target=characteristicSection.v_limit                                # maximum target speed (in m/s)
     characteristicSection.v_entry=characteristicSection.v_limit                                 # maximum entry speed (in m/s)
     characteristicSection.v_exit=characteristicSection.v_limit                                  # maximum exit speed (in m/s)
 
@@ -71,11 +71,11 @@ function secureBrakingBehavior!(movingSection::MovingSection, a_braking::Abstrac
         csId=length(movingSection.characteristicSections)
         movingSection.characteristicSections[csId].v_exit=0.0     # the exit velocity of the last characteristic section is 0.0 m/s
         while csId >= 1
-            v_entryMax=sqrt(movingSection.characteristicSections[csId].v_exit^2-2*a_braking*movingSection.characteristicSections[csId].s_total)
+            v_entryMax=sqrt(movingSection.characteristicSections[csId].v_exit^2-2*a_braking*movingSection.characteristicSections[csId].length)
             v_entryMax=floor(v_entryMax, digits=12)
 
             movingSection.characteristicSections[csId].v_entry=min(movingSection.characteristicSections[csId].v_limit, v_entryMax)
-            movingSection.characteristicSections[csId].v_reach=movingSection.characteristicSections[csId].v_entry
+            movingSection.characteristicSections[csId].v_target=movingSection.characteristicSections[csId].v_entry
             csId=csId-1
             if csId >= 1
                 movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_limit, movingSection.characteristicSections[csId+1].v_entry)
@@ -95,16 +95,16 @@ function secureAccelerationBehavior!(movingSection::MovingSection, settings::Set
     for csId in 1:length(movingSection.characteristicSections)
         movingSection.characteristicSections[csId].v_entry=min(movingSection.characteristicSections[csId].v_entry, previousCSv_exit)
 
-        startingPoint.s=movingSection.characteristicSections[csId].s_start
+        startingPoint.s=movingSection.characteristicSections[csId].s_entry
         startingPoint.v=movingSection.characteristicSections[csId].v_entry
         accelerationCourse=[startingPoint]    # List of data points
 
-        if movingSection.characteristicSections[csId].v_entry<movingSection.characteristicSections[csId].v_reach
+        if movingSection.characteristicSections[csId].v_entry<movingSection.characteristicSections[csId].v_target
             (movingSection.characteristicSections[csId], accelerationCourse)=addAccelerationPhase!(movingSection.characteristicSections[csId], accelerationCourse, settings, train, movingSection.characteristicSections)        # this function changes the accelerationCourse
-            movingSection.characteristicSections[csId].v_reach=max(movingSection.characteristicSections[csId].v_entry,accelerationCourse[end].v)
+            movingSection.characteristicSections[csId].v_target=max(movingSection.characteristicSections[csId].v_entry,accelerationCourse[end].v)
 
-            movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_exit, movingSection.characteristicSections[csId].v_reach, accelerationCourse[end].v)
-        else #movingSection.characteristicSections[csId].v_entry==movingSection.characteristicSections[csId].v_reach
+            movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_exit, movingSection.characteristicSections[csId].v_target, accelerationCourse[end].v)
+        else #movingSection.characteristicSections[csId].v_entry==movingSection.characteristicSections[csId].v_target
             # v_exit stays the same
         end #if
 
@@ -118,7 +118,7 @@ end #function secureAccelerationBehavior!
 
 ## define the intersection velocities between the characterisitc sections to secure cruising behavior
 function secureCruisingBehavior!(movingSection::MovingSection, settings::Settings, train::Train)
-    # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_reach
+    # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_target
     startingPoint=DataPoint()
     startingPoint.i=1
 
@@ -127,11 +127,11 @@ function secureCruisingBehavior!(movingSection::MovingSection, settings::Setting
     for csId in 1:length(movingSection.characteristicSections)
         movingSection.characteristicSections[csId].v_entry=min(movingSection.characteristicSections[csId].v_entry, previousCSv_exit)
 
-        startingPoint.s=movingSection.characteristicSections[csId].s_start
-        startingPoint.v=movingSection.characteristicSections[csId].v_reach
+        startingPoint.s=movingSection.characteristicSections[csId].s_entry
+        startingPoint.v=movingSection.characteristicSections[csId].v_target
         cruisingCourse=[startingPoint]    # List of data points
 
-        (movingSection.characteristicSections[csId], cruisingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], cruisingCourse, movingSection.characteristicSections[csId].s_total, settings, train, movingSection.characteristicSections, "cruising")        # this function changes the cruisingCourse
+        (movingSection.characteristicSections[csId], cruisingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], cruisingCourse, movingSection.characteristicSections[csId].length, settings, train, movingSection.characteristicSections, "cruising")        # this function changes the cruisingCourse
         movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_exit, cruisingCourse[end].v)
 
         previousCSv_exit=movingSection.characteristicSections[csId].v_exit
@@ -141,60 +141,3 @@ function secureCruisingBehavior!(movingSection::MovingSection, settings::Setting
 end #function secureCruisingBehavior!
 
 end #module Preparation
-
-
-
-
-#= 22.06.2021: acceleration an cruising behavior seperated in two functions
-
-## define the intersection velocities between the characterisitc sections to secure acceleration behavior
-function secureAccelerationBehavior!(movingSection::MovingSection, settings::Settings, train::Train)
-    # this function limits the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises aterwards
-    movingSection.characteristicSections[1].v_entry=0.0     # the entry velocity of the first characteristic section is 0.0 m/s
-    startingPoint=DataPoint()
-    startingPoint.i=1
-
-    previousCSv_exit=0.0
-
-    for csId in 1:length(movingSection.characteristicSections)
-        movingSection.characteristicSections[csId].v_entry=min(movingSection.characteristicSections[csId].v_entry, previousCSv_exit)
-
-        startingPoint.s=movingSection.characteristicSections[csId].s_start
-        startingPoint.v=movingSection.characteristicSections[csId].v_entry
-        cruisingCourse=[startingPoint]    # List of data points
-
-
-        if movingSection.characteristicSections[csId].v_entry<movingSection.characteristicSections[csId].v_reach
-            (movingSection.characteristicSections[csId], accelerationCourse)=addAccelerationPhase!(movingSection.characteristicSections[csId], accelerationCourse, settings, train, movingSection.characteristicSections)        # this function changes the accelerationCourse
-            movingSection.characteristicSections[csId].v_reach=accelerationCourse[end].v
-            movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_exit, movingSection.characteristicSections[csId].v_reach)
-
-            if settings.stepVariable=="v in m/s"   # with the new v_reach the calculation will be different a second time. Therefore the CS has to be calculated again for velocity step method to refresh the length of the acceleration section for further simulation
-                delete!(movingSection.characteristicSections[csId].behaviorSections, "starting")
-                delete!(movingSection.characteristicSections[csId].behaviorSections, "cruisingBeforeAcceleration")
-                delete!(movingSection.characteristicSections[csId].behaviorSections, "acceleration")
-                movingSection.characteristicSections[csId].E_total=0.0
-                movingSection.characteristicSections[csId].t_total=0.0
-                accelerationCourse=[startingPoint]    # List of data points
-
-                (movingSection.characteristicSections[csId], accelerationCourse)=addAccelerationPhase!(movingSection.characteristicSections[csId], accelerationCourse, settings, train, movingSection.characteristicSections)        # this function changes the accelerationCourse
-            end
-        else #movingSection.characteristicSections[csId].v_entry==movingSection.characteristicSections[csId].v_reach
-                        # v_exit stays the same
-        end #if
-
-    # securing cruising behavior
-    # is need if the path resistance is too high, the train can not cruise at v_reach and is getting slower
-    s_cruisingMax=movingSection.characteristicSections[csId].s_end-accelerationCourse[end].s
-    if s_cruisingMax>0.0
-        (movingSection.characteristicSections[csId], accelerationCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], accelerationCourse, s_cruisingMax, settings, train, movingSection.characteristicSections, "cruising")
-        movingSection.characteristicSections[csId].v_exit=min(movingSection.characteristicSections[csId].v_exit, accelerationCourse[end].v)
-    end
-
-        previousCSv_exit=movingSection.characteristicSections[csId].v_exit
-    #    println("CS",csId,":  s_start: ",movingSection.characteristicSections[csId].s_start," v_entry: ", round(movingSection.characteristicSections[csId].v_entry*3.6, digits=5), ", v_reach: ",  round(movingSection.characteristicSections[csId].v_reach*3.6, digits=5), "  v_exit: ", round(movingSection.characteristicSections[csId].v_exit*3.6, digits=5))
-    end #for
-
-    return movingSection
-end #function secureAccelerationBehavior!
-=#

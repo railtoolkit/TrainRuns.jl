@@ -48,16 +48,16 @@ function createOutputDict(settings::Settings, pathName::String, trainName::Strin
 
     # creating an output array
     outputArray=Array{Any, 1}[]
-    if settings.detailOfOutput=="reduced"
+    if settings.detailOfOutput=="minimal"
 
-        push!(outputArray, ["s_total (in m)", "t_total (in s)","E_total (in Ws)"]) #  push header to outputArray
+        push!(outputArray, ["s (in m)", "t (in s)","E (in Ws)"]) #  push header to outputArray
 
-        row=[movingSection.s_total, movingSection.t_total, movingSection.E_total]
+        row=[movingSection.length, movingSection.t, movingSection.E]
         push!(outputArray, row)                                                     # push row to outputArray
     elseif settings.detailOfOutput=="driving course"
-        push!(outputArray, ["i", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","F_Rp (in N)","F_Runion (in N)","F_Rt (in N)","F_Rw (in N)", "ΔW_T (in Ws)","W_T (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArray
+        push!(outputArray, ["i", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArray
         for point in drivingCourse
-            row=[point.i, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.F_Rp, point.F_Runion, point.F_Rt, point.F_Rw, point.ΔW_T, point.W_T, point.ΔE, point.E, point.a]
+            row=[point.i, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.R_path, point.R_train, point.R_traction, point.R_consist, point.ΔW, point.W, point.ΔE, point.E, point.a]
             push!(outputArray, row)             # push row to outputArray
         end
     end
@@ -80,14 +80,14 @@ function createOutputDict(settings::Settings, pathName::String, trainName::Strin
         if settings.operationModeMinimumEnergyConsumption
             # creating the second output array
             outputArrayMinimumEnergyConsumption=Array{Any, 1}[]
-            if settings.detailOfOutput=="reduced"
-                push!(outputArrayMinimumEnergyConsumption, ["s_total (in m)", "t_total (in s)","E_total (in Ws)"])  # push header to outputArrayMinimumEnergyConsumption
-                row=[movingSectionMinimumEnergyConsumption.s_total, movingSectionMinimumEnergyConsumption.t_total, movingSectionMinimumEnergyConsumption.E_total]
+            if settings.detailOfOutput=="minimal"
+                push!(outputArrayMinimumEnergyConsumption, ["s (in m)", "t (in s)","E (in Ws)"])  # push header to outputArrayMinimumEnergyConsumption
+                row=[movingSectionMinimumEnergyConsumption.length, movingSectionMinimumEnergyConsumption.t, movingSectionMinimumEnergyConsumption.E]
                 push!(outputArrayMinimumEnergyConsumption, row)                                                     # push row to outputArrayMinimumEnergyConsumption
             elseif settings.detailOfOutput=="driving course"
-                push!(outputArrayMinimumEnergyConsumption, ["i", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","F_Rp (in N)","F_Runion (in N)","F_Rt (in N)","F_Rw (in N)", "ΔW_T (in Ws)","W_T (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArrayMinimumEnergyConsumption
+                push!(outputArrayMinimumEnergyConsumption, ["i", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArrayMinimumEnergyConsumption
                 for point in drivingCourseMinimumEnergyConsumption
-                    row=[point.i, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.F_Rp, point.F_Runion, point.F_Rt, point.F_Rw, point.ΔW_T, point.W_T, point.ΔE, point.E, point.a]
+                    row=[point.i, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.R_path, point.R_train, point.R_traction, point.R_consist, point.ΔW, point.W, point.ΔE, point.E, point.a]
                     push!(outputArrayMinimumEnergyConsumption, row)             # push row to outputArrayMinimumEnergyConsumption
                 end
             end
@@ -130,10 +130,10 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
     end # for
 
     allColumns=Array{Any,1}[]
-    if settings.detailOfOutput=="reduced"
+    if settings.detailOfOutput=="minimal"
         header=outputDict["outputArrayMinimumRunningTime"][1]
     elseif settings.detailOfOutput=="driving course"
-        header=["i", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","F_Rp (in N)","F_Runion (in N)","F_Rt (in N)","F_Rw (in N)"," Delta W_T (in Ws)","W_T (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
+        header=["i", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
     end
     for column in 1:length(outputDict[outputArray][1])
         push!(infoColumns[column], header[column])
@@ -145,7 +145,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
 
 
     # combining the columns in a data frame and saving it as a CSV-file at csvDirectory
-    if settings.detailOfOutput=="reduced"
+    if settings.detailOfOutput=="minimal"
         df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3])
     elseif settings.detailOfOutput=="driving course"
         df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16], c17=allColumns[17], c18=allColumns[18])
@@ -173,10 +173,10 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         end # for
 
         allColumns=Array{Any,1}[]
-        if settings.detailOfOutput=="reduced"
+        if settings.detailOfOutput=="minimal"
             header=outputDict["outputArrayMinimumRunningTime"][1]
         elseif settings.detailOfOutput=="driving course"
-            header=["i", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","F_Rp (in N)","F_Runion (in N)","F_Rt (in N)","F_Rw (in N)"," Delta W_T (in Ws)","W_T (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
+            header=["i", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
         end
 
         for column in 1:length(outputDict["outputArrayMinimumRunningTime"][1])
@@ -188,7 +188,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         end # for
 
         #combining the columns in a data frame and saving it as a CSV-file at csvDirectory
-        if settings.detailOfOutput=="reduced"
+        if settings.detailOfOutput=="minimal"
             df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3])
         elseif settings.detailOfOutput=="driving course"
             df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16], c17=allColumns[17], c18=allColumns[18])
@@ -211,10 +211,10 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         end # for
 
         allColumns=Array{Any,1}[]
-        if settings.detailOfOutput=="reduced"
+        if settings.detailOfOutput=="minimal"
             header=outputDict["outputArrayMinimumRunningTime"][1]
         elseif settings.detailOfOutput=="driving course"
-            header=["i", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","F_Rp (in N)","F_Runion (in N)","F_Rt (in N)","F_Rw (in N)"," Delta W_T (in Ws)","W_T (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
+            header=["i", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
         end
 
         for column in 1:length(outputDict["outputArrayMinimumEnergyConsumption"][1])
@@ -226,7 +226,7 @@ function createOutputCsv(settings::Settings, pathName::String, trainName::String
         end # for
 
         #combining the columns in a data frame
-        if settings.detailOfOutput=="reduced"
+        if settings.detailOfOutput=="minimal"
             df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3])
         elseif settings.detailOfOutput=="driving course"
             df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16], c17=allColumns[17], c18=allColumns[18])
@@ -254,13 +254,13 @@ function printImportantValues(drivingCourse::Vector{DataPoint})
 end #function printImportantValues
 
 function printSectionInformation(movingSection::MovingSection)
-    println("MS   mit s_total=", movingSection.s_total," mit t_total=", movingSection.t_total)
-    allBs=["starting", "cruisingBeforeAcceleration","acceleration", "cruising", "diminishing", "coasting","cruisingAfterCoasting", "braking"]
+    println("MS   mit length=", movingSection.length," mit t=", movingSection.t)
+    allBs=["breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting","cruisingAfterCoasting", "braking", "standStill"]
     for csId in 1:length(movingSection.characteristicSections)
-        println("CS ",csId,"  mit s_total=", movingSection.characteristicSections[csId].s_total," mit t_total=", movingSection.characteristicSections[csId].t_total)
+        println("CS ",csId,"  mit length=", movingSection.characteristicSections[csId].length," mit t=", movingSection.characteristicSections[csId].t)
         for bs in 1: length(allBs)
             if haskey(movingSection.characteristicSections[csId].behaviorSections, allBs[bs])
-                println("BS ",allBs[bs], "   mit s_start=",get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).s_start, "   und t_total=",get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).t_total)
+                println("BS ",allBs[bs], "   mit s_entry=",get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).s_entry, "   und t=",get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).t)
         #        for point in 1:length(get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).dataPoints)
         #            println(get(movingSection.characteristicSections[csId].behaviorSections, allBs[bs], BehaviorSection()).dataPoints[point])
         #        end

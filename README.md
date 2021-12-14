@@ -31,10 +31,16 @@ train_run = calculateDrivingDynamics(train, running_path, settings)
 
 # History
 
+## Version 0.5.3
+
+Rename variables in every .jl an .yaml file
+
 ## Version 0.5.2
+
 Merge fixing branches
 
 ## Version 0.5.1
+
 Rename the real world path file
 
 ## Version 0.5

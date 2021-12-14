@@ -44,10 +44,10 @@ function inputTrain(trainDirectory::String)
         error("ERROR at reading the train yaml file: The keyword trainType is missing. It has to be added with the value freight, motor coach train or passenger.")
     end
 
-    if haskey(data["train"],"l_union")
-        if typeof(data["train"]["l_union"]) <: Real && data["train"]["l_union"]>0.0
-            train.l_union=data["train"]["l_union"]                                                # total length (in m)
-            delete!(data["train"], "l_union")
+    if haskey(data["train"],"l_train")
+        if typeof(data["train"]["l_train"]) <: Real && data["train"]["l_train"]>0.0
+            train.l_train=data["train"]["l_train"]                                                # total length (in m)
+            delete!(data["train"], "l_train")
         else
             error("ERROR at reading the train yaml file: The value of the length is no real number >0.0.")
         end
@@ -155,13 +155,13 @@ function inputTrain(trainDirectory::String)
     delete!(data["train"], "m_w")
 
     # total mass (in kg)
-    train.m_union=train.m_t+train.m_w
+    train.m_train=train.m_t+train.m_w
 
-    if haskey(data["train"],"rotationMassFactor_union") && typeof(data["train"]["rotationMassFactor_union"]) <: Real
-        if data["train"]["rotationMassFactor_union"]>0.0
-            train.ξ_union=data["train"]["rotationMassFactor_union"]
+    if haskey(data["train"],"rotationMassFactor_train") && typeof(data["train"]["rotationMassFactor_train"]) <: Real
+        if data["train"]["rotationMassFactor_train"]>0.0
+            train.ξ_train=data["train"]["rotationMassFactor_train"]
         else
-            error("ERROR at reading the train yaml file: The value of rotationMassFactor_union is no real floating point number >0.0.")
+            error("ERROR at reading the train yaml file: The value of rotationMassFactor_train is no real floating point number >0.0.")
         end
     elseif haskey(data["train"],"rotationMassFactor_t") && typeof(data["train"]["rotationMassFactor_t"]) <: Real && (train.m_w==0.0 || (haskey(data["train"],"rotationMassFactor_w") && typeof(data["train"]["rotationMassFactor_w"]) <: Real))
         if data["train"]["rotationMassFactor_t"]>0.0
@@ -178,11 +178,11 @@ function inputTrain(trainDirectory::String)
         else
             train.ξ_w=0.0
         end
-        train.ξ_union=(train.ξ_t*train.m_t + train.ξ_w*train.m_w)/train.m_union  # rotation mass factor of the whole train (without unit)
+        train.ξ_train=(train.ξ_t*train.m_t + train.ξ_w*train.m_w)/train.m_train  # rotation mass factor of the whole train (without unit)
     else
-        error("ERROR at reading the train yaml file: The keywords rotationMassFactor_union or rotationMassFactor_t and rotationMassFactor_w are missing. They has to be added with a value of type real floating point number.")
+        error("ERROR at reading the train yaml file: The keywords rotationMassFactor_train or rotationMassFactor_t and rotationMassFactor_w are missing. They has to be added with a value of type real floating point number.")
     end
-    delete!(data["train"], "rotationMassFactor_union")
+    delete!(data["train"], "rotationMassFactor_train")
     delete!(data["train"], "rotationMassFactor_t")
     delete!(data["train"], "rotationMassFactor_w")
 
@@ -546,12 +546,11 @@ function inputPath(pathDirectory::String)
 
     # save values in the path object
     for row in 2:length(sectionStartsArray)
-        s_start=sectionStartsArray[row-1][1]         # starting point of the section (in m)
-        s_startNext=sectionStartsArray[row][1]       # starting point of the next section (in m)
-        v_limit=sectionStartsArray[row-1][2]*conversionFactor      # paths speed limt (in m/s)
-        n=sectionStartsArray[row-1][3]              # gradient (in ‰)
-        f_Rp=n                                       # specific path resistance of the section (in ‰)
-        section=PathSection(s_start, s_startNext, v_limit, n, f_Rp)
+        s_start=sectionStartsArray[row-1][1]                    # first point of the section (in m)
+        s_end=sectionStartsArray[row][1]                        # first point of the next section (in m)
+        v_limit=sectionStartsArray[row-1][2]*conversionFactor   # paths speed limt (in m/s)
+        f_Rp=sectionStartsArray[row-1][3]                       # specific path resistance of the section (in ‰)
+        section=PathSection(s_start, s_end, v_limit, f_Rp)
         push!(path.sections, section)
     end # for
 
@@ -577,7 +576,7 @@ function inputSettings(settingsDirectory::String)
 
     settings=Settings()
 
-    # model type of the unions mass "mass point" or "homogeneous strip"
+    # model type of the train's mass "mass point" or "homogeneous strip"
     if haskey(data["settings"],"massModel")
             if typeof(data["settings"]["massModel"])==String && (data["settings"]["massModel"]=="mass point" || data["settings"]["massModel"]=="homogeneous strip")
             settings.massModel=data["settings"]["massModel"]                  # "mass point" or "homogeneous strip"
@@ -672,15 +671,15 @@ function inputSettings(settingsDirectory::String)
     end # if
 
 
-    # should the output be "reduced" or "driving course"
+    # should the output be "minimal" or "driving course"
     if haskey(data["settings"],"detailOfOutput")
-            if typeof(data["settings"]["detailOfOutput"])==String && (data["settings"]["detailOfOutput"]=="reduced" || data["settings"]["detailOfOutput"]=="driving course")
-            settings.detailOfOutput=data["settings"]["detailOfOutput"]                  # "reduced" or "driving course"
+            if typeof(data["settings"]["detailOfOutput"])==String && (data["settings"]["detailOfOutput"]=="minimal" || data["settings"]["detailOfOutput"]=="driving course")
+            settings.detailOfOutput=data["settings"]["detailOfOutput"]                  # "minimal" or "driving course"
         else
-            error("ERROR at reading the settings yaml file: The value of detailOfOutput is wrong. It has to be reduced or driving course.")
+            error("ERROR at reading the settings yaml file: The value of detailOfOutput is wrong. It has to be minimal or driving course.")
         end
     else
-        error("ERROR at reading the settings yaml file: The keyword detailOfOutput is missing. It has to be added with the value reduced or driving course.")
+        error("ERROR at reading the settings yaml file: The keyword detailOfOutput is missing. It has to be added with the value minimal or driving course.")
     end
     delete!(data["settings"], "detailOfOutput")
 

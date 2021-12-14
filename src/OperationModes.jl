@@ -7,74 +7,74 @@ include("./EnergySaving.jl")
 using .MovingPhases
 using .EnergySaving
 
-export simulateMinimumRunningTime!, simulateMinimumEnergyConsumption
+export calculateMinimumRunningTime!, calculateMinimumEnergyConsumption
 
 approximationLevel = 6      # TODO: define it in TrainRun and give it to each function?
 
- # simulate a train run focussing on using the minimum possible running time
-function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Settings, train::Train)
+ # calculate a train run focussing on using the minimum possible running time
+function calculateMinimumRunningTime!(movingSection::MovingSection, settings::Settings, train::Train)
 # CSs=movingSection.characteristicSections
     startingPoint=DataPoint()
     startingPoint.i=1
-    startingPoint.s=movingSection.characteristicSections[1].s_start
+    startingPoint.s=movingSection.characteristicSections[1].s_entry
     drivingCourse=[startingPoint]    # List of data points
 
     #    for CS in CSs
     for csId in 1:length(movingSection.characteristicSections)
     #    println("CS",csId)
         # check if the CS has a cruising section
-        s_starting=get(movingSection.characteristicSections[csId].behaviorSections, "starting", BehaviorSection()).s_total
-        s_cruisingBeforeAcceleration=get(movingSection.characteristicSections[csId].behaviorSections, "cruisingBeforeAcceleration", BehaviorSection()).s_total
-        s_acceleration=get(movingSection.characteristicSections[csId].behaviorSections, "acceleration", BehaviorSection()).s_total
-        s_braking=max(0.0, ceil((movingSection.characteristicSections[csId].v_exit^2-movingSection.characteristicSections[csId].v_reach^2)/2/train.a_braking, digits=approximationLevel))   # ceil is used to be sure that the train stops at s_end in spite of rounding errors
+        s_breakFree=get(movingSection.characteristicSections[csId].behaviorSections, "breakFree", BehaviorSection()).length
+        s_clearing=get(movingSection.characteristicSections[csId].behaviorSections, "clearing", BehaviorSection()).length
+        s_acceleration=get(movingSection.characteristicSections[csId].behaviorSections, "acceleration", BehaviorSection()).length
+        s_braking=max(0.0, ceil((movingSection.characteristicSections[csId].v_exit^2-movingSection.characteristicSections[csId].v_target^2)/2/train.a_braking, digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
 
         # calculate the cruising sections length
-        s_cruising=movingSection.characteristicSections[csId].s_total-s_starting-s_cruisingBeforeAcceleration-s_acceleration-s_braking
+        s_cruising=movingSection.characteristicSections[csId].length-s_breakFree-s_clearing-s_acceleration-s_braking
 
-        # reset the moving section (MS), delete characteristic sections (CS) that were used during the preperation for setting v_entry, v_reach and v_exit
-        delete!(movingSection.characteristicSections[csId].behaviorSections, "starting")
-        delete!(movingSection.characteristicSections[csId].behaviorSections, "cruisingBeforeAcceleration")
+        # reset the moving section (MS), delete characteristic sections (CS) that were used during the preperation for setting v_entry, v_target and v_exit
+        delete!(movingSection.characteristicSections[csId].behaviorSections, "breakFree")
+        delete!(movingSection.characteristicSections[csId].behaviorSections, "clearing")
         delete!(movingSection.characteristicSections[csId].behaviorSections, "acceleration")
-        delete!(movingSection.characteristicSections[csId].behaviorSections, "diminishing") # 11/22 added new
+        delete!(movingSection.characteristicSections[csId].behaviorSections, "diminishing")
         delete!(movingSection.characteristicSections[csId].behaviorSections, "cruising")
-        movingSection.characteristicSections[csId].E_total=0.0
-        movingSection.characteristicSections[csId].t_total=0.0
+        movingSection.characteristicSections[csId].E=0.0
+        movingSection.characteristicSections[csId].t=0.0
 
 
-        if s_cruisingBeforeAcceleration == movingSection.characteristicSections[csId].s_total
-                # 09/06 TODO: thought about using "cruising" because it is used in EnergySaving and not cruisingBeforeAcceleration (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruisingBeforeAcceleration, settings, train, movingSection.characteristicSections, "cruising")
-            (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruisingBeforeAcceleration, settings, train, movingSection.characteristicSections, "cruisingBeforeAcceleration")
-        elseif s_cruising == movingSection.characteristicSections[csId].s_total
+        if s_clearing == movingSection.characteristicSections[csId].length
+                # 09/06 TODO: thought about using "cruising" because it is used in EnergySaving and not clearing (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_clearing, settings, train, movingSection.characteristicSections, "cruising")
+            (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_clearing, settings, train, movingSection.characteristicSections, "clearing")
+        elseif s_cruising == movingSection.characteristicSections[csId].length
             (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruising, settings, train, movingSection.characteristicSections, "cruising")
         elseif s_cruising > 0.0 || s_braking == 0.0
         # 09/21 elseif s_cruising > 0.0
         # 09/21 elseif s_cruising > 0.01 # if the cruising section is longer than 1 cm (because of rounding issues not >0.0)
-            if drivingCourse[end].v < movingSection.characteristicSections[csId].v_reach
+            if drivingCourse[end].v < movingSection.characteristicSections[csId].v_target
                 (movingSection.characteristicSections[csId], drivingCourse)=addAccelerationPhase!(movingSection.characteristicSections[csId], drivingCourse, settings, train, movingSection.characteristicSections)
             end #if
 
-            if movingSection.characteristicSections[csId].s_end-drivingCourse[end].s-max(0.0, (movingSection.characteristicSections[csId].v_exit^2-drivingCourse[end].v^2)/2/train.a_braking) < -0.001   # ceil is used to be sure that the train stops at s_end in spite of rounding errors
+            if movingSection.characteristicSections[csId].s_exit-drivingCourse[end].s-max(0.0, (movingSection.characteristicSections[csId].v_exit^2-drivingCourse[end].v^2)/2/train.a_braking) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
                 println("ERROR: After accelerating in CS ",csId," the braking distance is too short!")
-                println("     before acceleration in CS",csId, "  with s=",drivingCourse[end].s,"  s_braking=",((movingSection.characteristicSections[csId].v_exit^2-drivingCourse[end].v^2)/2/train.a_braking),"   s_end=",movingSection.characteristicSections[csId].s_end)
-                println("                             and v=",drivingCourse[end].v,"   v_reach=",movingSection.characteristicSections[csId].v_reach,"  v_exit=",movingSection.characteristicSections[csId].v_exit)
+                println("     before acceleration in CS",csId, "  with s=",drivingCourse[end].s,"  s_braking=",((movingSection.characteristicSections[csId].v_exit^2-drivingCourse[end].v^2)/2/train.a_braking),"   s_exit=",movingSection.characteristicSections[csId].s_exit)
+                println("                             and v=",drivingCourse[end].v,"   v_target=",movingSection.characteristicSections[csId].v_target,"  v_exit=",movingSection.characteristicSections[csId].v_exit)
             end
 
-            s_braking=max(0.0, ceil((movingSection.characteristicSections[csId].v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=approximationLevel))   # ceil is used to be sure that the train stops at s_end in spite of rounding errors
-            s_cruising=movingSection.characteristicSections[csId].s_end-drivingCourse[end].s-s_braking
+            s_braking=max(0.0, ceil((movingSection.characteristicSections[csId].v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+            s_cruising=movingSection.characteristicSections[csId].s_exit-drivingCourse[end].s-s_braking
 
             if s_cruising > 0.0
                 (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruising, settings, train, movingSection.characteristicSections, "cruising")
             end
         else
 
-            if movingSection.characteristicSections[csId].v_entry < movingSection.characteristicSections[csId].v_reach || s_acceleration > 0.0 # or instead of " || s_acceleration > 0.0" use "v_entry <= v_reach" or "v_i <= v_reach"
-            # 09/09 old (not sufficient for steep gradients): if movingSection.characteristicSections[csId].v_entry < movingSection.characteristicSections[csId].v_reach
+            if movingSection.characteristicSections[csId].v_entry < movingSection.characteristicSections[csId].v_target || s_acceleration > 0.0 # or instead of " || s_acceleration > 0.0" use "v_entry <= v_target" or "v_i <= v_target"
+            # 09/09 old (not sufficient for steep gradients): if movingSection.characteristicSections[csId].v_entry < movingSection.characteristicSections[csId].v_target
                 (movingSection.characteristicSections[csId], drivingCourse)=addAccelerationPhaseUntilBraking!(movingSection.characteristicSections[csId], drivingCourse, settings, train, movingSection.characteristicSections)
             end #if
         end #if
 
 
-        s_braking=max(0.0, ceil((movingSection.characteristicSections[csId].v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=approximationLevel))     # ceil is used to be sure that the train stops at s_end in spite of rounding errors
+        s_braking=max(0.0, ceil((movingSection.characteristicSections[csId].v_exit^2-drivingCourse[end].v^2)/2/train.a_braking, digits=approximationLevel))     # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
 
         if drivingCourse[end].v > movingSection.characteristicSections[csId].v_exit
             #(movingSection.characteristicSections[csId], drivingCourse)=addBrakingPhase!(movingSection.characteristicSections[csId], drivingCourse, settings.massModel, train, movingSection.characteristicSections)
@@ -82,9 +82,9 @@ function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Set
         end #if
 
         #= 09/20 old and should never be used:
-        if drivingCourse[end].s < movingSection.characteristicSections[csId].s_end
+        if drivingCourse[end].s < movingSection.characteristicSections[csId].s_exit
             if haskey(movingSection.characteristicSections[csId].behaviorSections, "cruising")
-                println("INFO: A second cruising section has been added to CS ", csId," from s=",drivingCourse[end].s,"  to s_end=",movingSection.characteristicSections[csId].s_end)
+                println("INFO: A second cruising section has been added to CS ", csId," from s=",drivingCourse[end].s,"  to s_exit=",movingSection.characteristicSections[csId].s_exit)
             end
             (movingSection.characteristicSections[csId], drivingCourse)=addCruisingPhase!(movingSection.characteristicSections[csId], drivingCourse, s_cruising, settings, train, movingSection.characteristicSections, "cruising")
         end =#
@@ -93,15 +93,15 @@ function simulateMinimumRunningTime!(movingSection::MovingSection, settings::Set
     # calculate the last data points resiting forces
     drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings.massModel,  movingSection.characteristicSections, "braking"))
 
-    movingSection.t_total=drivingCourse[end].t            # total running time (in s)
-    movingSection.E_total=drivingCourse[end].E            # total energy consumption (in Ws)
+    movingSection.t=drivingCourse[end].t            # total running time (in s)
+    movingSection.E=drivingCourse[end].E            # total energy consumption (in Ws)
 
     return (movingSection, drivingCourse)
-end #function simulateMinimumRunningTime
+end #function calculateMinimumRunningTime
 
 
-function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumRunningTime::Vector{DataPoint}, settings::Settings, train::Train)
- # simulate a train run focussing on using the minimum possible energy consumption
+function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::MovingSection, drivingCourseMinimumRunningTime::Vector{DataPoint}, settings::Settings, train::Train)
+ # calculate a train run focussing on using the minimum possible energy consumption
     # booleans for choosing which methods are used for saving energy
     doMethod1=true
     #doMethod1=false
@@ -120,7 +120,7 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
     end
 
     # calculate the recovery time
-    movingSectionOriginal.t_recovery=calculateRecoveryTime(movingSectionOriginal.s_total, movingSectionOriginal.t_total, train)
+    movingSectionOriginal.t_recovery=calculateRecoveryTime(movingSectionOriginal.length, movingSectionOriginal.t, train)
     movingSectionOriginal.t_recoveryAvailable=movingSectionOriginal.t_recovery
 
     # create arrays for each method with all the available energy saving modifications
@@ -136,7 +136,7 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
             push!(energySavingModificationsWithCoasting, energySavingModification)
         end #if doMethod1
 
-        # method 2: accelerate to a lower v_reach
+        # method 2: accelerate to a lower v_target
         if doMethod2 == true
             modificationType = "decreasing maximum velocity"
             energySavingModification = modifyCs(movingSectionOriginal, drivingCourseOriginal, csId, modificationType, settings, train)
@@ -227,7 +227,7 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
 
         movingSectionOriginal.t_recoveryAvailable = movingSectionOriginal.t_recoveryAvailable - movingSectionOriginal.energySavingModifications[end].Δt
 
-        lastIdOfSelectedCsOriginal = get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "braking", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruisingAfterCoasting", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "coasting", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruising", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "acceleration", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruisingBeforeAcceleration", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "starting", BehaviorSection()))))))).dataPoints[end]
+        lastIdOfSelectedCsOriginal = get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "braking", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruisingAfterCoasting", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "coasting", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "cruising", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "acceleration", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "clearing", get(movingSectionOriginal.characteristicSections[csIdMax].behaviorSections, "breakFree", BehaviorSection()))))))).dataPoints[end]
 
         # create new driving course
         drivingCourseNew=Vector{DataPoint}()
@@ -265,10 +265,10 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
 
         #fill up the rest of the driving course with information from the original course
         drivingCourseNew[end].F_T=drivingCourseOriginal[lastIdOfSelectedCsOriginal].F_T
-        drivingCourseNew[end].F_Rt=drivingCourseOriginal[lastIdOfSelectedCsOriginal].F_Rt
-        drivingCourseNew[end].F_Rw=drivingCourseOriginal[lastIdOfSelectedCsOriginal].F_Rw
-        drivingCourseNew[end].F_Runion=drivingCourseOriginal[lastIdOfSelectedCsOriginal].F_Runion
-        drivingCourseNew[end].F_Rp=drivingCourseOriginal[lastIdOfSelectedCsOriginal].F_Rp
+        drivingCourseNew[end].R_traction=drivingCourseOriginal[lastIdOfSelectedCsOriginal].R_traction
+        drivingCourseNew[end].R_consist=drivingCourseOriginal[lastIdOfSelectedCsOriginal].R_consist
+        drivingCourseNew[end].R_train=drivingCourseOriginal[lastIdOfSelectedCsOriginal].R_train
+        drivingCourseNew[end].R_path=drivingCourseOriginal[lastIdOfSelectedCsOriginal].R_path
         drivingCourseNew[end].F_R=drivingCourseOriginal[lastIdOfSelectedCsOriginal].F_R
         drivingCourseNew[end].a=drivingCourseOriginal[lastIdOfSelectedCsOriginal].a
 
@@ -281,20 +281,20 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
             drivingCourseNew[end].i=length(drivingCourseNew)
             drivingCourseNew[end].t=drivingCourseNew[end-1].t+drivingCourseNew[end].Δt
             drivingCourseNew[end].E=drivingCourseNew[end-1].E+drivingCourseNew[end].ΔE
-            drivingCourseNew[end].W_T=drivingCourseNew[end-1].W_T+drivingCourseNew[end].ΔW_T
+            drivingCourseNew[end].W=drivingCourseNew[end-1].W+drivingCourseNew[end].ΔW
             i=i+1
         end # while
 
         # replace the original driving course and CS with the new modified ones
         drivingCourseOriginal=drivingCourseNew
         movingSectionOriginal.characteristicSections[csIdMax]=CharacteristicSection(movingSectionOriginal.energySavingModifications[end].csModified)
-        movingSectionOriginal.t_total=drivingCourseOriginal[end].t            # total running time (in s)
-        movingSectionOriginal.E_total=drivingCourseOriginal[end].E            # total energy consumption (in Ws)
+        movingSectionOriginal.t=drivingCourseOriginal[end].t            # total running time (in s)
+        movingSectionOriginal.E=drivingCourseOriginal[end].E            # total energy consumption (in Ws)
 
         # update all the data point references in the behaviour sections of the following characteristic sections and the other modified characteristic sections
         if difference!= 0
             # update the data point references in the behaviour sections of the following characteristic sections
-            allBs=["starting", "cruisingBeforeAcceleration", "acceleration", "cruising", "coasting", "cruisingAfterCoasting", "braking"]
+            allBs=["breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting","cruisingAfterCoasting", "braking", "standStill"]
             for csId in csIdMax+1:length(movingSectionOriginal.characteristicSections)
                 for bs in 1: length(allBs)
                     if haskey(movingSectionOriginal.characteristicSections[csId].behaviorSections, allBs[bs])
@@ -319,7 +319,7 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
             energySavingModificationsWithCoasting[csIdMax]=energySavingModification
         end #if if doMethod1
 
-        # method 2: accelerate to a lower v_reach
+        # method 2: accelerate to a lower v_target
         if doMethod2==true
             modificationType = "decreasing maximum velocity"
             energySavingModification = modifyCs(movingSectionOriginal, drivingCourseOriginal, csIdMax, modificationType, settings, train)
@@ -337,7 +337,7 @@ function simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Movin
 
     println("t_recoveryAvailable=",movingSectionOriginal.t_recoveryAvailable)
     return (movingSectionOriginal, drivingCourseOriginal)
-end #function simulateMinimumEnergyConsumption
+end #function calculateMinimumEnergyConsumption
 
 
 function modifyCs(movingSectionOriginal::MovingSection, drivingCourseOriginal::Vector{DataPoint}, csId::Integer, modificationType::String, settings::Settings, train::Train)
@@ -346,7 +346,7 @@ function modifyCs(movingSectionOriginal::MovingSection, drivingCourseOriginal::V
         # method 1: increase coasting
         (characteristicSectionModified, drivingCourseModifiedUntilEndOfModifiedCS, new)=increaseCoastingSection(movingSectionOriginal.characteristicSections[csId], drivingCourseOriginal, settings, train, movingSectionOriginal.characteristicSections, movingSectionOriginal.t_recoveryAvailable)
     elseif modificationType == "decreasing maximum velocity"
-        # method 2: accelerate to a lower v_reach
+        # method 2: accelerate to a lower v_target
         (characteristicSectionModified, drivingCourseModifiedUntilEndOfModifiedCS, new)=decreaseMaximumVelocity(movingSectionOriginal.characteristicSections[csId], drivingCourseOriginal, settings, train, movingSectionOriginal.characteristicSections, movingSectionOriginal.t_recoveryAvailable)
     elseif modificationType == "combination of energy saving methods"
         # calculate the combination of the previous methods
@@ -361,8 +361,8 @@ function modifyCs(movingSectionOriginal::MovingSection, drivingCourseOriginal::V
         energySavingModification.type = modificationType                                                                                    # type of energy saving modification: "increasing coasting" or "decreasing maximum velocity" or "combination of energy saving methods"
         energySavingModification.csModified = characteristicSectionModified                                                                       # the modified characteristic section
         energySavingModification.drivingCourseModified = drivingCourseModifiedUntilEndOfModifiedCS                                                # drivingCourse of the modified characteristic section
-        energySavingModification.ΔE = movingSectionOriginal.characteristicSections[csId].E_total - energySavingModification.csModified.E_total      # saved energy (in Ws)
-        energySavingModification.Δt = energySavingModification.csModified.t_total - movingSectionOriginal.characteristicSections[csId].t_total      # time loss (in s)
+        energySavingModification.ΔE = movingSectionOriginal.characteristicSections[csId].E - energySavingModification.csModified.E      # saved energy (in Ws)
+        energySavingModification.Δt = energySavingModification.csModified.t - movingSectionOriginal.characteristicSections[csId].t      # time loss (in s)
         if energySavingModification.Δt <= movingSectionOriginal.t_recoveryAvailable && energySavingModification.ΔE >= 0.0
             #*** TODO: check why "sign" is needed here
         #    if modificationType == "combination of energy saving methods"
@@ -397,7 +397,7 @@ function findBestModification(energySavingModifications::Vector{EnergySavingModi
 end #function findBestModification
 
 function updateEnergySavingModifications(energySavingModifications::Vector{EnergySavingModification}, csIdMax::Integer, drivingCourseNew::Vector{DataPoint}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
-    allBs = ["starting", "cruisingBeforeAcceleration", "acceleration", "cruising", "coasting", "cruisingAfterCoasting", "braking"]
+    allBs=["breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting","cruisingAfterCoasting", "braking", "standStill"]
     difference = endOfModificationId-lastIdOfSelectedCsOriginal
     for modNr in csIdMax+1:length(energySavingModifications)
         if energySavingModifications[modNr].ratio>0
@@ -421,7 +421,7 @@ function updateEnergySavingModifications(energySavingModifications::Vector{Energ
                 drivingCourseModifiedNew[end].i=length(drivingCourseModifiedNew)
                 drivingCourseModifiedNew[end].t=drivingCourseModifiedNew[end-1].t+drivingCourseModifiedNew[end].Δt
                 drivingCourseModifiedNew[end].E=drivingCourseModifiedNew[end-1].E+drivingCourseModifiedNew[end].ΔE
-                drivingCourseModifiedNew[end].W_T=drivingCourseModifiedNew[end-1].W_T+drivingCourseModifiedNew[end].ΔW_T
+                drivingCourseModifiedNew[end].W=drivingCourseModifiedNew[end-1].W+drivingCourseModifiedNew[end].ΔW
                 i=i+1
             end # while
 

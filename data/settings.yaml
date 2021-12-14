@@ -8,5 +8,5 @@ settings:
   operationModeMinimumRunningTime: true         # operation mode "minimum running time"
   operationModeMinimumEnergyConsumption: true   # operation mode "minimum energy consumption"
   typeOfOutput: "julia dictionary"              # output as "julia dictionary" or as "CSV"
-  detailOfOutput: "driving course"              # should the output be "reduced" or "driving course"?
+  detailOfOutput: "driving course"              # should the output be "minimal" or "driving course"?
   csvDirectory: "~/Desktop/TrainRun"

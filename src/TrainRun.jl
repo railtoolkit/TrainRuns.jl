@@ -42,8 +42,8 @@ function calculateDrivingDynamics(trainDirectory::String, pathDirectory::String,
     println("The moving section has been prepared.")
 
     if settings.operationModeMinimumRunningTime==true || settings.operationModeMinimumEnergyConsumption==true
-        (movingSectionMinimumRunningTime, drivingCourseMinimumRunningTime)=simulateMinimumRunningTime!(movingSection, settings, train)
-       # println("t_total=", drivingCourseMinimumRunningTime[end].t)
+        (movingSectionMinimumRunningTime, drivingCourseMinimumRunningTime)=calculateMinimumRunningTime!(movingSection, settings, train)
+       # println("t=", drivingCourseMinimumRunningTime[end].t)
        # printSectionInformation(movingSectionMinimumRunningTime)
         println("The driving course for the shortest running time has been calculated.")
     end #if
@@ -51,7 +51,7 @@ function calculateDrivingDynamics(trainDirectory::String, pathDirectory::String,
 
     # oparation mode "minimum energy consumption"
     if settings.operationModeMinimumEnergyConsumption==true
-        (movingSectionMinimumEnergyConsumption, drivingCourseMinimumEnergyConsumption)=simulateMinimumEnergyConsumption(movingSectionMinimumRunningTime, drivingCourseMinimumRunningTime, settings, train)
+        (movingSectionMinimumEnergyConsumption, drivingCourseMinimumEnergyConsumption)=calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime, drivingCourseMinimumRunningTime, settings, train)
        # printSectionInformation(movingSectionMinimumEnergyConsumption)
         println("The driving course for the lowest energy consumption has been calculated.")
     end #if

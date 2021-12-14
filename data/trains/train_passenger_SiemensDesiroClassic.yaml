@@ -2,11 +2,11 @@
 ---
 train:
   name: "Siemens Desiro Classic" # (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
-  l_union: 41.7    # in m (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
+  l_train: 41.7    # in m (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
   m_td: 52800     # mass on driving axles of the traction unit in kg (source: FBS: DB 642; proportionately to the number of axles: 4 to 2, see: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
   m_tc: 35200     # mass on carrying axles of the traction unit in kg (source: FBS: DB 642; proportionately to the number of axles: 4 to 2, see: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
   m_w: 0          # mass of the consist (set of wagons) in kg (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic -> no separate wagons)
-  rotationMassFactor_union: 1.08      # (source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 13 for "Zug, überschlägliche Berechnung")
+  rotationMassFactor_train: 1.08      # (source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 13 for "Zug, überschlägliche Berechnung")
   rotationMassFactor_t:
   rotationMassFactor_w:
   powerType: diesel             # diesel or electric (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)

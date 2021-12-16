@@ -268,8 +268,9 @@ function addStartingPhase!(CS::CharacteristicSection, drivingCourse::Vector{Data
         breakFreeSection.v_entry=drivingCourse[end].v            # entry speed (in m/s)
         push!(breakFreeSection.dataPoints, drivingCourse[end].i) # list of containing data points
 
+        drivingCourse[end].behavior = breakFreeSection.type
         # traction effort and resisting forces (in N):
-        drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration"))    # currently the tractive effort is calculated like in the acceleration phase
+        calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration")    # currently the tractive effort is calculated like in the acceleration phase
 
         # acceleration (in m/s^2):
         drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train[:m_train]/train[:ξ_train]
@@ -281,6 +282,7 @@ function addStartingPhase!(CS::CharacteristicSection, drivingCourse::Vector{Data
 
         # creating the next data point
         push!(drivingCourse, moveAStep(drivingCourse[end], settings[:stepVariable], settings[:stepSize], CS.id))
+        drivingCourse[end].behavior = breakFreeSection.type
            #= 07/30 TODO: the calculation is easier with these lines because the values that are 0 in the first step are not used in calculation but all in all the code gets easier without these lines:
             push!(drivingCourse, DataPoint())
             drivingCourse[end].i=drivingCourse[end-1].i+1     # incrementing the number of the data point
@@ -337,7 +339,7 @@ function addAccelerationPhase!(CS::CharacteristicSection, drivingCourse::Vector{
     calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration")
     if drivingCourse[end].F_T < drivingCourse[end].F_R
         (CS, drivingCourse)=addDiminishingPhase!(CS, drivingCourse, settings, train, CSs)
-        drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration"))
+        calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration")
     end
 
     # if the tail of the train is still located in a former characteristic section it has to be checked if its speed limit can be kept
@@ -356,20 +358,22 @@ function addAccelerationPhase!(CS::CharacteristicSection, drivingCourse::Vector{
         accelerationSection.s_entry=drivingCourse[end].s      # first position (in m)
         accelerationSection.v_entry=drivingCourse[end].v      # entry speed (in m/s)
         push!(accelerationSection.dataPoints, drivingCourse[end].i)
+        drivingCourse[end].behavior = accelerationSection.type
 
         currentStepSize=settings[:stepSize]  # initializing the step size that can be reduced near intersections
         for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
             while drivingCourse[end].v<CS.v_target && drivingCourse[end].s<CS.s_exit && drivingCourse[end].F_T > drivingCourse[end].F_R
                 # traction effort and resisting forces (in N)
-                # 11/22   drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type))
+                # 11/22   calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type)
 
                 # acceleration (in m/s^2):
                 drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train[:m_train]/train[:ξ_train]
 
                 # create the next data point
                 push!(drivingCourse, moveAStep(drivingCourse[end], settings[:stepVariable], currentStepSize, CS.id))
+                drivingCourse[end].behavior = accelerationSection.type
                 push!(accelerationSection.dataPoints, drivingCourse[end].i)
-            #    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type))
+            #    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type)
 
 
                 if length(formerSpeedLimits) > 0 # If the tail of the train is located in a former characteristic section with lower speed limit check if is is possible to accelerate as normal
@@ -379,7 +383,7 @@ function addAccelerationPhase!(CS::CharacteristicSection, drivingCourse::Vector{
                     end #if
                     currentStepSize=settings[:stepSize]  # initializing the step size that can be reduced near intersections
                 end #if
-                drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type))
+                calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type)
             end #while
 
             # check which limit was reached and adjust the currentStepSize for the next cycle
@@ -431,7 +435,7 @@ function addAccelerationPhase!(CS::CharacteristicSection, drivingCourse::Vector{
 
                 elseif drivingCourse[end].F_T <= drivingCourse[end].F_R
                     (CS, drivingCourse)=addDiminishingPhase!(CS, drivingCourse, settings, train, CSs)
-                    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type))
+                    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type)
 
                 else
 
@@ -471,7 +475,7 @@ function addAccelerationPhaseUntilBraking!(CS::CharacteristicSection, drivingCou
     calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration")
     if drivingCourse[end].F_T < drivingCourse[end].F_R
         (CS, drivingCourse)=addDiminishingPhase!(CS, drivingCourse, settings, train, CSs)
-        drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration"))
+        calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration")
     end
 
     # if the tail of the train is still located in a former characteristic section it has to be checked if its speed limit can be kept
@@ -485,6 +489,7 @@ function addAccelerationPhaseUntilBraking!(CS::CharacteristicSection, drivingCou
         accelerationSection.s_entry=drivingCourse[end].s        # first position (in m)
         accelerationSection.v_entry=drivingCourse[end].v        # entry speed (in m/s)
         push!(accelerationSection.dataPoints, drivingCourse[end].i)
+        drivingCourse[end].behavior = accelerationSection.type
 
         currentStepSize=settings[:stepSize]   # initializing the step size that can be reduced near intersections
         for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
@@ -492,7 +497,7 @@ function addAccelerationPhaseUntilBraking!(CS::CharacteristicSection, drivingCou
             while drivingCourse[end].v < CS.v_target && drivingCourse[end].s+s_braking<CS.s_exit && drivingCourse[end].F_T > drivingCourse[end].F_R      # as long as s_i + s_braking < s_CSend
             # 12/03 old with v>0    while drivingCourse[end].v < CS.v_target && drivingCourse[end].s+s_braking<CS.s_exit && drivingCourse[end].v>0.0 && drivingCourse[end].F_T > drivingCourse[end].F_R      # as long as s_i + s_braking < s_CSend
 
-            #11/22    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type))
+            #11/22    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type)
 
                 # acceleration (in m/s^2):
                 drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train[:m_train]/train[:ξ_train]
@@ -502,8 +507,9 @@ function addAccelerationPhaseUntilBraking!(CS::CharacteristicSection, drivingCou
 
                 # create the next data point
                 push!(drivingCourse, moveAStep(drivingCourse[end], settings[:stepVariable], currentStepSize, CS.id))
+                drivingCourse[end].behavior = accelerationSection.type
                 push!(accelerationSection.dataPoints, drivingCourse[end].i)
-            # 12/03: was moved behind considerFormerSpeedLimits:    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type))
+            # 12/03: was moved behind considerFormerSpeedLimits:    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type)
 
                 if length(formerSpeedLimits) > 0 # If the tail of the train is located in a former characteristic section with lower speed limit check if is is possible to accelerate as normal
                     (CS, drivingCourse, formerSpeedLimits, accelerationSection, endOfCsReached) = considerFormerSpeedLimits!(CS, drivingCourse, settings, train, CSs, formerSpeedLimits, accelerationSection)
@@ -511,7 +517,7 @@ function addAccelerationPhaseUntilBraking!(CS::CharacteristicSection, drivingCou
                         return (CS, drivingCourse)
                     end
                 end
-                drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type))
+                calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type)
                 s_braking=max(0.0, ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))
             end #while
 
@@ -562,7 +568,7 @@ function addAccelerationPhaseUntilBraking!(CS::CharacteristicSection, drivingCou
 
                 elseif drivingCourse[end].F_T <= drivingCourse[end].F_R
                     (CS, drivingCourse)=addDiminishingPhase!(CS, drivingCourse, settings, train, CSs)
-                    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type))
+                    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, accelerationSection.type)
 
                 else
 
@@ -608,13 +614,14 @@ function addCruisingPhase!(CS::CharacteristicSection, drivingCourse::Vector{Data
         # 11/22: now it is at the end of the BS: cruisingSection.s_exit=min(drivingCourse[end].s+s_cruising, CS.s_exit) # last position (in m)
         cruisingSection.v_entry=drivingCourse[end].v                                            # entry speed (in m/s)
         push!(cruisingSection.dataPoints, drivingCourse[end].i)
+        drivingCourse[end].behavior = cruisingSection.type
 
         # TODO: necessary?
         s_cruising=min(s_cruising, CS.s_exit-cruisingSection.s_entry)
 
         # traction effort and resisting forces (in N)
         calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "cruising") # TODO: or give cruisingSection.type instead of "cruising"?
-        # 11/05 old: drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "cruising")) # TODO: or give cruisingSection.type instead of "cruising"?
+        # 11/05 old: drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "cruising"))
 
         if settings[:massModel]=="homogeneous strip" && CS.id > 1
             currentStepSize=settings[:stepSize]
@@ -634,6 +641,7 @@ function addCruisingPhase!(CS::CharacteristicSection, drivingCourse::Vector{Data
                     else
                         push!(drivingCourse, moveAStep(drivingCourse[end], "s_cruising in m", train[:l_train]/(10.0^cycle), CS.id)) # TODO which step size should be used?
                     end
+                    drivingCourse[end].behavior = cruisingSection.type
                     push!(cruisingSection.dataPoints, drivingCourse[end].i)
 
                     # for testing
@@ -686,7 +694,7 @@ function addCruisingPhase!(CS::CharacteristicSection, drivingCourse::Vector{Data
                     elseif drivingCourse[end].F_T < drivingCourse[end].F_R
 
                         (CS, drivingCourse)=addDiminishingPhase!(CS, drivingCourse, settings, train, CSs)
-                        drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "cruising"))
+                        calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "cruising")
 
                     #    s_cruising=max(0.0, s_cruising-get(CS.behaviorSections, :diminishing, BehaviorSection()).length)
 
@@ -707,6 +715,7 @@ function addCruisingPhase!(CS::CharacteristicSection, drivingCourse::Vector{Data
 
             # create the next data point
             push!(drivingCourse, moveAStep(drivingCourse[end], "s_cruising in m", s_cruisingRemaining, CS.id))
+            drivingCourse[end].behavior = cruisingSection.type
             push!(cruisingSection.dataPoints, drivingCourse[end].i)
         end
 
@@ -739,6 +748,7 @@ function addCoastingPhaseUntilBraking!(CS::CharacteristicSection, drivingCourse:
        coastingSection.s_entry=drivingCourse[end].s      # first position (in m)
        coastingSection.v_entry=drivingCourse[end].v      # entry speed (in m/s)
        push!(coastingSection.dataPoints, drivingCourse[end].i)
+       drivingCourse[end].behavior = coastingSection.type
 
        currentStepSize=settings[:stepSize]  # initializing the step size that can be reduced near intersections
        # 08/24 old for cycle in 1:3                   # first cycle with normal step size, second cycle with reduced step size, third cycle with more reduced step size
@@ -746,13 +756,14 @@ function addCoastingPhaseUntilBraking!(CS::CharacteristicSection, drivingCourse:
             s_braking=ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel)
             while drivingCourse[end].v>CS.v_exit && drivingCourse[end].v<=CS.v_target && drivingCourse[end].s + s_braking < CS.s_exit # as long as s_i + s_braking < s_CSend
                # traction effort and resisting forces (in N):
-               drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, coastingSection.type))
+               calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, coastingSection.type)
 
                # acceleration (in m/s^2):
                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train[:m_train]/train[:ξ_train]
 
                # creating the next data point
                push!(drivingCourse, moveAStep(drivingCourse[end], settings[:stepVariable], currentStepSize, CS.id))
+               drivingCourse[end].behavior = coastingSection.type
                push!(coastingSection.dataPoints, drivingCourse[end].i)
 
                s_braking=ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking])
@@ -856,12 +867,14 @@ function addBrakingPhase!(CS::CharacteristicSection, drivingCourse::Vector{DataP
         brakingSection.s_exit=CS.s_exit        # last position (in m)
         brakingSection.v_entry=drivingCourse[end].v             # entry speed (in m/s)
         push!(brakingSection.dataPoints, drivingCourse[end].i)   # refering from the breaking section to the first of its data points
+        drivingCourse[end].behavior = brakingSection.type
 
         # traction effort and resisting forces (in N)
-        drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, brakingSection.type))
+        calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, brakingSection.type)
 
         push!(drivingCourse, DataPoint())
-        drivingCourse[end].i=drivingCourse[end-1].i+1                       # incrementing the number of the data point
+        drivingCourse[end].i = drivingCourse[end-1].i+1                       # incrementing the number of the data point
+        drivingCourse[end].behavior = brakingSection.type
         push!(brakingSection.dataPoints, drivingCourse[end].i)               # refering from the breaking section to the last of its data points
 
         # calculate s, t, v
@@ -911,12 +924,13 @@ function addBrakingPhaseStepwise!(CS::CharacteristicSection, drivingCourse::Vect
        brakingSection.s_entry=drivingCourse[end].s             # first position (in m)
        brakingSection.v_entry=drivingCourse[end].v             # entry speed (in m/s)
        push!(brakingSection.dataPoints, drivingCourse[end].i)   # refering from the breaking section to the first of its data points
+       drivingCourse[end].behavior = brakingSection.type
 
        currentStepSize=settings[:stepSize]  # initializing the step size that can be reduced near intersections
        velocityIsPositive=true
        while drivingCourse[end].v > CS.v_exit && drivingCourse[end].s < CS.s_exit && velocityIsPositive
           # traction effort and resisting forces (in N):
-          drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, brakingSection.type))
+          calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, brakingSection.type)
 
           # acceleration (in m/s^2):
           drivingCourse[end].a=train[:a_braking]
@@ -932,6 +946,7 @@ function addBrakingPhaseStepwise!(CS::CharacteristicSection, drivingCourse::Vect
               end
           end
           push!(drivingCourse, moveAStep(drivingCourse[end], settings[:stepVariable], currentStepSize, CS.id))
+          drivingCourse[end].behavior = brakingSection.type
           push!(brakingSection.dataPoints, drivingCourse[end].i)
 
           # s_braking=ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking])
@@ -982,7 +997,7 @@ end #function addBrakingPhaseStepwise!
 
 ## This function calculates the data points for diminishing run when using maximum tractive effort and still getting slower
 function addDiminishingPhase!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
-    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "diminishing"))
+    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "diminishing")
 
     if drivingCourse[end].F_T <= drivingCourse[end].F_R && drivingCourse[end].v > 0.0 && drivingCourse[end].s<CS.s_exit
         #drivingCourse[end].v>0.0 && drivingCourse[end].v<=CS.v_target && drivingCourse[end].s<CS.s_exit
@@ -991,7 +1006,7 @@ function addDiminishingPhase!(CS::CharacteristicSection, drivingCourse::Vector{D
         diminishingSection.s_entry=drivingCourse[end].s                                            # first position (in m)
         diminishingSection.v_entry=drivingCourse[end].v                                            # entry speed (in m/s)
         push!(diminishingSection.dataPoints, drivingCourse[end].i)
-
+        drivingCourse[end].behavior = diminishingSection.type
 
         currentStepSize=settings[:stepSize]   # initializing the step size that can be reduced near intersections
         for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
@@ -999,7 +1014,7 @@ function addDiminishingPhase!(CS::CharacteristicSection, drivingCourse::Vector{D
             while drivingCourse[end].F_T <= drivingCourse[end].F_R && drivingCourse[end].s+s_braking<CS.s_exit && drivingCourse[end].v>0.0       # as long as s_i + s_braking < s_CSend
             # 11/22 old without F_T<=F_R    while drivingCourse[end].s+s_braking<CS.s_exit && drivingCourse[end].v>0.0       # as long as s_i + s_braking < s_CSend
 
-            #11/22    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, diminishingSection.type))
+            #11/22    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, diminishingSection.type)
 
                 # acceleration (in m/s^2):
                 drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train[:m_train]/train[:ξ_train]
@@ -1010,10 +1025,11 @@ function addDiminishingPhase!(CS::CharacteristicSection, drivingCourse::Vector{D
 
                 # create the next data point
                 push!(drivingCourse, moveAStep(drivingCourse[end], settings[:stepVariable], currentStepSize, CS.id))
+                drivingCourse[end].behavior = diminishingSection.type
                 push!(diminishingSection.dataPoints, drivingCourse[end].i)
 
                 s_braking=max(0.0, ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))
-                drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, diminishingSection.type))
+                calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, diminishingSection.type)
             end #while
 
             # check which limit was reached and adjust the currentStepSize for the next cycle

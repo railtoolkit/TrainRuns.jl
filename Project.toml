@@ -1,7 +1,7 @@
 name = "TrainRun"
 uuid = "e4541106-d44c-4e00-b50b-ecdf479fcf92"
 authors = ["Max Kannenberg"]
-version = "0.6.0"
+version = "0.6.1"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"

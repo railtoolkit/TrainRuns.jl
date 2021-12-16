@@ -31,7 +31,18 @@ train_run = calculateDrivingDynamics(train, running_path, settings)
 
 # History
 
+## Version 0.6.1
+
+Add an attribute to DataPoint to record the corresponding driving behavior
+
+- Add the attribute behavior to Datapoint in types.jl
+- Attach the corresponding behavior to data points in MovingPhases.jl
+- Attach the behavior "standStill" to the last data point of the driving course in OperationModes.jl
+- Rework Output.jl for outputting the data points' behavior
+
+
 ## Version 0.6
+
 Refactor some of the mutable structs from types.jl as Dictionaries
 
 - Remove the mutable structs Train, Path, PathSection, Settings and MovingSection

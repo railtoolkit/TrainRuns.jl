@@ -6,6 +6,8 @@ export DataPoint, BehaviorSection, CharacteristicSection, EnergySavingModificati
 ## a data point is the smallest element of the driving course. One step of the step approach is between two data points
 mutable struct DataPoint
     i::Integer              # identifier and counter variable of the dricing course
+    behavior::String        # type of BehaviorSection the DataPoint ist part of ("breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting","braking" or "standStill")
+                            # a data point which is the last point of one BehaviorSection and the first point of the next BehaviorSection will be attached to the latter
     s::AbstractFloat        # position (in m)
     Δs::AbstractFloat       # step size (in m)
     t::AbstractFloat        # point in time (in s)
@@ -24,9 +26,9 @@ mutable struct DataPoint
     R_traction::AbstractFloat     # traction unit resistance (in N)
     R_consist::AbstractFloat     # set of wagons resistance (in N)
 end # mutable struct DataPoint
-DataPoint()=DataPoint(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+DataPoint()=DataPoint(0, "", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 # tried to insert copy on 15.07.2021 copy(original::DataPoint)=DataPoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W, original.ΔW, original.E, original.ΔE, original.F_T, original.F_R, original.R_path, original.R_train, original.R_traction, original.R_consist)
-DataPoint(original::DataPoint)=DataPoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W, original.ΔW, original.E, original.ΔE, original.F_T, original.F_R, original.R_path, original.R_train, original.R_traction, original.R_consist)
+DataPoint(original::DataPoint)=DataPoint(original.i, original.behavior, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W, original.ΔW, original.E, original.ΔE, original.F_T, original.F_R, original.R_path, original.R_train, original.R_traction, original.R_consist)
 
 
 

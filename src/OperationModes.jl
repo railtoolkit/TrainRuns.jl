@@ -91,8 +91,11 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
         end =#
     end #for
 
-    # calculate the last data points resiting forces
-    drivingCourse[end]=DataPoint(calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "braking"))
+    # calculate the last data points resisting forces
+    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "braking")
+    if drivingCourse[end].v == 0.0
+        drivingCourse[end].behavior = "standStill"
+    end
 
     movingSection[:t] = drivingCourse[end].t            # total running time (in s)
     movingSection[:E] = drivingCourse[end].E            # total energy consumption (in Ws)
@@ -274,6 +277,9 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         end #if doCombinationOfMethods
     end # while
 
+    if drivingCourseOriginal[end].v == 0.0
+        drivingCourseOriginal[end].behavior = "standStill"
+    end
 
     println("t_recoveryAvailable=",movingSectionOriginal[:t_recoveryAvailable])
     return (movingSectionOriginal, drivingCourseOriginal)

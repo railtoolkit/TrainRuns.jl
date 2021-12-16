@@ -41,7 +41,7 @@ function calculateDrivingDynamics(trainDirectory::String, pathDirectory::String,
     movingSection=preparateSections(path, train, settings)
     println("The moving section has been prepared.")
 
-    if settings.operationModeMinimumRunningTime==true || settings.operationModeMinimumEnergyConsumption==true
+    if settings[:operationModeMinimumRunningTime] ==true || settings[:operationModeMinimumEnergyConsumption] ==true
         (movingSectionMinimumRunningTime, drivingCourseMinimumRunningTime)=calculateMinimumRunningTime!(movingSection, settings, train)
        # println("t=", drivingCourseMinimumRunningTime[end].t)
        # printSectionInformation(movingSectionMinimumRunningTime)
@@ -50,22 +50,22 @@ function calculateDrivingDynamics(trainDirectory::String, pathDirectory::String,
 
 
     # oparation mode "minimum energy consumption"
-    if settings.operationModeMinimumEnergyConsumption==true
+    if settings[:operationModeMinimumEnergyConsumption] == true
         (movingSectionMinimumEnergyConsumption, drivingCourseMinimumEnergyConsumption)=calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime, drivingCourseMinimumRunningTime, settings, train)
        # printSectionInformation(movingSectionMinimumEnergyConsumption)
         println("The driving course for the lowest energy consumption has been calculated.")
     end #if
 
     #output
-    if settings.operationModeMinimumRunningTime==true && settings.operationModeMinimumEnergyConsumption==true
+    if settings[:operationModeMinimumRunningTime] == true && settings[:operationModeMinimumEnergyConsumption] == true
         plotDrivingCourse(drivingCourseMinimumRunningTime, drivingCourseMinimumEnergyConsumption)
-        return createOutput(settings, path.name, train.name, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
-    elseif settings.operationModeMinimumRunningTime==true
+        return createOutput(settings, path[:name], train[:name], drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
+    elseif settings[:operationModeMinimumRunningTime] == true
         plotDrivingCourse(drivingCourseMinimumRunningTime)
-        return createOutput(settings, path.name, train.name, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime)
-    elseif settings.operationModeMinimumEnergyConsumption==true
+        return createOutput(settings, path[:name], train[:name], drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime)
+    elseif settings[:operationModeMinimumEnergyConsumption] == true
         plotDrivingCourse(drivingCourseMinimumEnergyConsumption)
-        return createOutput(settings, path.name, train.name, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
+        return createOutput(settings, path[:name], train[:name], drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
     else
         println("No Output was demanded. So no output is created.")
         return Dict()

@@ -31,6 +31,14 @@ train_run = calculateDrivingDynamics(train, running_path, settings)
 
 # History
 
+## Version 0.6
+Refactor some of the mutable structs from types.jl as Dictionaries
+
+- Remove the mutable structs Train, Path, PathSection, Settings and MovingSection
+- Create Dictionaries for train, path an settings in Input.jl
+- Create a Dictionary for the whole moving section in Preperation.jl and a function for copying the moving section in OperationModes.jl
+- Change the type of existing Dictionary keys from String to Symbol
+
 ## Version 0.5.3
 
 Rename variables in every .jl an .yaml file

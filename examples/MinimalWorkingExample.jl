@@ -13,6 +13,6 @@ running_path = "data/paths/path_1_10km_nConst_vConst.yaml"
 settings = "data/settings.yaml"
 
 train_run = calculateDrivingDynamics(train, running_path, settings)
-runtime = last(train_run["outputArrayMinimumRunningTime"])[5]
+runtime = last(train_run[:outputArrayMinimumRunningTime])[5]
 
 println("The V 90 with 10 ore wagons needs $runtime seconds for 10 km with no gradient.")

@@ -91,11 +91,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
         end =#
     end #for
 
-    # calculate the last data points resisting forces
-    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "braking")
-    if drivingCourse[end].v == 0.0
-        drivingCourse[end].behavior = "standStill"
-    end
+    (CSs[end], drivingCourse)=addStandstill!(CSs[end], drivingCourse, settings, train, CSs)
 
     movingSection[:t] = drivingCourse[end].t            # total running time (in s)
     movingSection[:E] = drivingCourse[end].E            # total energy consumption (in Ws)
@@ -184,7 +180,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
 
         movingSectionOriginal[:t_recoveryAvailable] = movingSectionOriginal[:t_recoveryAvailable] - movingSectionOriginal[:energySavingModifications][end].Δt
 
-        lastIdOfSelectedCsOriginal = get(CSsOrig[csIdMax].behaviorSections, :standStill,
+        lastIdOfSelectedCsOriginal = get(CSsOrig[csIdMax].behaviorSections, :standstill,
                                       get(CSsOrig[csIdMax].behaviorSections, :braking,
                                        get(CSsOrig[csIdMax].behaviorSections, :cruisingAfterCoasting,
                                         get(CSsOrig[csIdMax].behaviorSections, :coasting,
@@ -237,7 +233,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         # update all the data point references in the behaviour sections of the following characteristic sections and the other modified characteristic sections
         if difference!= 0
             # update the data point references in the behaviour sections of the following characteristic sections
-            allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standStill]
+            allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
             for csId in csIdMax+1:length(CSsOrig)
                 for bs in 1: length(allBs)
                     if haskey(CSsOrig[csId].behaviorSections, allBs[bs])
@@ -277,9 +273,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         end #if doCombinationOfMethods
     end # while
 
-    if drivingCourseOriginal[end].v == 0.0
-        drivingCourseOriginal[end].behavior = "standStill"
-    end
+    (CSsOrig[end], drivingCourseOriginal) = addStandstill!(CSsOrig[end], drivingCourseOriginal, settings, train, CSsOrig)
 
     println("t_recoveryAvailable=",movingSectionOriginal[:t_recoveryAvailable])
     return (movingSectionOriginal, drivingCourseOriginal)
@@ -344,7 +338,7 @@ function findBestModification(energySavingModifications::Vector{EnergySavingModi
 end #function findBestModification
 
 function updateEnergySavingModifications(energySavingModifications::Vector{EnergySavingModification}, csIdMax::Integer, drivingCourseNew::Vector{DataPoint}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standStill]
+    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
     difference = endOfModificationId-lastIdOfSelectedCsOriginal
     for modNr in csIdMax+1:length(energySavingModifications)
         if energySavingModifications[modNr].ratio>0

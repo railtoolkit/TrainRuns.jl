@@ -31,6 +31,16 @@ train_run = calculateDrivingDynamics(train, running_path, settings)
 
 # History
 
+## Version 0.6.2
+
+Add function addStandstill! for creating the BehaviorSection standstill
+
+- Add function addStandstill! to MovinPhases.jl
+- Use function addStandstill! in OperationModes.jl
+- Rename the BehaviorSection standStill to standstill
+- Fix: Rename addStartingPhase! to addBreakFreePhase!
+
+
 ## Version 0.6.1
 
 Add an attribute to DataPoint to record the corresponding driving behavior

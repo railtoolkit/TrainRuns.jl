@@ -1,7 +1,7 @@
 module MovingPhases
 
 using ..types
-export addAccelerationPhase!, addAccelerationPhaseUntilBraking!, addCruisingPhase!, addCoastingPhaseUntilBraking!, addBrakingPhase!, addBrakingPhaseStepwise!, calculateForces!
+export addAccelerationPhase!, addAccelerationPhaseUntilBraking!, addCruisingPhase!, addCoastingPhaseUntilBraking!, addBrakingPhase!, addBrakingPhaseStepwise!, addStandstill!, calculateForces!
 # addBrakingPhaseStepwise! is not used in the current version of the tool
 
 v00=100/3.6     # velocity constant (in m/s)
@@ -260,7 +260,7 @@ end # function considerFormerSpeedLimits!
 ## This function calculates the data points of the breakFree phase.
 # Therefore it gets its first data point and the characteristic section and returns the characteristic section including the behavior section for breakFree if needed.
 # Info: currently the values of the breakFree phase will be calculated like in the acceleration phase
-function addStartingPhase!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
+function addBreakFreePhase!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
     if drivingCourse[end].v==0.0 && drivingCourse[end].s<CS.s_exit
         breakFreeSection=BehaviorSection()
         breakFreeSection.type="breakFree"                        # type of behavior section
@@ -326,14 +326,14 @@ function addStartingPhase!(CS::CharacteristicSection, drivingCourse::Vector{Data
         merge!(CS.behaviorSections, Dict(:breakFree => breakFreeSection))
     end # else: return the characteristic section without a breakFree section
     return (CS, drivingCourse)
-end #function addStartingPhase!
+end #function addBreakFreePhase!
 
 
 ## This function calculates the data points of the acceleration phase.
  #  Therefore it gets its previous driving course and the characteristic section and returns the characteristic section and driving course including the acceleration section
 function addAccelerationPhase!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
     if drivingCourse[end].v==0.0
-        (CS, drivingCourse)=addStartingPhase!(CS, drivingCourse, settings, train, CSs)
+        (CS, drivingCourse)=addBreakFreePhase!(CS, drivingCourse, settings, train, CSs)
     end #if
 
     calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration")
@@ -469,7 +469,7 @@ end #function addAccelerationPhase!
 ## This function calculates the data points of the acceleration phase.
 function addAccelerationPhaseUntilBraking!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
     if drivingCourse[end].v==0.0
-        (CS, drivingCourse)=addStartingPhase!(CS, drivingCourse, settings, train, CSs)
+        (CS, drivingCourse)=addBreakFreePhase!(CS, drivingCourse, settings, train, CSs)
     end #if
 
     calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "acceleration")
@@ -736,6 +736,103 @@ function addCruisingPhase!(CS::CharacteristicSection, drivingCourse::Vector{Data
 end #function addCruisingPhase!
 
 
+## This function calculates the data points for diminishing run when using maximum tractive effort and still getting slower
+function addDiminishingPhase!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
+    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "diminishing")
+
+    if drivingCourse[end].F_T <= drivingCourse[end].F_R && drivingCourse[end].v > 0.0 && drivingCourse[end].s<CS.s_exit
+        #drivingCourse[end].v>0.0 && drivingCourse[end].v<=CS.v_target && drivingCourse[end].s<CS.s_exit
+        diminishingSection=BehaviorSection()
+        diminishingSection.type="diminishing"                                                       # type of behavior section
+        diminishingSection.s_entry=drivingCourse[end].s                                            # first position (in m)
+        diminishingSection.v_entry=drivingCourse[end].v                                            # entry speed (in m/s)
+        push!(diminishingSection.dataPoints, drivingCourse[end].i)
+        drivingCourse[end].behavior = diminishingSection.type
+
+        currentStepSize=settings[:stepSize]   # initializing the step size that can be reduced near intersections
+        for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
+            s_braking=max(0.0, ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))
+            while drivingCourse[end].F_T <= drivingCourse[end].F_R && drivingCourse[end].s+s_braking<CS.s_exit && drivingCourse[end].v>0.0       # as long as s_i + s_braking < s_CSend
+            # 11/22 old without F_T<=F_R    while drivingCourse[end].s+s_braking<CS.s_exit && drivingCourse[end].v>0.0       # as long as s_i + s_braking < s_CSend
+
+            #11/22    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, diminishingSection.type)
+
+                # acceleration (in m/s^2):
+                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train[:m_train]/train[:ξ_train]
+                # 11/21: old, only for cruising:
+                #if drivingCourse[end].a==0.0
+                #    error("ERROR: a=0 m/s^2 in the diminishing phase !   with  F_T=",drivingCourse[end].F_T,"  R_traction=",drivingCourse[end].R_traction,"  R_consist=",drivingCourse[end].R_consist,"  R_path=",drivingCourse[end].R_path)
+                #end
+
+                # create the next data point
+                push!(drivingCourse, moveAStep(drivingCourse[end], settings[:stepVariable], currentStepSize, CS.id))
+                drivingCourse[end].behavior = diminishingSection.type
+                push!(diminishingSection.dataPoints, drivingCourse[end].i)
+
+                s_braking=max(0.0, ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))
+                calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, diminishingSection.type)
+            end #while
+
+            # check which limit was reached and adjust the currentStepSize for the next cycle
+            if cycle < approximationLevel+1
+                if drivingCourse[end].v<=0.0
+                    currentStepSize = settings[:stepSize] / 10.0^cycle
+
+                elseif drivingCourse[end].s + s_braking > CS.s_exit
+                    currentStepSize = settings[:stepSize] / 10.0^cycle
+
+                elseif drivingCourse[end].s + s_braking==CS.s_exit
+                # 11/21 old without s_braking: elseif drivingCourse[end].s==CS.s_exit
+                    break
+
+                elseif drivingCourse[end].F_T > drivingCourse[end].F_R
+                    currentStepSize = settings[:stepSize] / 10.0^cycle
+
+                else
+                    error("ERROR during diminishing run: With the step variable ",settings[:stepVariable]," the while loop will be left although s+s_braking<s_exit && v>0.0  in CS",CS.id,"  with s=" ,drivingCourse[end].s," m and v=",drivingCourse[end].v," m/s")
+                end
+                # delete last data point for recalculating the last step with reduced step size
+                pop!(drivingCourse)
+                pop!(diminishingSection.dataPoints)
+
+            else # if the level of approximation is reached
+                if drivingCourse[end].v<=0.0
+                    # push!(diminishingSection.dataPoints, drivingCourse[end].i)
+                    error("ERROR: The train stops during diminishing run in CS",CS.id," because the maximum tractive effort is lower than the resistant forces.",
+                    "       Before the stop the last point has the values s=",drivingCourse[end-1].s," m  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
+                    "       F_T=",drivingCourse[end-1].F_T," N  R_traction=",drivingCourse[end-1].R_traction," N  R_consist=",drivingCourse[end-1].R_consist," N  R_path=",drivingCourse[end-1].R_path," N.")
+
+                elseif drivingCourse[end].s + s_braking > CS.s_exit
+                    pop!(drivingCourse)
+                    pop!(diminishingSection.dataPoints)
+
+                elseif drivingCourse[end].F_T > drivingCourse[end].F_R
+                    break
+
+                else
+
+                end
+            end
+        end #for
+
+        if length(diminishingSection.dataPoints) > 1 # TODO: necessary? May it be possible that there is no diminishing because braking has to start
+            # calculate the accumulated diminishing section information
+            diminishingSection.v_exit=drivingCourse[end].v                                                     # exit speed (in m/s)
+            diminishingSection.s_exit=drivingCourse[end].s                                                      # last position (in m)
+            diminishingSection.length=diminishingSection.s_exit-diminishingSection.s_entry                       # total length  (in m)
+            diminishingSection.t=drivingCourse[end].t-drivingCourse[diminishingSection.dataPoints[1]].t   # total running time (in s)
+            diminishingSection.E=drivingCourse[end].E-drivingCourse[diminishingSection.dataPoints[1]].E   # total energy consumption (in Ws)
+            CS.t=CS.t+diminishingSection.t             # total running time (in s)
+            CS.E=CS.E+diminishingSection.E             # total energy consumption (in Ws)
+
+            merge!(CS.behaviorSections, Dict(:diminishing=>diminishingSection))
+        end
+    end
+
+    return (CS, drivingCourse)
+end #function addDiminishingPhase!
+
+
 ## This function calculates the data points of the coasting phase.
 # Therefore it gets its previous driving course and the characteristic section and returns the characteristic section and driving course including the coasting section
 function addCoastingPhaseUntilBraking!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
@@ -855,7 +952,6 @@ function addCoastingPhaseUntilBraking!(CS::CharacteristicSection, drivingCourse:
 end #function addCoastingPhaseUntilBraking!
 
 
-
 ## This function calculates the data points of the braking phase. (standard braking phase with only two data points)
 #    Therefore it gets its first data point and the characteristic section and returns the characteristic section including the behavior section for braking if needed.
 function addBrakingPhase!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection}) #, s_braking::AbstractFloat)
@@ -912,7 +1008,6 @@ function addBrakingPhase!(CS::CharacteristicSection, drivingCourse::Vector{DataP
     end  # else: return the characteristic section without a braking section
     return (CS, drivingCourse)
 end #function addBrakingPhase!
-
 
 
 ## This function calculates the data points of the braking phase. # 09/07 new braking phase with more than two data points
@@ -995,100 +1090,31 @@ function addBrakingPhaseStepwise!(CS::CharacteristicSection, drivingCourse::Vect
 end #function addBrakingPhaseStepwise!
 
 
-## This function calculates the data points for diminishing run when using maximum tractive effort and still getting slower
-function addDiminishingPhase!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
-    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, "diminishing")
+## This function calculates the data point of the standstill.
+#    Therefore it gets its first data point and the characteristic section and returns the characteristic section including the standstill if needed.
+function addStandstill!(CS::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, CSs::Vector{CharacteristicSection})
 
-    if drivingCourse[end].F_T <= drivingCourse[end].F_R && drivingCourse[end].v > 0.0 && drivingCourse[end].s<CS.s_exit
-        #drivingCourse[end].v>0.0 && drivingCourse[end].v<=CS.v_target && drivingCourse[end].s<CS.s_exit
-        diminishingSection=BehaviorSection()
-        diminishingSection.type="diminishing"                                                       # type of behavior section
-        diminishingSection.s_entry=drivingCourse[end].s                                            # first position (in m)
-        diminishingSection.v_entry=drivingCourse[end].v                                            # entry speed (in m/s)
-        push!(diminishingSection.dataPoints, drivingCourse[end].i)
-        drivingCourse[end].behavior = diminishingSection.type
+    if drivingCourse[end].v == 0.0
+        standstillSection=BehaviorSection()
+        standstillSection.type="standstill"                         # type of behavior section
+        standstillSection.s_entry=drivingCourse[end].s              # first position (in m)
+        standstillSection.s_exit=drivingCourse[end].s               # last position (in m)
+        standstillSection.v_entry=drivingCourse[end].v              # entry speed (in m/s)
+        standstillSection.v_exit=drivingCourse[end].v               # exit speed (in m/s)
+        standstillSection.length=0.0                                # total length  (in m)
+        standstillSection.t=0.0                                # total running time (in s)
+        standstillSection.E=0.0                                # total energy consumption (in Ws)
+        push!(standstillSection.dataPoints, drivingCourse[end].i)   # refering from the breaking section to the first of its data points
 
-        currentStepSize=settings[:stepSize]   # initializing the step size that can be reduced near intersections
-        for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
-            s_braking=max(0.0, ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))
-            while drivingCourse[end].F_T <= drivingCourse[end].F_R && drivingCourse[end].s+s_braking<CS.s_exit && drivingCourse[end].v>0.0       # as long as s_i + s_braking < s_CSend
-            # 11/22 old without F_T<=F_R    while drivingCourse[end].s+s_braking<CS.s_exit && drivingCourse[end].v>0.0       # as long as s_i + s_braking < s_CSend
 
-            #11/22    calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, diminishingSection.type)
+        drivingCourse[end].behavior = standstillSection.type
 
-                # acceleration (in m/s^2):
-                drivingCourse[end].a=(drivingCourse[end].F_T-drivingCourse[end].F_R)/train[:m_train]/train[:ξ_train]
-                # 11/21: old, only for cruising:
-                #if drivingCourse[end].a==0.0
-                #    error("ERROR: a=0 m/s^2 in the diminishing phase !   with  F_T=",drivingCourse[end].F_T,"  R_traction=",drivingCourse[end].R_traction,"  R_consist=",drivingCourse[end].R_consist,"  R_path=",drivingCourse[end].R_path)
-                #end
+        # traction effort and resisting forces (in N)
+        calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, standstillSection.type)
 
-                # create the next data point
-                push!(drivingCourse, moveAStep(drivingCourse[end], settings[:stepVariable], currentStepSize, CS.id))
-                drivingCourse[end].behavior = diminishingSection.type
-                push!(diminishingSection.dataPoints, drivingCourse[end].i)
-
-                s_braking=max(0.0, ceil((CS.v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))
-                calculateForces!(drivingCourse[end], train, settings[:massModel],  CSs, diminishingSection.type)
-            end #while
-
-            # check which limit was reached and adjust the currentStepSize for the next cycle
-            if cycle < approximationLevel+1
-                if drivingCourse[end].v<=0.0
-                    currentStepSize = settings[:stepSize] / 10.0^cycle
-
-                elseif drivingCourse[end].s + s_braking > CS.s_exit
-                    currentStepSize = settings[:stepSize] / 10.0^cycle
-
-                elseif drivingCourse[end].s + s_braking==CS.s_exit
-                # 11/21 old without s_braking: elseif drivingCourse[end].s==CS.s_exit
-                    break
-
-                elseif drivingCourse[end].F_T > drivingCourse[end].F_R
-                    currentStepSize = settings[:stepSize] / 10.0^cycle
-
-                else
-                    error("ERROR during diminishing run: With the step variable ",settings[:stepVariable]," the while loop will be left although s+s_braking<s_exit && v>0.0  in CS",CS.id,"  with s=" ,drivingCourse[end].s," m and v=",drivingCourse[end].v," m/s")
-                end
-                # delete last data point for recalculating the last step with reduced step size
-                pop!(drivingCourse)
-                pop!(diminishingSection.dataPoints)
-
-            else # if the level of approximation is reached
-                if drivingCourse[end].v<=0.0
-                    # push!(diminishingSection.dataPoints, drivingCourse[end].i)
-                    error("ERROR: The train stops during diminishing run in CS",CS.id," because the maximum tractive effort is lower than the resistant forces.",
-                    "       Before the stop the last point has the values s=",drivingCourse[end-1].s," m  v=",drivingCourse[end-1].v," m/s  a=",drivingCourse[end-1].a," m/s^2",
-                    "       F_T=",drivingCourse[end-1].F_T," N  R_traction=",drivingCourse[end-1].R_traction," N  R_consist=",drivingCourse[end-1].R_consist," N  R_path=",drivingCourse[end-1].R_path," N.")
-
-                elseif drivingCourse[end].s + s_braking > CS.s_exit
-                    pop!(drivingCourse)
-                    pop!(diminishingSection.dataPoints)
-
-                elseif drivingCourse[end].F_T > drivingCourse[end].F_R
-                    break
-
-                else
-
-                end
-            end
-        end #for
-
-        if length(diminishingSection.dataPoints) > 1 # TODO: necessary? May it be possible that there is no diminishing because braking has to start
-            # calculate the accumulated diminishing section information
-            diminishingSection.v_exit=drivingCourse[end].v                                                     # exit speed (in m/s)
-            diminishingSection.s_exit=drivingCourse[end].s                                                      # last position (in m)
-            diminishingSection.length=diminishingSection.s_exit-diminishingSection.s_entry                       # total length  (in m)
-            diminishingSection.t=drivingCourse[end].t-drivingCourse[diminishingSection.dataPoints[1]].t   # total running time (in s)
-            diminishingSection.E=drivingCourse[end].E-drivingCourse[diminishingSection.dataPoints[1]].E   # total energy consumption (in Ws)
-            CS.t=CS.t+diminishingSection.t             # total running time (in s)
-            CS.E=CS.E+diminishingSection.E             # total energy consumption (in Ws)
-
-            merge!(CS.behaviorSections, Dict(:diminishing=>diminishingSection))
-        end
-    end
-
+        merge!(CS.behaviorSections, Dict(:standstill => standstillSection))
+    end  # else: return the characteristic section without a standstillSection section
     return (CS, drivingCourse)
-end #function addDiminishingPhase!
+end #function addStandstill!
 
 end #module MovingPhases

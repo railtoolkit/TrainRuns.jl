@@ -6,7 +6,7 @@ export DataPoint, BehaviorSection, CharacteristicSection, EnergySavingModificati
 ## a data point is the smallest element of the driving course. One step of the step approach is between two data points
 mutable struct DataPoint
     i::Integer              # identifier and counter variable of the dricing course
-    behavior::String        # type of BehaviorSection the DataPoint ist part of ("breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting","braking" or "standStill")
+    behavior::String        # type of BehaviorSection the DataPoint ist part of ("breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting","braking" or "standstill")
                             # a data point which is the last point of one BehaviorSection and the first point of the next BehaviorSection will be attached to the latter
     s::AbstractFloat        # position (in m)
     Δs::AbstractFloat       # step size (in m)
@@ -35,7 +35,7 @@ DataPoint(original::DataPoint)=DataPoint(original.i, original.behavior, original
 ## different sections the whole path can be devided in the following
 ## smallest section of the path is the behavior section. It relates to the containing data points via their identifier.
 mutable struct BehaviorSection
-    type::String                # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting","braking" or "standStill"
+    type::String                # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting","braking" or "standstill"
     length::AbstractFloat       # total length  (in m)
     s_entry::AbstractFloat      # first position (in m)
     s_exit::AbstractFloat       # last position  (in m)
@@ -72,7 +72,7 @@ end # mutable struct CharacteristicSection
 CharacteristicSection()=CharacteristicSection(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Dict{Symbol, BehaviorSection}())
 function CharacteristicSection(original::CharacteristicSection)
     copy=CharacteristicSection(original.id, original.length, original.s_entry, original.s_exit, original.t, original.E, original.v_limit, original.v_target, original.v_entry, original.v_exit, original.f_Rp, Dict{Symbol, BehaviorSection}())
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standStill]
+    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
     for bs in 1: length(allBs)
         if haskey(original.behaviorSections, allBs[bs])
             merge!(copy.behaviorSections, Dict(allBs[bs] => BehaviorSection(original.behaviorSections[allBs[bs]])))

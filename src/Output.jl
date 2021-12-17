@@ -258,7 +258,7 @@ function printSectionInformation(movingSection::Dict)
     CSs::Vector{CharacteristicSection} = movingSection[:characteristicSections]
 
     println("MS   mit length=", movingSection[:length]," mit t=", movingSection[:t])
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standStill]
+    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
     for csId in 1:length(CSs)
         println("CS ",csId,"  mit length=", CSs[csId].length," mit t=", CSs[csId].t)
         for bs in 1: length(allBs)

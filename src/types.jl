@@ -19,16 +19,16 @@ mutable struct DataPoint
     ΔW::AbstractFloat       # mechanical work in this step (in Ws)
     E::AbstractFloat        # energy consumption (in Ws)
     ΔE::AbstractFloat       # energy consumption in this step (in Ws)
-    F_T::AbstractFloat      # tractive effort (in N)
-    F_R::AbstractFloat      # resisting force (in N)
-    R_path::AbstractFloat     # path resistance (in N)
-    R_train::AbstractFloat # train resistance (in N)
-    R_traction::AbstractFloat     # traction unit resistance (in N)
-    R_consist::AbstractFloat     # set of wagons resistance (in N)
+    F_T::AbstractFloat          # tractive effort (in N)
+    F_R::AbstractFloat          # resisting force (in N)
+    R_path::AbstractFloat       # path resistance (in N)
+    R_train::AbstractFloat      # train resistance (in N)
+    R_traction::AbstractFloat   # traction unit resistance (in N)
+    R_wagons::AbstractFloat    # set of wagons resistance (in N)
 end # mutable struct DataPoint
 DataPoint()=DataPoint(0, "", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-# tried to insert copy on 15.07.2021 copy(original::DataPoint)=DataPoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W, original.ΔW, original.E, original.ΔE, original.F_T, original.F_R, original.R_path, original.R_train, original.R_traction, original.R_consist)
-DataPoint(original::DataPoint)=DataPoint(original.i, original.behavior, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W, original.ΔW, original.E, original.ΔE, original.F_T, original.F_R, original.R_path, original.R_train, original.R_traction, original.R_consist)
+# tried to insert copy on 15.07.2021 copy(original::DataPoint)=DataPoint(original.i, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W, original.ΔW, original.E, original.ΔE, original.F_T, original.F_R, original.R_path, original.R_train, original.R_traction, original.R_wagons)
+DataPoint(original::DataPoint)=DataPoint(original.i, original.behavior, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W, original.ΔW, original.E, original.ΔE, original.F_T, original.F_R, original.R_path, original.R_train, original.R_traction, original.R_wagons)
 
 
 
@@ -63,15 +63,15 @@ mutable struct CharacteristicSection
     t::AbstractFloat            # total running time (in s)
     E::AbstractFloat            # total energy consumption (in Ws)
     v_limit::AbstractFloat      # speed limit (in m/s)
-    v_target::AbstractFloat     # maximum target speed (in m/s)
+    v_peak::AbstractFloat       # maximum reachable speed (in m/s)
     v_entry::AbstractFloat      # maximum entry speed (in m/s)
     v_exit::AbstractFloat       # maximum exit speed (in m/s)
-    f_Rp::AbstractFloat         # spedific path resistance (in ‰)
+    r_path::AbstractFloat       # spedific path resistance (in ‰)
     behaviorSections::AbstractDict{Symbol, BehaviorSection}   # list of containing behavior sections
 end # mutable struct CharacteristicSection
 CharacteristicSection()=CharacteristicSection(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Dict{Symbol, BehaviorSection}())
 function CharacteristicSection(original::CharacteristicSection)
-    copy=CharacteristicSection(original.id, original.length, original.s_entry, original.s_exit, original.t, original.E, original.v_limit, original.v_target, original.v_entry, original.v_exit, original.f_Rp, Dict{Symbol, BehaviorSection}())
+    copy=CharacteristicSection(original.id, original.length, original.s_entry, original.s_exit, original.t, original.E, original.v_limit, original.v_peak, original.v_entry, original.v_exit, original.r_path, Dict{Symbol, BehaviorSection}())
     allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
     for bs in 1: length(allBs)
         if haskey(original.behaviorSections, allBs[bs])
@@ -81,7 +81,7 @@ function CharacteristicSection(original::CharacteristicSection)
     return copy
 end #function CharacteristicSection
 
-## for the energy saving operation mode it is nesserary to compare different energy saving modifications. These are part of the moving section.
+#= for the energy saving operation mode it is nesserary to compare different energy saving modifications. These are part of the moving section.
 mutable struct EnergySavingModification
     csId::Integer                               # identifier of the characteristic section
     type::String                                # type of energy saving modification: "increasing coasting" "decreasing maximum velocity" or "combination of decreasing maximum velocity and coasting"
@@ -100,5 +100,6 @@ function EnergySavingModification(original::EnergySavingModification)
     end
     return copy
 end #function EnergySavingModification
+=#
 
 end #module

@@ -145,7 +145,7 @@ function increaseCoastingSection(csOriginal::CharacteristicSection, drivingCours
                     s_cruising=max(0.0, s_cruising)
 
                     # copy csOriginal to csModified
-                    csModified=CharacteristicSection(csOriginal.id, csOriginal.length, csOriginal.s_entry, csOriginal.s_exit, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_target, csOriginal.v_entry, csOriginal.v_exit, csOriginal.f_Rp, Dict{Symbol, BehaviorSection}())
+                    csModified=CharacteristicSection(csOriginal.id, csOriginal.length, csOriginal.s_entry, csOriginal.s_exit, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_peak, csOriginal.v_entry, csOriginal.v_exit, csOriginal.r_path, Dict{Symbol, BehaviorSection}())
                     if haskey(csOriginal.behaviorSections, :breakFree)
                         breakFreeSection=BehaviorSection(csOriginal.behaviorSections[:breakFree])
                         merge!(csModified.behaviorSections, Dict(:breakFree=>breakFreeSection))
@@ -210,7 +210,7 @@ function increaseCoastingSection(csOriginal::CharacteristicSection, drivingCours
             # TODO: At the moment diminishing is reduced like the acceleration in decreaseMaximumVelocity. To reduce code the methods for reducing cruising phase and reducing the diminishing phase can be combined in some parts.
 
             # copy csOriginal to csModified
-            csModified=CharacteristicSection(csOriginal.id, csOriginal.length, csOriginal.s_entry, csOriginal.s_exit, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_target, csOriginal.v_entry, csOriginal.v_exit, csOriginal.f_Rp, Dict{Symbol, BehaviorSection}())
+            csModified=CharacteristicSection(csOriginal.id, csOriginal.length, csOriginal.s_entry, csOriginal.s_exit, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_peak, csOriginal.v_entry, csOriginal.v_exit, csOriginal.r_path, Dict{Symbol, BehaviorSection}())
             if haskey(csOriginal.behaviorSections, :breakFree)
                 breakFreeSection=BehaviorSection(csOriginal.behaviorSections[:breakFree])
                 merge!(csModified.behaviorSections, Dict(:breakFree=>breakFreeSection))
@@ -296,15 +296,15 @@ end # function increaseCoastingSection
 # method 2 with shortening the acceleration by stepsize
 function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCourse, settings::Dict, train::Dict, allCSs::Vector{CharacteristicSection}, t_recoveryAvailable::AbstractFloat)
  #function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, allCSs::Vector{CharacteristicSection}, t_recoveryAvailable::AbstractFloat)
-    if haskey(csOriginal.behaviorSections, :acceleration) && csOriginal.v_target > csOriginal.v_entry && csOriginal.v_target > csOriginal.v_exit
+    if haskey(csOriginal.behaviorSections, :acceleration) && csOriginal.v_peak > csOriginal.v_entry && csOriginal.v_peak > csOriginal.v_exit
         accelerationSection = BehaviorSection(csOriginal.behaviorSections[:acceleration])
         if drivingCourse[accelerationSection.dataPoints[end]-1].v < csOriginal.v_exit
             return (CharacteristicSection(), [], false)
-            # TODO: or calculate a new acceleration phase with v_exit as v_target? it will be very short, shorter than the step size.
+            # TODO: or calculate a new acceleration phase with v_exit as v_peak? it will be very short, shorter than the step size.
         end
 
         # copy csOriginal to csModified
-        csModified=CharacteristicSection(csOriginal.id, csOriginal.length, csOriginal.s_entry, csOriginal.s_exit, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_target, csOriginal.v_entry, csOriginal.v_exit, csOriginal.f_Rp, Dict{Symbol, BehaviorSection}())
+        csModified=CharacteristicSection(csOriginal.id, csOriginal.length, csOriginal.s_entry, csOriginal.s_exit, 0.0, 0.0, csOriginal.v_limit, csOriginal.v_peak, csOriginal.v_entry, csOriginal.v_exit, csOriginal.r_path, Dict{Symbol, BehaviorSection}())
 
         if haskey(csOriginal.behaviorSections, :breakFree)
             breakFreeSection=BehaviorSection(csOriginal.behaviorSections[:breakFree])
@@ -342,8 +342,8 @@ function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCours
             energySavingStartId=get(csOriginal.behaviorSections, :clearing, get(csOriginal.behaviorSections, :acceleration, BehaviorSection())).dataPoints[1]
         end
 
-        # TODO: should v_target be reduced or is it enough to pop the data points?
-            #    characteristicSection.v_target=drivingCourse[end].v      # setting v_target to the last data point's velocity which is the highest reachable value in this characteristic section
+        # TODO: should v_peak be reduced or is it enough to pop the data points?
+            #    characteristicSection.v_peak=drivingCourse[end].v      # setting v_peak to the last data point's velocity which is the highest reachable value in this characteristic section
 
         # copy the drivingCourse till the beginning of energy saving
         drivingCourseModified=Vector{DataPoint}()
@@ -351,7 +351,7 @@ function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCours
             push!(drivingCourseModified, DataPoint(drivingCourse[i]))  # List of data points till the start of energy saving
         end
 
-        #s_braking=max(0.0, ceil((csModified.v_exit^2-csModified.v_target^2)/2/train[:a_braking], digits=approximationLevel))       # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
+        #s_braking=max(0.0, ceil((csModified.v_exit^2-csModified.v_peak^2)/2/train[:a_braking], digits=approximationLevel))       # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
         s_braking=max(0.0, ceil((csModified.v_exit^2-drivingCourseModified[end].v^2)/2/train[:a_braking], digits=approximationLevel))       # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
         s_cruising=csModified.s_exit-drivingCourseModified[end].s-s_braking
 
@@ -366,11 +366,11 @@ function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCours
         elseif drivingCourseModified[end].s<csModified.s_exit
             if (csModified.s_exit-drivingCourseModified[end].s)>0.001
                 # if (csModified.s_exit-drivingCourseModified[end].s)>10^(-approximationLevel)
-            #    println("INFO: The end of new CS",csModified.id," is not reached while saving energy with lowering v_target.")
+            #    println("INFO: The end of new CS",csModified.id," is not reached while saving energy with lowering v_peak.")
             #    println("      Therefore the calculation of this method can not continue for this CS.")
                 return (CharacteristicSection(), [], false)
             end
-            println("WARNING: The end of new CS",csModified.id," is not reached while saving energy with lowering v_target.")
+            println("WARNING: The end of new CS",csModified.id," is not reached while saving energy with lowering v_peak.")
             println("         Therefore   s=",drivingCourseModified[end].s," will be set s_exit=",csModified.s_exit," because the difference is only ",csModified.s_exit-drivingCourseModified[end].s," m.")
             println("          v=",drivingCourseModified[end].v," m/s   v_exit=",csOriginal.v_exit ," m/s")
 
@@ -381,7 +381,7 @@ function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCours
             return (csModified, drivingCourseModified, true)
         else # time loss is to high. so there is no energy saving modification for this CS with the available recovery time
             # 09/06 old: else # time loss is to high and the CS has to be calculated again with larger acceleration section (so with a smaller reduction of the acceleration section)
-            # 09/06 old: accelerationReduction=min(accelerationReduction/10, csModified.v_target-csModified.v_entry, csModified.v_target-csModified.v_exit)
+            # 09/06 old: accelerationReduction=min(accelerationReduction/10, csModified.v_peak-csModified.v_entry, csModified.v_peak-csModified.v_exit)
                 # TODO: just return false or take smaller steps?
 
             return (CharacteristicSection(), [], false)
@@ -393,14 +393,14 @@ function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCours
     # 09/06 old:   return (CharacteristicSection(), [], false)
 
     else
-        # there is no energy saving modification for this CS because v_target can not be lowered below v_entry or v_exit or because there is no acceleration section that can be transformed into a cruising section
+        # there is no energy saving modification for this CS because v_peak can not be lowered below v_entry or v_exit or because there is no acceleration section that can be transformed into a cruising section
         return (CharacteristicSection(), [], false)
     end #if haskey
 end # function decreaseMaximumVelocity
 
 # combination of method 1 and method 2
 function combineEnergySavingMethods(csOriginal::CharacteristicSection, drivingCourse::Vector{DataPoint}, settings::Dict, train::Dict, allCSs::Vector{CharacteristicSection}, t_recoveryAvailable::AbstractFloat)
- #    if haskey(csOriginal.behaviorSections, :acceleration) && (haskey(csOriginal.behaviorSections, :braking) || haskey(csOriginal.behaviorSections, :coasting)) && csOriginal.v_target>csOriginal.v_entry && csOriginal.v_target>csOriginal.v_exit
+ #    if haskey(csOriginal.behaviorSections, :acceleration) && (haskey(csOriginal.behaviorSections, :braking) || haskey(csOriginal.behaviorSections, :coasting)) && csOriginal.v_peak>csOriginal.v_entry && csOriginal.v_peak>csOriginal.v_exit
     if haskey(csOriginal.behaviorSections, :acceleration) && (haskey(csOriginal.behaviorSections, :braking) || haskey(csOriginal.behaviorSections, :coasting)) && drivingCourse[get(csOriginal.behaviorSections, :acceleration, BehaviorSection()).dataPoints[end]].v > max(csOriginal.v_entry, csOriginal.v_exit)
         csCombined=CharacteristicSection(csOriginal)
         drivingCourseCombined=Vector{DataPoint}()
@@ -432,7 +432,7 @@ function combineEnergySavingMethods(csOriginal::CharacteristicSection, drivingCo
         end # while
         return (csCombined, drivingCourseCombined, (ΔE>0.0))# && Δt>0.0))
     else
-        # there is no energy saving modification for this CS because v_target can not be lowered below v_entry or v_exit or because there is no acceleration section and braking section or coasting section that can be transformed into a cruising section or coasting section
+        # there is no energy saving modification for this CS because v_peak can not be lowered below v_entry or v_exit or because there is no acceleration section and braking section or coasting section that can be transformed into a cruising section or coasting section
         return (CharacteristicSection(), [], false)
     end #if
 end #function combineEnergySavingMethods

@@ -21,11 +21,11 @@ Read the train information from a YAML file, save it in a train Dict and return 
 """
 function inputTrain(trainDirectory::String)
     data = YAML.load(open(trainDirectory))
-    collect(keys(data))
-    collect(values(data))
+    #collect(keys(data))
+    #collect(values(data))
 
     if haskey(data["train"],"name")
-        name=data["train"]["name"]                            # trains name
+        name=data["train"]["name"]                            # train's name
         delete!(data["train"], "name")
     else
         error("ERROR at reading the train yaml file: The keyword name is missing. It has to be added.")
@@ -46,7 +46,7 @@ function inputTrain(trainDirectory::String)
 
     if haskey(data["train"],"l_train")
         if typeof(data["train"]["l_train"]) <: Real && data["train"]["l_train"]>0.0
-            l_train=data["train"]["l_train"]                                                # total length (in m)
+            trainLength=data["train"]["l_train"]                                                # total length (in m)
             delete!(data["train"], "l_train")
         else
             error("ERROR at reading the train yaml file: The value of the length is no real number >0.0.")
@@ -141,7 +141,7 @@ function inputTrain(trainDirectory::String)
     m_t=m_td+m_tc
 
 
-    # mass of the consist (set of wagons)  (in kg)
+    # mass of the set of wagons (consist)  (in kg)
     if haskey(data["train"],"m_w")
         if typeof(data["train"]["m_w"]) <: Real && data["train"]["m_w"]>=0.0
             m_w=data["train"]["m_w"]
@@ -256,16 +256,16 @@ function inputTrain(trainDirectory::String)
 
 
 
-    # coefficients for the vehicle resistance of the consist (set of wagons)
+    # coefficients for the vehicle resistance of the set of wagons (consist)
 
-    # coefficient for velocitiy difference between consist (set of wagons) and outdoor air (in m/s)
+    # coefficient for velocitiy difference between set of wagons (consist) and outdoor air (in m/s)
     if trainType=="passenger" || trainType=="motor coach train"
         Δv_w=15.0/3.6
     elseif trainType== "freight"
         Δv_w=0.0
     end # if
 
-    # coefficient for basic resistance of the consist (set of wagons)  (in ‰)
+    # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
     if haskey(data["train"],"f_Rw0") && data["train"]["f_Rw0"]!=nothing
         if typeof(data["train"]["f_Rw0"]) <: Real && data["train"]["f_Rw0"]>=0.0
             f_Rw0=data["train"]["f_Rw0"]
@@ -278,7 +278,7 @@ function inputTrain(trainDirectory::String)
     end
     delete!(data["train"], "f_Rw0")
 
-    # coefficient for basic resistance of the consist (set of wagons)  (in ‰)
+    # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
     if haskey(data["train"],"f_Rw1") && data["train"]["f_Rw1"]!=nothing
         if typeof(data["train"]["f_Rw1"]) <: Real && data["train"]["f_Rw1"]>=0.0
             f_Rw1=data["train"]["f_Rw1"]
@@ -291,7 +291,7 @@ function inputTrain(trainDirectory::String)
     end
     delete!(data["train"], "f_Rw1")
 
-    # coefficient for basic resistance of the consist (set of wagons) (in ‰)
+    # coefficient for basic resistance of the set of wagons (consist) (in ‰)
     if haskey(data["train"],"f_Rw2") && data["train"]["f_Rw2"]!=nothing
         if typeof(data["train"]["f_Rw2"]) <: Real && data["train"]["f_Rw2"]>=0.0
             f_Rw2=data["train"]["f_Rw2"]
@@ -317,7 +317,7 @@ function inputTrain(trainDirectory::String)
     train= Dict(:name => name,              # train's name
                 :id => id,                  # train's identifier
                 :trainType => trainType,    # type of train "passenger" or "freight" or "motor coach train"
-                :l_train => l_train,        # total length (in m)
+                :trainLength => trainLength,        # total length (in m)
                 :v_limit => v_limit,        # trains speed limit (in m/s)
                 :a_braking => a_braking,    # braking acceleration (in m/s^2)
                 :m_train => m_train,        # total mass (in kg)
@@ -396,8 +396,8 @@ end #function checkAndDefineTractiveEffortInput
 function inputPath(pathDirectory::String)
  # read path information from a YAML file, save it in a path Dict and return it
     data = YAML.load(open(pathDirectory))
-    collect(keys(data))
-    collect(values(data))
+    #collect(keys(data))
+    #collect(values(data))
 
 
     if haskey(data["path"],"name") && data["path"]["name"]!=nothing
@@ -505,8 +505,8 @@ end # function inputPath
 function inputSettings(settingsDirectory::String)
  # read setting information from a YAML file, save it in a settings Dict and return it
     data = YAML.load(open(settingsDirectory))
-    collect(keys(data))
-    collect(values(data))
+    #collect(keys(data))
+    #collect(values(data))
 
     # initialize the settings Dictionary
     settings = Dict(:massModel => "",                                   # model type of the unions mass "mass point" or "homogeneous strip"

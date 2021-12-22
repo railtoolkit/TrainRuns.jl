@@ -56,14 +56,14 @@ function createOutputDict(settings::Dict, pathName::String, trainName::String, d
         row=[movingSection[:length], movingSection[:t], movingSection[:E]]
         push!(outputArray, row)                                                     # push row to outputArray
     elseif settings[:detailOfOutput]=="driving course"
-        push!(outputArray, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArray
+        push!(outputArray, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArray
         for point in drivingCourse
-            row=[point.i, point.behavior, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.R_path, point.R_train, point.R_traction, point.R_consist, point.ΔW, point.W, point.ΔE, point.E, point.a]
+            row=[point.i, point.behavior, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.R_path, point.R_train, point.R_traction, point.R_wagons, point.ΔW, point.W, point.ΔE, point.E, point.a]
             push!(outputArray, row)             # push row to outputArray
         end
     end
 
-    if length(movingSection[:energySavingModifications])>0   # if the moving section hast energy saving modifications the moving section is modified for minimum energy consumption
+    if haskey(movingSection, :energySavingModifications) && length(movingSection[:energySavingModifications])>0   # if the moving section hast energy saving modifications the moving section is modified for minimum energy consumption
         merge!(outputDict, Dict(:outputArrayMinimumEnergyConsumption => outputArray))
     else
         merge!(outputDict, Dict(:outputArrayMinimumRunningTime => outputArray))
@@ -86,9 +86,9 @@ function createOutputDict(settings::Dict, pathName::String, trainName::String, d
                 row=[movingSectionMinimumEnergyConsumption[:length], movingSectionMinimumEnergyConsumption[:t], movingSectionMinimumEnergyConsumption[:E]]
                 push!(outputArrayMinimumEnergyConsumption, row)                                                     # push row to outputArrayMinimumEnergyConsumption
             elseif settings[:detailOfOutput]=="driving course"
-                push!(outputArrayMinimumEnergyConsumption, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArrayMinimumEnergyConsumption
+                push!(outputArrayMinimumEnergyConsumption, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArrayMinimumEnergyConsumption
                 for point in drivingCourseMinimumEnergyConsumption
-                    row=[point.i, point.behavior, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.R_path, point.R_train, point.R_traction, point.R_consist, point.ΔW, point.W, point.ΔE, point.E, point.a]
+                    row=[point.i, point.behavior, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.R_path, point.R_train, point.R_traction, point.R_wagons, point.ΔW, point.W, point.ΔE, point.E, point.a]
                     push!(outputArrayMinimumEnergyConsumption, row)             # push row to outputArrayMinimumEnergyConsumption
                 end
             end
@@ -134,7 +134,7 @@ function createOutputCsv(settings::Dict, pathName::String, trainName::String, dr
     if settings[:detailOfOutput]=="minimal"
         header=outputDict[:outputArrayMinimumRunningTime][1]
     elseif settings[:detailOfOutput]=="driving course"
-        header=["i", "behavior", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
+        header=["i", "behavior", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
     end
     for column in 1:length(outputDict[outputArray][1])
         push!(infoColumns[column], header[column])
@@ -177,7 +177,7 @@ function createOutputCsv(settings::Dict, pathName::String, trainName::String, dr
         if settings[:detailOfOutput]=="minimal"
             header=outputDict[:outputArrayMinimumRunningTime][1]
         elseif settings[:detailOfOutput]=="driving course"
-            header=["i", "behavior", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
+            header=["i", "behavior", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
         end
 
         for column in 1:length(outputDict[:outputArrayMinimumRunningTime][1])
@@ -215,7 +215,7 @@ function createOutputCsv(settings::Dict, pathName::String, trainName::String, dr
         if settings[:detailOfOutput]=="minimal"
             header=outputDict[:outputArrayMinimumRunningTime][1]
         elseif settings[:detailOfOutput]=="driving course"
-            header=["i", "behavior", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_consist (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
+            header=["i", "behavior", "Delta s (in m)", "s (in m)", "Delta t (in s)","t (in s)","Delta v (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)"," Delta W (in Ws)","W (in Ws)","Delta E (in  Ws)","E (in Ws)","a (in m/s^2)"]
         end
 
         for column in 1:length(outputDict[:outputArrayMinimumEnergyConsumption][1])

@@ -30,8 +30,6 @@ todo !!!
 ```
 """
 function calculateDrivingDynamics(trainDirectory::String, pathDirectory::String, settingsDirectory::String)
-    print("\n\n\n")
-
     # input
     (train, path, settings)=readInput(trainDirectory, pathDirectory, settingsDirectory)
     println("The input has been saved.")

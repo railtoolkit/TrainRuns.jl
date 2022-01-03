@@ -643,4 +643,30 @@ function inputSettings(settingsDirectory::String)
     return settings
 end # function inputSettings
 
+"""
+    getEnum(string, enum_type)
+
+Converts a string to an enumerated type.
+But only if the string matches an enumerated value.
+
+# Example
+```jldoctest
+julia> @enum trainTypes passenger freight
+
+julia> myTrain = "passenger"
+"passenger"
+
+julia> myTrainType = getEnum(myTrain, trainTypes)
+passenger::trainTypes = 0
+```
+"""
+function getEnum(string::String, enum_type::DataType)
+    inst   = instances(enum_type)  # get all instances of enumerated type
+    syms   = Symbol.(inst)         # convert all instances to Symbols
+    lookup = Dict(zip(syms, inst)) # combine instances and Symbols in a lookup table
+    #
+    n_str  = Symbol(string)        # normalize String via a Symbol
+    return lookup[n_str]           # return matched enumerated type
+end # function getEnum
+
 end # module Input

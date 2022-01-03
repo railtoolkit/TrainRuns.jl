@@ -13,81 +13,82 @@ approximationLevel = 6      # TODO: define it in TrainRun and give it to each fu
 
  # calculate a train run focussing on using the minimum possible running time
 function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train::Dict)
-    CSs::Vector{CharacteristicSection} = movingSection[:characteristicSections]
+    CSs::Vector{Dict} = movingSection[:characteristicSections]
 
     startingPoint=DataPoint()
     startingPoint.i=1
-    startingPoint.s=CSs[1].s_entry
+    startingPoint.s=CSs[1][:s_entry]
     drivingCourse=[startingPoint]    # List of data points
 
     #    for CS in CSs
     for csId in 1:length(CSs)
-    #    println("CS",csId)
         # check if the CS has a cruising section
-        s_breakFree = get(CSs[csId].behaviorSections, :breakFree, BehaviorSection()).length
-        s_clearing = get(CSs[csId].behaviorSections, :clearing, BehaviorSection()).length
-        s_acceleration = get(CSs[csId].behaviorSections, :acceleration, BehaviorSection()).length
-        s_braking = max(0.0, ceil((CSs[csId].v_exit^2-CSs[csId].v_peak^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+        CS = CSs[csId]
+        BSs = CS[:behaviorSections]
+        s_breakFree = get(BSs, :breakFree, BehaviorSection()).length
+        s_clearing = get(BSs, :clearing, BehaviorSection()).length
+        s_acceleration = get(BSs, :acceleration, BehaviorSection()).length
+        s_braking = max(0.0, ceil((CS[:v_exit]^2-CS[:v_peak]^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
 
         # calculate the cruising sections length
-        s_cruising=CSs[csId].length-s_breakFree-s_clearing-s_acceleration-s_braking
+        s_cruising=CS[:length]-s_breakFree-s_clearing-s_acceleration-s_braking
 
         # reset the moving section (MS), delete characteristic sections (CS) that were used during the preperation for setting v_entry, v_peak and v_exit
-        delete!(CSs[csId].behaviorSections, :breakFree)
-        delete!(CSs[csId].behaviorSections, :clearing)
-        delete!(CSs[csId].behaviorSections, :acceleration)
-        delete!(CSs[csId].behaviorSections, :diminishing)
-        delete!(CSs[csId].behaviorSections, :cruising)
-        CSs[csId].E=0.0
-        CSs[csId].t=0.0
+        delete!(BSs, :breakFree)
+        delete!(BSs, :clearing)
+        delete!(BSs, :acceleration)
+        delete!(BSs, :diminishing)
+        delete!(BSs, :cruising)
+        CS[:E]=0.0
+        CS[:t]=0.0
 
 
-        if s_clearing == CSs[csId].length
-                # 09/06 TODO: thought about using "cruising" because it is used in EnergySaving and not clearing (CSs[csId], drivingCourse)=addCruisingPhase!(CSs[csId], drivingCourse, s_clearing, settings, train, CSs, "cruising")
-            (CSs[csId], drivingCourse)=addCruisingPhase!(CSs[csId], drivingCourse, s_clearing, settings, train, CSs, "clearing")
-        elseif s_cruising == CSs[csId].length
-            (CSs[csId], drivingCourse)=addCruisingPhase!(CSs[csId], drivingCourse, s_cruising, settings, train, CSs, "cruising")
+        if s_clearing == CS[:length]
+                # 09/06 TODO: thought about using "cruising" because it is used in EnergySaving and not clearing (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_clearing, settings, train, CSs, "cruising")
+            (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_clearing, settings, train, CSs, "clearing")
+        elseif s_cruising == CS[:length]
+            (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
         elseif s_cruising > 0.0 || s_braking == 0.0
         # 09/21 elseif s_cruising > 0.0
         # 09/21 elseif s_cruising > 0.01 # if the cruising section is longer than 1 cm (because of rounding issues not >0.0)
-            if drivingCourse[end].v < CSs[csId].v_peak
-                (CSs[csId], drivingCourse)=addAccelerationPhase!(CSs[csId], drivingCourse, settings, train, CSs)
+            if drivingCourse[end].v < CS[:v_peak]
+                (CS, drivingCourse)=addAccelerationPhase!(CS, drivingCourse, settings, train, CSs)
             end #if
 
-            if CSs[csId].s_exit-drivingCourse[end].s-max(0.0, (CSs[csId].v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking]) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+            if CS[:s_exit]-drivingCourse[end].s-max(0.0, (CS[:v_exit]^2-drivingCourse[end].v^2)/2/train[:a_braking]) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
                 println("ERROR: After accelerating in CS ",csId," the braking distance is too short!")
-                println("     before acceleration in CS",csId, "  with s=",drivingCourse[end].s,"  s_braking=",((CSs[csId].v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking]),"   s_exit=",CSs[csId].s_exit)
-                println("                             and v=",drivingCourse[end].v,"   v_peak=",CSs[csId].v_peak,"  v_exit=",CSs[csId].v_exit)
+                println("     before acceleration in CS",csId, "  with s=",drivingCourse[end].s,"  s_braking=",((CS[:v_exit]^2-drivingCourse[end].v^2)/2/train[:a_braking]),"   s_exit=",CS[:s_exit])
+                println("                             and v=",drivingCourse[end].v,"   v_peak=",CS[:v_peak],"  v_exit=",CS[:v_exit])
             end
 
-            s_braking=max(0.0, ceil((CSs[csId].v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
-            s_cruising=CSs[csId].s_exit-drivingCourse[end].s-s_braking
+            s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+            s_cruising=CS[:s_exit]-drivingCourse[end].s-s_braking
 
             if s_cruising > 0.0
-                (CSs[csId], drivingCourse)=addCruisingPhase!(CSs[csId], drivingCourse, s_cruising, settings, train, CSs, "cruising")
+                (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
             end
         else
 
-            if CSs[csId].v_entry < CSs[csId].v_peak || s_acceleration > 0.0 # or instead of " || s_acceleration > 0.0" use "v_entry <= v_peak" or "v_i <= v_peak"
-            # 09/09 old (not sufficient for steep gradients): if CSs[csId].v_entry < CSs[csId].v_peak
-                (CSs[csId], drivingCourse)=addAccelerationPhaseUntilBraking!(CSs[csId], drivingCourse, settings, train, CSs)
+            if CS[:v_entry] < CS[:v_peak] || s_acceleration > 0.0 # or instead of " || s_acceleration > 0.0" use "v_entry <= v_peak" or "v_i <= v_peak"
+            # 09/09 old (not sufficient for steep gradients): if CS[:v_entry] < CS[:v_peak]
+                (CS, drivingCourse)=addAccelerationPhaseUntilBraking!(CS, drivingCourse, settings, train, CSs)
             end #if
         end #if
 
 
-        s_braking=max(0.0, ceil((CSs[csId].v_exit^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))     # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+        s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))     # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
 
-        if drivingCourse[end].v > CSs[csId].v_exit
-            #(CSs[csId], drivingCourse)=addBrakingPhase!(CSs[csId], drivingCourse, settings[:massModel], train, CSs)
-            (CSs[csId], drivingCourse)=addBrakingPhase!(CSs[csId], drivingCourse, settings, train, CSs)
+        if drivingCourse[end].v > CS[:v_exit]
+            #(CS, drivingCourse)=addBrakingPhase!(CS, drivingCourse, settings[:massModel], train, CSs)
+            (CS, drivingCourse)=addBrakingPhase!(CS, drivingCourse, settings, train, CSs)
         end #if
 
         #= 09/20 old and should never be used:
-        if drivingCourse[end].s < CSs[csId].s_exit
-            if haskey(CSs[csId].behaviorSections, :cruising)
-                println("INFO: A second cruising section has been added to CS ", csId," from s=",drivingCourse[end].s,"  to s_exit=",CSs[csId].s_exit)
+        if drivingCourse[end].s < CS[:s_exit]
+            if haskey(BSs, :cruising)
+                println("INFO: A second cruising section has been added to CS ", csId," from s=",drivingCourse[end].s,"  to s_exit=",CS[:s_exit])
             end
-            (CSs[csId], drivingCourse)=addCruisingPhase!(CSs[csId], drivingCourse, s_cruising, settings, train, CSs, "cruising")
+            (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
         end =#
     end #for
 
@@ -112,7 +113,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
 
     #create a new moving section for the minimum energy consumption
     movingSectionOriginal=copyMovingSection(movingSectionMinimumRunningTime)
-    CSsOrig::Vector{CharacteristicSection} = movingSectionOriginal[:characteristicSections]
+    CSsOrig::Vector{Dict} = movingSectionOriginal[:characteristicSections]
     merge!(movingSectionOriginal, Dict(:energySavingModifications => []))   # list containing all the used energy saving modifications
 
     # create a new driving course for the minimum energy consumption
@@ -154,7 +155,11 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         end #if
     end # for
 
-    while movingSectionOriginal[:t_recoveryAvailable] > 0.0
+#    testNr=0
+    # 01/03 old wit too long calculation time: while movingSectionOriginal[:t_recoveryAvailable] > 0.0
+    while movingSectionOriginal[:t_recoveryAvailable] >= 1/(10^approximationLevel)
+#        testNr=testNr+1
+#        println("while in OpModes: ", testNr, " mit t_recoveryAvailable=",movingSectionOriginal[:t_recoveryAvailable])
         # comparison of modifications
         ratioMax=0.0
         csIdMax=0
@@ -182,20 +187,20 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
 
         movingSectionOriginal[:t_recoveryAvailable] = movingSectionOriginal[:t_recoveryAvailable] - movingSectionOriginal[:energySavingModifications][end][:Δt]
 
-        lastIdOfSelectedCsOriginal = get(CSsOrig[csIdMax].behaviorSections, :standstill,
-                                      get(CSsOrig[csIdMax].behaviorSections, :braking,
-                                       get(CSsOrig[csIdMax].behaviorSections, :cruisingAfterCoasting,
-                                        get(CSsOrig[csIdMax].behaviorSections, :coasting,
-                                         get(CSsOrig[csIdMax].behaviorSections, :cruising,
-                                          get(CSsOrig[csIdMax].behaviorSections, :acceleration,
-                                           get(CSsOrig[csIdMax].behaviorSections, :clearing,
-                                            get(CSsOrig[csIdMax].behaviorSections, :breakFree,
-                                             get(CSsOrig[csIdMax].behaviorSections, :diminishing,
+        lastIdOfSelectedCsOriginal = get(CSsOrig[csIdMax][:behaviorSections], :standstill,
+                                      get(CSsOrig[csIdMax][:behaviorSections], :braking,
+                                       get(CSsOrig[csIdMax][:behaviorSections], :cruisingAfterCoasting,
+                                        get(CSsOrig[csIdMax][:behaviorSections], :coasting,
+                                         get(CSsOrig[csIdMax][:behaviorSections], :cruising,
+                                          get(CSsOrig[csIdMax][:behaviorSections], :acceleration,
+                                           get(CSsOrig[csIdMax][:behaviorSections], :clearing,
+                                            get(CSsOrig[csIdMax][:behaviorSections], :breakFree,
+                                             get(CSsOrig[csIdMax][:behaviorSections], :diminishing,
                                               BehaviorSection()))))))))).dataPoints[end]
 
         # if there is a diminishing phase its location must be analysed seperately because it could be before acceleration, between acceleration and cruising or after cruising. All the other behavior sections occur in a fixed order.
-        if haskey(CSsOrig[csIdMax].behaviorSections, :diminishing)
-            lastIdOfSelectedCsOriginal = max(lastIdOfSelectedCsOriginal, CSsOrig[csIdMax].behaviorSections[:diminishing].dataPoints[end])
+        if haskey(CSsOrig[csIdMax][:behaviorSections], :diminishing)
+            lastIdOfSelectedCsOriginal = max(lastIdOfSelectedCsOriginal, CSsOrig[csIdMax][:behaviorSections][:diminishing].dataPoints[end])
         end
 
         # create new driving course
@@ -228,7 +233,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
 
         # replace the original driving course and CS with the new modified ones
         drivingCourseOriginal=drivingCourseNew
-        CSsOrig[csIdMax]=CharacteristicSection(movingSectionOriginal[:energySavingModifications][end][:csModified])
+        CSsOrig[csIdMax]=copyCharacteristicSection(movingSectionOriginal[:energySavingModifications][end][:csModified])
         movingSectionOriginal[:t]=drivingCourseOriginal[end].t            # total running time (in s)
         movingSectionOriginal[:E]=drivingCourseOriginal[end].E            # total energy consumption (in Ws)
 
@@ -238,9 +243,9 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
             allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
             for csId in csIdMax+1:length(CSsOrig)
                 for bs in 1: length(allBs)
-                    if haskey(CSsOrig[csId].behaviorSections, allBs[bs])
-                        for point in 1:length(CSsOrig[csId].behaviorSections[allBs[bs]].dataPoints)
-                            CSsOrig[csId].behaviorSections[allBs[bs]].dataPoints[point] = CSsOrig[csId].behaviorSections[allBs[bs]].dataPoints[point]+difference
+                    if haskey(CSsOrig[csId][:behaviorSections], allBs[bs])
+                        for point in 1:length(CSsOrig[csId][:behaviorSections][allBs[bs]].dataPoints)
+                            CSsOrig[csId][:behaviorSections][allBs[bs]].dataPoints[point] = CSsOrig[csId][:behaviorSections][allBs[bs]].dataPoints[point]+difference
                         end
                     end #if
                 end #for
@@ -283,8 +288,8 @@ end #function calculateMinimumEnergyConsumption
 
 
 function modifyCs(movingSectionOriginal::Dict, drivingCourseOriginal::Vector{DataPoint}, csId::Integer, modificationType::String, settings::Dict, train::Dict)
-# TODO: refctor and sort this function
-    CSsOrig::Vector{CharacteristicSection} = movingSectionOriginal[:characteristicSections]
+# TODO: refactor and sort this function
+    CSsOrig::Vector{Dict} = movingSectionOriginal[:characteristicSections]
 
     if modificationType == "increasing coasting"
         # method 1: increase coasting
@@ -306,8 +311,8 @@ function modifyCs(movingSectionOriginal::Dict, drivingCourseOriginal::Vector{Dat
                                         :csModified => characteristicSectionModified,   # the modified characteristic section
                                         :drivingCourseModified => drivingCourseModifiedUntilEndOfModifiedCS)          # drivingCourse for the modified characteristic section
 
-        merge!(energySavingModification, Dict(:ΔE => CSsOrig[csId].E - energySavingModification[:csModified].E))                     # saved energy (in Ws)
-        merge!(energySavingModification, Dict(:Δt => energySavingModification[:csModified].t - CSsOrig[csId].t))                     # time loss (in s)
+        merge!(energySavingModification, Dict(:ΔE => CSsOrig[csId][:E] - energySavingModification[:csModified][:E]))                     # saved energy (in Ws)
+        merge!(energySavingModification, Dict(:Δt => energySavingModification[:csModified][:t] - CSsOrig[csId][:t]))                     # time loss (in s)
 
 
         if energySavingModification[:Δt] <= movingSectionOriginal[:t_recoveryAvailable] && energySavingModification[:ΔE] >= 0.0
@@ -355,7 +360,7 @@ function createEnergySavingModification()
                                     :ΔE => 0.0,                     # saved energy (in Ws)
                                     :Δt => 0.0,                     # time loss (in s)
                                     :ratio => 0.0,                  # ratio of ΔE and Δt (in Ws/s)
-                                    :csModified => CharacteristicSection(),   # the modified characteristic section
+                                    :csModified => Dict(),          # the modified characteristic section
                                     :drivingCourseModified => [])   # drivingCourse for the modified characteristic section
 end #createEnergySavingModification
 
@@ -365,7 +370,7 @@ function copyEnergySavingModification(original::Dict)
                 :ΔE => original[:ΔE],                           # saved energy (in Ws)
                 :Δt => original[:Δt],                           # time loss (in s)
                 :ratio => original[:ratio],                     # ratio of ΔE and Δt (in Ws/s)
-                :csModified => CharacteristicSection(original[:csModified]))   # the modified characteristic section
+                :csModified => copyCharacteristicSection(original[:csModified]))   # the modified characteristic section
 
     drivingCourseModified = DataPoint[]
     for i in 1:length(original[:drivingCourseModified])
@@ -381,7 +386,7 @@ function updateEnergySavingModifications!(energySavingModifications::Vector{Dict
     difference = endOfModificationId-lastIdOfSelectedCsOriginal
     for modNr in csIdMax+1:length(energySavingModifications)
         if energySavingModifications[modNr][:ratio]>0
-            BSs = energySavingModifications[modNr][:csModified].behaviorSections
+            BSs = energySavingModifications[modNr][:csModified][:behaviorSections]
             # update the behavior sections of the modified charateristic section
             for bs in 1: length(allBs)
                 if haskey(BSs, allBs[bs])
@@ -415,9 +420,10 @@ end #function updateEnergySavingModifications!
 
 
 function copyMovingSection(original::Dict)
-    CSsCopy = Vector{CharacteristicSection}()
+    #TODO after removing the mutable structs: Is it possible to just "copy"?
+    CSsCopy = Vector{Dict}()
     for csId in 1:length(original[:characteristicSections])
-        push!(CSsCopy, CharacteristicSection(original[:characteristicSections][csId]))
+        push!(CSsCopy, copyCharacteristicSection(original[:characteristicSections][csId]))
     end #for
 
     copy = Dict(:id => original[:id],                                       # identifier
@@ -443,8 +449,31 @@ function copyMovingSection(original::Dict)
     if haskey(original, :t_recoveryAvailable)         # still available recovery time for energy-saving modifications (in s)
         merge!(copy, Dict(:t_recoveryAvailable => original[:t_recoveryAvailable]))
     end
-
     return copy
 end #function copyMovingSection
+
+function copyCharacteristicSection(original::Dict)
+    #TODO after removing the mutable structs: Is it possible to just "copy"?
+    copy = Dict(:id => original[:id],             # identifier
+                :s_entry => original[:s_entry],   # first position (in m)
+                :s_exit => original[:s_exit],     # last position  (in m)
+                :length => original[:length],     # total length  (in m)
+                :r_path => original[:r_path],      # path resistance (in ‰)
+                :behaviorSections => Dict(),      # empty list of containing behavior sections
+                :t => original[:t],               # total running time (in s)
+                :E => original[:E],               # total energy consumption (in Ws)
+                :v_limit => original[:v_limit],   # speed limit (in m/s)
+                :v_peak => original[:v_peak],     # maximum reachable speed (in m/s)
+                :v_entry => original[:v_entry],   # maximum entry speed (in m/s)
+                :v_exit => original[:v_exit])     # maximum exit speed (in m/s)
+
+    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
+    for bs in 1: length(allBs)
+        if haskey(original[:behaviorSections], allBs[bs])
+            merge!(copy[:behaviorSections], Dict(allBs[bs] => BehaviorSection(original[:behaviorSections][allBs[bs]])))
+        end #if
+    end #for
+    return copy
+end #function copyCharacteristicSection
 
 end #module OperationModes

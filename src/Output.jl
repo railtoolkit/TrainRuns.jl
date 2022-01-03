@@ -255,17 +255,17 @@ function printImportantValues(drivingCourse::Vector{DataPoint})
 end #function printImportantValues
 
 function printSectionInformation(movingSection::Dict)
-    CSs::Vector{CharacteristicSection} = movingSection[:characteristicSections]
+    CSs::Vector{Dict} = movingSection[:characteristicSections]
 
     println("MS   mit length=", movingSection[:length]," mit t=", movingSection[:t])
     allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
     for csId in 1:length(CSs)
-        println("CS ",csId,"  mit length=", CSs[csId].length," mit t=", CSs[csId].t)
+        println("CS ",csId,"  mit length=", CSs[csId][:length]," mit t=", CSs[csId][:t])
         for bs in 1: length(allBs)
-            if haskey(CSs[csId].behaviorSections, allBs[bs])
-                println("BS ",allBs[bs], "   mit s_entry=", CSs[csId].behaviorSections[allBs[bs]].s_entry, "   und t=", CSs[csId].behaviorSections[allBs[bs]].t)
-        #        for point in 1:length(CSs[csId].behaviorSections[allBs[bs]].dataPoints)
-        #            println(CSs[csId].behaviorSections[allBs[bs]].dataPoints[point])
+            if haskey(CSs[csId][:behaviorSections], allBs[bs])
+                println("BS ",allBs[bs], "   mit s_entry=", CSs[csId][:behaviorSections][allBs[bs]].s_entry, "   und t=", CSs[csId][:behaviorSections][allBs[bs]].t)
+        #        for point in 1:length(CSs[csId][:behaviorSections][allBs[bs]].dataPoints)
+        #            println(CSs[csId][:behaviorSections][allBs[bs]].dataPoints[point])
         #        end
             end #if
         end #for

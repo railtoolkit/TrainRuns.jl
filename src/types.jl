@@ -1,6 +1,6 @@
 module types
 # definition of all the additional types and their constructors
-export DataPoint, BehaviorSection, CharacteristicSection, EnergySavingModification
+export DataPoint, BehaviorSection    #, CharacteristicSection
 
 
 ## a data point is the smallest element of the driving course. One step of the step approach is between two data points
@@ -54,7 +54,7 @@ function BehaviorSection(original::BehaviorSection)
     return BehaviorSection(original.type, original.length, original.s_entry, original.s_exit, original.t, original.E, original.v_entry, original.v_exit, bsDataPoints)
 end
 
-## a characteristic section is a part of the moving section. It contains behavior sections.
+#= # a characteristic section is a part of the moving section. It contains behavior sections.
 mutable struct CharacteristicSection
     id::Integer                 # identifier
     length::AbstractFloat       # total length  (in m)
@@ -80,26 +80,6 @@ function CharacteristicSection(original::CharacteristicSection)
     end #for
     return copy
 end #function CharacteristicSection
-
-#= for the energy saving operation mode it is nesserary to compare different energy saving modifications. These are part of the moving section.
-mutable struct EnergySavingModification
-    csId::Integer                               # identifier of the characteristic section
-    type::String                                # type of energy saving modification: "increasing coasting" "decreasing maximum velocity" or "combination of decreasing maximum velocity and coasting"
-    ΔE::AbstractFloat                           # saved energy (in Ws)
-    Δt::AbstractFloat                           # time loss (in s)
-    ratio::AbstractFloat                        # ratio of ΔE and Δt (in Ws/s)
-    csModified::CharacteristicSection           # the modified characteristic section
-    drivingCourseModified::Vector{DataPoint}    # drivingCourse for the modified characteristic section
-end # mutable struct EnergySavingModification
-EnergySavingModification()=EnergySavingModification(0, "", 0.0, 0.0, 0.0, CharacteristicSection(), [])
-function EnergySavingModification(original::EnergySavingModification)
-    copy=EnergySavingModification(original.csId, original.type, original.ΔE, original.Δt, original.ratio, CharacteristicSection(), DataPoint[])
-    copy.csModified=CharacteristicSection(original.csModified)
-    for i in 1:length(original.drivingCourseModified)
-        push!(copy.drivingCourseModified, DataPoint(original.drivingCourseModified[i]))
-    end
-    return copy
-end #function EnergySavingModification
 =#
 
 end #module

@@ -317,7 +317,7 @@ function inputTrain(trainDirectory::String)
     train= Dict(:name => name,              # train's name
                 :id => id,                  # train's identifier
                 :trainType => trainType,    # type of train "passenger" or "freight" or "motor coach train"
-                :trainLength => trainLength,        # total length (in m)
+                :trainLength => trainLength,# total length (in m)
                 :v_limit => v_limit,        # trains speed limit (in m/s)
                 :a_braking => a_braking,    # braking acceleration (in m/s^2)
                 :m_train => m_train,        # total mass (in kg)

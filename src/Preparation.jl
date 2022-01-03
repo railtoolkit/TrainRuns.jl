@@ -23,7 +23,7 @@ function createMovingSection(path::Dict, v_trainLimit::Real)
     s_exit = path[:sections][end][:s_end]           # last position (in m)
     pathLength = s_exit - s_entry                   # total length (in m)
 
-    CSs=[]
+    CSs=Vector{Dict}()
     s_csStart=s_entry
     csId=1
     for row in 2:length(path[:sections])
@@ -47,44 +47,41 @@ function createMovingSection(path::Dict, v_trainLimit::Real)
 end #function createMovingSection
 
 
-## create a characteristic section for a path section
+## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
 function createCharacteristicSection(csId::Integer, s_csStart::Real, section::Dict, v_csLimit::Real)
-    # this function creates and returns a characteristic section dependent on the paths attributes
-    characteristicSection=CharacteristicSection()
-    characteristicSection.id=csId                                                               # identifier
-    characteristicSection.s_entry=s_csStart                                                     # first position (in m)
-    characteristicSection.s_exit=section[:s_end]                                                  # last position  (in m)
-    characteristicSection.length=characteristicSection.s_exit-characteristicSection.s_entry     # total length  (in m)
-    characteristicSection.t=0.0                                                                 # total running time (in s)
-    characteristicSection.E=0.0                                                                 # total energy consumption (in Ws)
-    characteristicSection.v_limit=v_csLimit                                                     # speed limit (in m/s)
-
-    # initializing v_entry, v_peak and v_exit with v_limit
-    characteristicSection.v_peak=characteristicSection.v_limit                                  # maximum reachable speed (in m/s)
-    characteristicSection.v_entry=characteristicSection.v_limit                                 # maximum entry speed (in m/s)
-    characteristicSection.v_exit=characteristicSection.v_limit                                  # maximum exit speed (in m/s)
-
-    characteristicSection.r_path=section[:f_Rp] # path resistance (in ‰)
-
+    # Create and return a characteristic section dependent on the paths attributes
+    characteristicSection= Dict(:id => csId,                            # identifier
+                                :s_entry => s_csStart,                  # first position (in m)
+                                :s_exit => section[:s_end],             # last position  (in m)
+                                :length => section[:s_end]-s_csStart,   # total length  (in m)
+                                :r_path => section[:f_Rp],              # path resistance (in ‰)
+                                :behaviorSections => Dict(),            # list of containing behavior sections
+                                :t => 0.0,                              # total running time (in s)
+                                :E => 0.0,                              # total energy consumption (in Ws)
+                                :v_limit => v_csLimit,                  # speed limit (in m/s)
+                                # initializing :v_entry, :v_peak and :v_exit with :v_limit
+                                :v_peak => v_csLimit,                   # maximum reachable speed (in m/s)
+                                :v_entry => v_csLimit,                  # maximum entry speed (in m/s)
+                                :v_exit => v_csLimit)                   # maximum exit speed (in m/s)
     return characteristicSection
 end #function createCharacteristicSection
 
 ## define the intersection velocities between the characterisitc sections to secure braking behavior
 function secureBrakingBehavior!(movingSection::Dict, a_braking::Real)
     # this function limits the entry and exit velocity of the characteristic sections to secure that the train stops at the moving sections end
-        CSs::Vector{CharacteristicSection} = movingSection[:characteristicSections]
+        CSs = movingSection[:characteristicSections]
 
         csId=length(CSs)
-        CSs[csId].v_exit=0.0     # the exit velocity of the last characteristic section is 0.0 m/s
+        CSs[csId][:v_exit]=0.0     # the exit velocity of the last characteristic section is 0.0 m/s
         while csId >= 1
-            v_entryMax=sqrt(CSs[csId].v_exit^2-2*a_braking*CSs[csId].length)
+            v_entryMax=sqrt(CSs[csId][:v_exit]^2-2*a_braking*CSs[csId][:length])
             v_entryMax=floor(v_entryMax, digits=12)
 
-            CSs[csId].v_entry=min(CSs[csId].v_limit, v_entryMax)
-            CSs[csId].v_peak=CSs[csId].v_entry
+            CSs[csId][:v_entry]=min(CSs[csId][:v_limit], v_entryMax)
+            CSs[csId][:v_peak]=CSs[csId][:v_entry]
             csId=csId-1
             if csId >= 1
-                CSs[csId].v_exit=min(CSs[csId].v_limit, CSs[csId+1].v_entry)
+                CSs[csId][:v_exit]=min(CSs[csId][:v_limit], CSs[csId+1][:v_entry])
             end #if
         end #while
     return movingSection
@@ -93,30 +90,30 @@ end #function secureBrakingBehavior!
 ## define the intersection velocities between the characterisitc sections to secure acceleration behavior
 function secureAccelerationBehavior!(movingSection::Dict, settings::Dict, train::Dict)
     # this function limits the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises aterwards
-    CSs::Vector{CharacteristicSection} = movingSection[:characteristicSections]
+    CSs = movingSection[:characteristicSections]
 
-    CSs[1].v_entry=0.0     # the entry velocity of the first characteristic section is 0.0 m/s
+    CSs[1][:v_entry]=0.0     # the entry velocity of the first characteristic section is 0.0 m/s
     startingPoint=DataPoint()
     startingPoint.i=1
 
-    previousCSv_exit=CSs[1].v_entry
+    previousCSv_exit=CSs[1][:v_entry]
     for csId in 1:length(CSs)
-        CSs[csId].v_entry=min(CSs[csId].v_entry, previousCSv_exit)
+        CSs[csId][:v_entry]=min(CSs[csId][:v_entry], previousCSv_exit)
 
-        startingPoint.s=CSs[csId].s_entry
-        startingPoint.v=CSs[csId].v_entry
+        startingPoint.s=CSs[csId][:s_entry]
+        startingPoint.v=CSs[csId][:v_entry]
         accelerationCourse=[startingPoint]    # List of data points
 
-        if CSs[csId].v_entry<CSs[csId].v_peak
+        if CSs[csId][:v_entry]<CSs[csId][:v_peak]
             (CSs[csId], accelerationCourse)=addAccelerationPhase!(CSs[csId], accelerationCourse, settings, train, CSs)        # this function changes the accelerationCourse
-            CSs[csId].v_peak=max(CSs[csId].v_entry,accelerationCourse[end].v)
+            CSs[csId][:v_peak]=max(CSs[csId][:v_entry],accelerationCourse[end].v)
 
-            CSs[csId].v_exit=min(CSs[csId].v_exit, CSs[csId].v_peak, accelerationCourse[end].v)
-        else #CSs[csId].v_entry==CSs[csId].v_peak
+            CSs[csId][:v_exit]=min(CSs[csId][:v_exit], CSs[csId][:v_peak], accelerationCourse[end].v)
+        else #CSs[csId][:v_entry]==CSs[csId][:v_peak]
             # v_exit stays the same
         end #if
 
-        previousCSv_exit=CSs[csId].v_exit
+        previousCSv_exit=CSs[csId][:v_exit]
     end #for
 
     return movingSection
@@ -127,24 +124,24 @@ end #function secureAccelerationBehavior!
 ## define the intersection velocities between the characterisitc sections to secure cruising behavior
 function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dict)
     # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_peak
-    CSs::Vector{CharacteristicSection} = movingSection[:characteristicSections]
+    CSs = movingSection[:characteristicSections]
 
     startingPoint=DataPoint()
     startingPoint.i=1
 
-    previousCSv_exit=CSs[1].v_entry
+    previousCSv_exit=CSs[1][:v_entry]
 
     for csId in 1:length(CSs)
-        CSs[csId].v_entry=min(CSs[csId].v_entry, previousCSv_exit)
+        CSs[csId][:v_entry]=min(CSs[csId][:v_entry], previousCSv_exit)
 
-        startingPoint.s=CSs[csId].s_entry
-        startingPoint.v=CSs[csId].v_peak
+        startingPoint.s=CSs[csId][:s_entry]
+        startingPoint.v=CSs[csId][:v_peak]
         cruisingCourse=[startingPoint]    # List of data points
 
-        (CSs[csId], cruisingCourse)=addCruisingPhase!(CSs[csId], cruisingCourse, CSs[csId].length, settings, train, CSs, "cruising")        # this function changes the cruisingCourse
-        CSs[csId].v_exit=min(CSs[csId].v_exit, cruisingCourse[end].v)
+        (CSs[csId], cruisingCourse)=addCruisingPhase!(CSs[csId], cruisingCourse, CSs[csId][:length], settings, train, CSs, "cruising")        # this function changes the cruisingCourse
+        CSs[csId][:v_exit]=min(CSs[csId][:v_exit], cruisingCourse[end].v)
 
-        previousCSv_exit=CSs[csId].v_exit
+        previousCSv_exit=CSs[csId][:v_exit]
     end #for
 
     return movingSection

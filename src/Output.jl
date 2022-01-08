@@ -263,9 +263,9 @@ function printSectionInformation(movingSection::Dict)
         println("CS ",csId,"  mit length=", CSs[csId][:length]," mit t=", CSs[csId][:t])
         for bs in 1: length(allBs)
             if haskey(CSs[csId][:behaviorSections], allBs[bs])
-                println("BS ",allBs[bs], "   mit s_entry=", CSs[csId][:behaviorSections][allBs[bs]].s_entry, "   und t=", CSs[csId][:behaviorSections][allBs[bs]].t)
-        #        for point in 1:length(CSs[csId][:behaviorSections][allBs[bs]].dataPoints)
-        #            println(CSs[csId][:behaviorSections][allBs[bs]].dataPoints[point])
+                println("BS ",allBs[bs], "   mit s_entry=", CSs[csId][:behaviorSections][allBs[bs]][:s_entry], "   und t=", CSs[csId][:behaviorSections][allBs[bs]][:t])
+        #        for point in 1:length(CSs[csId][:behaviorSections][allBs[bs]][:dataPoints])
+        #            println(CSs[csId][:behaviorSections][allBs[bs]][:dataPoints][point])
         #        end
             end #if
         end #for

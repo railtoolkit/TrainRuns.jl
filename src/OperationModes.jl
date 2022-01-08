@@ -25,22 +25,24 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
         # check if the CS has a cruising section
         CS = CSs[csId]
         BSs = CS[:behaviorSections]
-        s_breakFree = get(BSs, :breakFree, BehaviorSection()).length
-        s_clearing = get(BSs, :clearing, BehaviorSection()).length
-        s_acceleration = get(BSs, :acceleration, BehaviorSection()).length
+
+        s_breakFree = get(BSs, :breakFree, Dict(:length=>0.0))[:length]
+        s_clearing = get(BSs, :clearing, Dict(:length=>0.0))[:length]
+        s_acceleration = get(BSs, :acceleration, Dict(:length=>0.0))[:length]
         s_braking = max(0.0, ceil((CS[:v_exit]^2-CS[:v_peak]^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
 
         # calculate the cruising sections length
-        s_cruising=CS[:length]-s_breakFree-s_clearing-s_acceleration-s_braking
+        s_cruising = CS[:length] - s_breakFree - s_clearing - s_acceleration - s_braking
 
-        # reset the moving section (MS), delete characteristic sections (CS) that were used during the preperation for setting v_entry, v_peak and v_exit
-        delete!(BSs, :breakFree)
-        delete!(BSs, :clearing)
-        delete!(BSs, :acceleration)
-        delete!(BSs, :diminishing)
-        delete!(BSs, :cruising)
-        CS[:E]=0.0
-        CS[:t]=0.0
+        # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
+            # 01/07 old: delete!(BSs, :breakFree)
+            # 01/07 old: delete!(BSs, :clearing)
+            # 01/07 old: delete!(BSs, :acceleration)
+            # 01/07 old: delete!(BSs, :diminishing)
+            # 01/07 old: delete!(BSs, :cruising)
+        CS[:behaviorSections] = Dict()
+        CS[:E] = 0.0
+        CS[:t] = 0.0
 
 
         if s_clearing == CS[:length]
@@ -113,6 +115,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
 
     #create a new moving section for the minimum energy consumption
     movingSectionOriginal=copyMovingSection(movingSectionMinimumRunningTime)
+    # 01/01 new when Datapoint is a Dict: movingSectionOriginal=copy(movingSectionMinimumRunningTime)
     CSsOrig::Vector{Dict} = movingSectionOriginal[:characteristicSections]
     merge!(movingSectionOriginal, Dict(:energySavingModifications => []))   # list containing all the used energy saving modifications
 
@@ -196,11 +199,11 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
                                            get(CSsOrig[csIdMax][:behaviorSections], :clearing,
                                             get(CSsOrig[csIdMax][:behaviorSections], :breakFree,
                                              get(CSsOrig[csIdMax][:behaviorSections], :diminishing,
-                                              BehaviorSection()))))))))).dataPoints[end]
+                                               Dict(:dataPoints => [0]))))))))))[:dataPoints][end]
 
-        # if there is a diminishing phase its location must be analysed seperately because it could be before acceleration, between acceleration and cruising or after cruising. All the other behavior sections occur in a fixed order.
+        # if there is a diminishing phase its location must be analysed seperately because it could be before acceleration, between acceleration and cruising or after cruising. All the other behavior sections occure in a fixed order.
         if haskey(CSsOrig[csIdMax][:behaviorSections], :diminishing)
-            lastIdOfSelectedCsOriginal = max(lastIdOfSelectedCsOriginal, CSsOrig[csIdMax][:behaviorSections][:diminishing].dataPoints[end])
+            lastIdOfSelectedCsOriginal = max(lastIdOfSelectedCsOriginal, CSsOrig[csIdMax][:behaviorSections][:diminishing][:dataPoints][end])
         end
 
         # create new driving course
@@ -233,7 +236,8 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
 
         # replace the original driving course and CS with the new modified ones
         drivingCourseOriginal=drivingCourseNew
-        CSsOrig[csIdMax]=copyCharacteristicSection(movingSectionOriginal[:energySavingModifications][end][:csModified])
+        CSsOrig[csIdMax]=copy(movingSectionOriginal[:energySavingModifications][end][:csModified])
+        # 01/07 old without copy: CSsOrig[csIdMax]=copyCharacteristicSection(movingSectionOriginal[:energySavingModifications][end][:csModified])
         movingSectionOriginal[:t]=drivingCourseOriginal[end].t            # total running time (in s)
         movingSectionOriginal[:E]=drivingCourseOriginal[end].E            # total energy consumption (in Ws)
 
@@ -244,8 +248,8 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
             for csId in csIdMax+1:length(CSsOrig)
                 for bs in 1: length(allBs)
                     if haskey(CSsOrig[csId][:behaviorSections], allBs[bs])
-                        for point in 1:length(CSsOrig[csId][:behaviorSections][allBs[bs]].dataPoints)
-                            CSsOrig[csId][:behaviorSections][allBs[bs]].dataPoints[point] = CSsOrig[csId][:behaviorSections][allBs[bs]].dataPoints[point]+difference
+                        for point in 1:length(CSsOrig[csId][:behaviorSections][allBs[bs]][:dataPoints])
+                            CSsOrig[csId][:behaviorSections][allBs[bs]][:dataPoints][point] = CSsOrig[csId][:behaviorSections][allBs[bs]][:dataPoints][point]+difference
                         end
                     end #if
                 end #for
@@ -370,7 +374,8 @@ function copyEnergySavingModification(original::Dict)
                 :ΔE => original[:ΔE],                           # saved energy (in Ws)
                 :Δt => original[:Δt],                           # time loss (in s)
                 :ratio => original[:ratio],                     # ratio of ΔE and Δt (in Ws/s)
-                :csModified => copyCharacteristicSection(original[:csModified]))   # the modified characteristic section
+                :csModified => copy(original[:csModified]))   # the modified characteristic section
+                # 01/07 old without copy: csModified => copyCharacteristicSection(original[:csModified]))   # the modified characteristic section
 
     drivingCourseModified = DataPoint[]
     for i in 1:length(original[:drivingCourseModified])
@@ -378,8 +383,7 @@ function copyEnergySavingModification(original::Dict)
     end
     merge!(copy, Dict(:drivingCourseModified => drivingCourseModified))                # drivingCourse for the modified characteristic section
     return copy
-end #function EnergySavingModification
-
+end #function copyEnergySavingModification
 
 function updateEnergySavingModifications!(energySavingModifications::Vector{Dict}, csIdMax::Integer, drivingCourseNew::Vector{DataPoint}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
     allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
@@ -390,8 +394,8 @@ function updateEnergySavingModifications!(energySavingModifications::Vector{Dict
             # update the behavior sections of the modified charateristic section
             for bs in 1: length(allBs)
                 if haskey(BSs, allBs[bs])
-                    for point in 1:length(BSs[allBs[bs]].dataPoints)
-                        BSs[allBs[bs]].dataPoints[point] = BSs[allBs[bs]].dataPoints[point] + difference
+                    for point in 1:length(BSs[allBs[bs]][:dataPoints])
+                        BSs[allBs[bs]][:dataPoints][point] = BSs[allBs[bs]][:dataPoints][point] + difference
                     end
                 end #if
             end #for
@@ -423,10 +427,11 @@ function copyMovingSection(original::Dict)
     #TODO after removing the mutable structs: Is it possible to just "copy"?
     CSsCopy = Vector{Dict}()
     for csId in 1:length(original[:characteristicSections])
-        push!(CSsCopy, copyCharacteristicSection(original[:characteristicSections][csId]))
+        push!(CSsCopy, copy(original[:characteristicSections][csId]))
+        # 01/07 old without copy: push!(CSsCopy, copyCharacteristicSection(original[:characteristicSections][csId]))
     end #for
 
-    copy = Dict(:id => original[:id],                                       # identifier
+    copiedMS = Dict(:id => original[:id],                                   # identifier
                 :length => original[:length],                               # total length (in m)
                 :s_entry => original[:s_entry],                             # first position (in m)
                 :s_exit => original[:s_exit],                               # last position (in m)
@@ -437,28 +442,29 @@ function copyMovingSection(original::Dict)
     if haskey(original, :energySavingModifications)         # list of containing all the used energy saving modifications
         ModificationsCopy = Dict[]
         for modId in 1:length(original[:energySavingModifications])
-            push!(ModificationsCopy, EnergySavingModification(original[:energySavingModifications][modId]))
+            push!(ModificationsCopy, copyEnergySavingModification(original[:energySavingModifications][modId])) # TODO or should it be copyEnergySavingModification
+            # 01/07 new when DataPoint is a Dict: push!(ModificationsCopy, copy(original[:energySavingModifications][modId]))
         end #for
-        merge!(copy, Dict(:energySavingModifications => ModificationsCopy))
+        merge!(copiedMS, Dict(:energySavingModifications => ModificationsCopy))
     end
 
     if haskey(original, :t_recovery)         # total recovery time for energy-saving modifications (in s)
-        merge!(copy, Dict(:t_recovery => original[:t_recovery]))
+        merge!(copiedMS, Dict(:t_recovery => original[:t_recovery]))
     end
 
     if haskey(original, :t_recoveryAvailable)         # still available recovery time for energy-saving modifications (in s)
-        merge!(copy, Dict(:t_recoveryAvailable => original[:t_recoveryAvailable]))
+        merge!(copiedMS, Dict(:t_recoveryAvailable => original[:t_recoveryAvailable]))
     end
-    return copy
+    return copiedMS
 end #function copyMovingSection
-
+#=
 function copyCharacteristicSection(original::Dict)
     #TODO after removing the mutable structs: Is it possible to just "copy"?
-    copy = Dict(:id => original[:id],             # identifier
+    copiedCS = Dict(:id => original[:id],         # identifier
                 :s_entry => original[:s_entry],   # first position (in m)
                 :s_exit => original[:s_exit],     # last position  (in m)
                 :length => original[:length],     # total length  (in m)
-                :r_path => original[:r_path],      # path resistance (in ‰)
+                :r_path => original[:r_path],     # path resistance (in ‰)
                 :behaviorSections => Dict(),      # empty list of containing behavior sections
                 :t => original[:t],               # total running time (in s)
                 :E => original[:E],               # total energy consumption (in Ws)
@@ -470,10 +476,11 @@ function copyCharacteristicSection(original::Dict)
     allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
     for bs in 1: length(allBs)
         if haskey(original[:behaviorSections], allBs[bs])
-            merge!(copy[:behaviorSections], Dict(allBs[bs] => BehaviorSection(original[:behaviorSections][allBs[bs]])))
+            #merge!(copiedCS[:behaviorSections], Dict(allBs[bs] => copyBehaviorSection(original[:behaviorSections][allBs[bs]])))
+            merge!(copiedCS[:behaviorSections], Dict(allBs[bs] => copy(original[:behaviorSections][allBs[bs]])))
         end #if
     end #for
-    return copy
+    return copiedCS
 end #function copyCharacteristicSection
-
+=#
 end #module OperationModes

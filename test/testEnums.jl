@@ -11,14 +11,14 @@ include("../src/Input.jl")
 using .Input
 using YAML, Test
 
-@enum trainTypes passenger=1 freight=2 motorCoachTrain=3
+@enum trainType passenger=1 freight=2 motorCoachTrain=3
 
-@test Input.getEnum("passenger", trainTypes)       == passenger::trainTypes
-@test Input.getEnum("freight", trainTypes)         == freight::trainTypes
-@test Input.getEnum("motorCoachTrain", trainTypes) == motorCoachTrain::trainTypes
+@test Input.getEnum("passenger", trainType)       == passenger::trainType
+@test Input.getEnum("freight", trainType)         == freight::trainType
+@test Input.getEnum("motorCoachTrain", trainType) == motorCoachTrain::trainType
 
 data = YAML.load(open("data/trains/train_passenger_IC2.yaml"))
-@test Input.getEnum(data["train"]["trainType"], trainTypes) == passenger::trainTypes
+@test Input.getEnum(data["train"]["trainType"], trainType) == passenger::trainType
 
 data = YAML.load(open("data/trains/train_freight_V90withOreConsist.yaml"))
-@test Input.getEnum(data["train"]["trainType"], trainTypes) == freight::trainTypes
+@test Input.getEnum(data["train"]["trainType"], trainType) == freight::trainType

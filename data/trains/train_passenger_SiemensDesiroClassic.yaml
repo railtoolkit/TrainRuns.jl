@@ -10,7 +10,7 @@ train:
   rotationMassFactor_t:
   rotationMassFactor_w:
   powerType: diesel             # diesel or electric (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
-  trainType: motor coach train  # "freight" or "passenger" or "motor coach train" (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
+  trainType: motorCoachTrain    # "freight" or "passenger" or "motorCoachTrain" (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
   v_limit:                      # in m/s
   v_limit_kmh: 120              # in km/h (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
   a_braking: -0.4253            # in m/s^2 (source: FBS -> using the information from the "Fahrschaubild" of a long path without gradient or speed limit for DB 642)

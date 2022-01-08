@@ -1,13 +1,16 @@
 module types
 # definition of all the additional types and their constructors
-export DataPoint, BehaviorSection    #, CharacteristicSection
+export DataPoint#, BehaviorSection
+ export copyBehaviorSection # TODO is it still necessary if there is no more mutable struct? can just copy(original) be used?
+#export trainType
 
-
+#@enum trainType passenger=1 freight=2 motorCoachTrain=3
+#@enum behavior breakFree=1 clearing=2 acceleration=3 cruising=4diminishing=6 coasting=7 cruisingAfterCoasting=8 braking=9 standstill=10
 ## a data point is the smallest element of the driving course. One step of the step approach is between two data points
 mutable struct DataPoint
     i::Integer              # identifier and counter variable of the dricing course
-    behavior::String        # type of BehaviorSection the DataPoint ist part of ("breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting","braking" or "standstill")
-                            # a data point which is the last point of one BehaviorSection and the first point of the next BehaviorSection will be attached to the latter
+    behavior::String        # type of behavior section the DataPoint ist part of ("breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting", "braking" or "standstill")
+                            # a data point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
     s::AbstractFloat        # position (in m)
     Δs::AbstractFloat       # step size (in m)
     t::AbstractFloat        # point in time (in s)
@@ -31,55 +34,24 @@ DataPoint()=DataPoint(0, "", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0
 DataPoint(original::DataPoint)=DataPoint(original.i, original.behavior, original.s, original.Δs, original.t, original.Δt, original.v, original.Δv, original.a, original.W, original.ΔW, original.E, original.ΔE, original.F_T, original.F_R, original.R_path, original.R_train, original.R_traction, original.R_wagons)
 
 
-
 ## different sections the whole path can be devided in the following
 ## smallest section of the path is the behavior section. It relates to the containing data points via their identifier.
-mutable struct BehaviorSection
-    type::String                # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting","braking" or "standstill"
-    length::AbstractFloat       # total length  (in m)
-    s_entry::AbstractFloat      # first position (in m)
-    s_exit::AbstractFloat       # last position  (in m)
-    t::AbstractFloat            # total running time (in s)
-    E::AbstractFloat            # total energy consumption (in Ws)
-    v_entry::AbstractFloat      # entry speed (in m/s)
-    v_exit::AbstractFloat       # exit speed (in m/s)
-    dataPoints::Vector{Integer} # list of identifiers of the containing data points
-end # mutable struct BehaviorSection
-BehaviorSection()=BehaviorSection("", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, [])
-function BehaviorSection(original::BehaviorSection)
+function copyBehaviorSection(original::Dict)
     bsDataPoints=[]
-    for i in 1:length(original.dataPoints)
-        push!(bsDataPoints, original.dataPoints[i])
+    for i in 1:length(original[:dataPoints])
+        push!(bsDataPoints, original[:dataPoints][i])
     end
-    return BehaviorSection(original.type, original.length, original.s_entry, original.s_exit, original.t, original.E, original.v_entry, original.v_exit, bsDataPoints)
+    copiedBS = Dict(#:type => behavior,                 # type of behavior section: breakFree, clearing, acceleration, cruising, diminishing, coasting, cruisingAfterCoasting, braking or standstill
+                :type => original[:type],           # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting", "braking" or "standstill"
+                :length => original[:length],       # total length  (in m)
+                :s_entry => original[:s_entry],     # first position (in m)
+                :s_exit => original[:s_exit],       # last position  (in m)
+                :t => original[:t],                 # total running time (in s)
+                :E => original[:E],                 # total energy consumption (in Ws)
+                :v_entry => original[:v_entry],     # entry speed (in m/s)
+                :v_exit => original[:v_exit],       # exit speed (in m/s)
+                :dataPoints => bsDataPoints)        # list of identifiers of the containing data points
+    return copiedBS
 end
-
-#= # a characteristic section is a part of the moving section. It contains behavior sections.
-mutable struct CharacteristicSection
-    id::Integer                 # identifier
-    length::AbstractFloat       # total length  (in m)
-    s_entry::AbstractFloat      # first position (in m)
-    s_exit::AbstractFloat       # last position  (in m)
-    t::AbstractFloat            # total running time (in s)
-    E::AbstractFloat            # total energy consumption (in Ws)
-    v_limit::AbstractFloat      # speed limit (in m/s)
-    v_peak::AbstractFloat       # maximum reachable speed (in m/s)
-    v_entry::AbstractFloat      # maximum entry speed (in m/s)
-    v_exit::AbstractFloat       # maximum exit speed (in m/s)
-    r_path::AbstractFloat       # spedific path resistance (in ‰)
-    behaviorSections::AbstractDict{Symbol, BehaviorSection}   # list of containing behavior sections
-end # mutable struct CharacteristicSection
-CharacteristicSection()=CharacteristicSection(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Dict{Symbol, BehaviorSection}())
-function CharacteristicSection(original::CharacteristicSection)
-    copy=CharacteristicSection(original.id, original.length, original.s_entry, original.s_exit, original.t, original.E, original.v_limit, original.v_peak, original.v_entry, original.v_exit, original.r_path, Dict{Symbol, BehaviorSection}())
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
-    for bs in 1: length(allBs)
-        if haskey(original.behaviorSections, allBs[bs])
-            merge!(copy.behaviorSections, Dict(allBs[bs] => BehaviorSection(original.behaviorSections[allBs[bs]])))
-        end #if
-    end #for
-    return copy
-end #function CharacteristicSection
-=#
 
 end #module

@@ -5,6 +5,8 @@ using ..types
 
 export readInput
 
+@enum trainType passenger=1 freight=2 motorCoachTrain=3
+
 """
 Read the input information from YAML files for train, path and settings, save it in different dictionaries and return them.
 """
@@ -34,14 +36,17 @@ function inputTrain(trainDirectory::String)
     id=1                                # trains identifier
 
     if haskey(data["train"],"trainType")
-            if typeof(data["train"]["trainType"])==String && (data["train"]["trainType"]=="freight" || data["train"]["trainType"]=="motor coach train" || data["train"]["trainType"]=="passenger")
-            trainType=data["train"]["trainType"]                  # "passenger" or "freight" or "motor coach train"
+        #    @enum trainType passenger=1 freight=2 motorCoachTrain=3
+        if typeof(data["train"]["trainType"])==String && (data["train"]["trainType"]=="freight" || data["train"]["trainType"]=="motorCoachTrain" || data["train"]["trainType"]=="passenger")
+        # 01/05 old without enum: if typeof(data["train"]["trainType"])==String && (data["train"]["trainType"]=="freight" || data["train"]["trainType"]=="motor coach train" || data["train"]["trainType"]=="passenger")
+            # 01/05 old without enum: trainType=data["train"]["trainType"]                  # "passenger" or "freight" or "motor coach train"
+            type = getEnum(data["train"]["trainType"], trainType)       # "passenger" or "freight" or "motorCoachTrain"
             delete!(data["train"], "trainType")
         else
-            error("ERROR at reading the train yaml file: The value of trainType is wrong. It has to be freight, motor coach train or passenger.")
+            error("ERROR at reading the train yaml file: The value of trainType is wrong. It has to be freight, motorCoachTrain or passenger.")
         end
     else
-        error("ERROR at reading the train yaml file: The keyword trainType is missing. It has to be added with the value freight, motor coach train or passenger.")
+        error("ERROR at reading the train yaml file: The keyword trainType is missing. It has to be added with the value freight, motorCoachTrain or passenger.")
     end
 
     if haskey(data["train"],"l_train")
@@ -259,11 +264,24 @@ function inputTrain(trainDirectory::String)
     # coefficients for the vehicle resistance of the set of wagons (consist)
 
     # coefficient for velocitiy difference between set of wagons (consist) and outdoor air (in m/s)
+#    if type == getEnum("passenger", trainType) || type == getEnum("motorCoachTrain", trainType)
+    if type == passenger::trainType || type == motorCoachTrain::trainType
+        # TODO: if type == trainType(:passenger) || type == trainType(:motorCoachTrain)
+        # TODO: ODER if trainType(type) == trainType(:passenger) || trainType(type) == trainType(:motorCoachTrain)
+        Δv_w=15.0/3.6
+#    elseif type == getEnum("freight", trainType)
+    elseif type == freight::trainType
+        Δv_w=0.0
+    end # if
+
+    #= 01/05 old without enum
+    # coefficient for velocitiy difference between set of wagons (consist) and outdoor air (in m/s)
     if trainType=="passenger" || trainType=="motor coach train"
         Δv_w=15.0/3.6
     elseif trainType== "freight"
         Δv_w=0.0
     end # if
+    =#
 
     # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
     if haskey(data["train"],"f_Rw0") && data["train"]["f_Rw0"]!=nothing
@@ -316,8 +334,9 @@ function inputTrain(trainDirectory::String)
     # create the train Dictionary
     train= Dict(:name => name,              # train's name
                 :id => id,                  # train's identifier
-                :trainType => trainType,    # type of train "passenger" or "freight" or "motor coach train"
-                :trainLength => trainLength,# total length (in m)
+                :type => type,              # type of train "passenger" or "freight" or "motorCoachTrain"
+            #= 01/05 old without enum   :trainType => trainType,    # type of train "passenger" or "freight" or "motor coach train" =#
+                :length => trainLength,     # total length (in m)
                 :v_limit => v_limit,        # trains speed limit (in m/s)
                 :a_braking => a_braking,    # braking acceleration (in m/s^2)
                 :m_train => m_train,        # total mass (in kg)
@@ -651,13 +670,13 @@ But only if the string matches an enumerated value.
 
 # Example
 ```jldoctest
-julia> @enum trainTypes passenger freight
+julia> @enum trainType passenger freight
 
 julia> myTrain = "passenger"
 "passenger"
 
-julia> myTrainType = getEnum(myTrain, trainTypes)
-passenger::trainTypes = 0
+julia> myTrainType = getEnum(myTrain, trainType)
+passenger::trainType = 0
 ```
 """
 function getEnum(string::String, enum_type::DataType)

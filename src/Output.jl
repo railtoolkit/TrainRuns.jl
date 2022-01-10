@@ -7,7 +7,7 @@ using CSV, DataFrames, Dates
 export createOutput
 export plotDrivingCourse, printImportantValues, printSectionInformation # functions for showing results during the development
 
-function createOutput(settings::Dict, pathName::String, trainName::String, drivingCourse::Vector{DataPoint}, movingSection::Dict)
+function createOutput(settings::Dict, pathName::String, trainName::String, drivingCourse::Vector{Dict}, movingSection::Dict)
     # method of function createOutput for one operation mode
     if settings[:typeOfOutput] == "CSV"
         return createOutputCsv(settings, pathName, trainName, drivingCourse, movingSection)
@@ -16,7 +16,7 @@ function createOutput(settings::Dict, pathName::String, trainName::String, drivi
     end
 end # funtion createOutput
 
-function createOutput(settings::Dict, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{DataPoint}, movingSectionMinimumRunningTime::Dict, drivingCourseMinimumEnergyConsumption::Vector{DataPoint}, movingSectionMinimumEnergyConsumption::Dict)
+function createOutput(settings::Dict, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Dict}, movingSectionMinimumRunningTime::Dict, drivingCourseMinimumEnergyConsumption::Vector{Dict}, movingSectionMinimumEnergyConsumption::Dict)
     # method of function createOutput for two operation modes
     if settings[:typeOfOutput] == "CSV"
         return createOutputCsv(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
@@ -26,7 +26,7 @@ function createOutput(settings::Dict, pathName::String, trainName::String, drivi
 end # funtion createOutput
 
 
-function createOutputDict(settings::Dict, pathName::String, trainName::String, drivingCourse::Vector{DataPoint}, movingSection::Dict)
+function createOutputDict(settings::Dict, pathName::String, trainName::String, drivingCourse::Vector{Dict}, movingSection::Dict)
     # method of function createOutputDict for one operation mode
     if settings[:operationModeMinimumRunningTime]
         if settings[:operationModeMinimumEnergyConsumption]
@@ -58,7 +58,7 @@ function createOutputDict(settings::Dict, pathName::String, trainName::String, d
     elseif settings[:detailOfOutput]=="driving course"
         push!(outputArray, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArray
         for point in drivingCourse
-            row=[point.i, point.behavior, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.R_path, point.R_train, point.R_traction, point.R_wagons, point.ΔW, point.W, point.ΔE, point.E, point.a]
+            row=[point[:i], point[:behavior], point[:Δs], point[:s], point[:Δt], point[:t], point[:Δv], point[:v], point[:F_T], point[:F_R], point[:R_path], point[:R_train], point[:R_traction], point[:R_wagons], point[:ΔW], point[:W], point[:ΔE], point[:E], point[:a]]
             push!(outputArray, row)             # push row to outputArray
         end
     end
@@ -73,7 +73,7 @@ function createOutputDict(settings::Dict, pathName::String, trainName::String, d
     return outputDict
 end # function createOutputDict
 
-function createOutputDict(settings::Dict, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{DataPoint}, movingSectionMinimumRunningTime::Dict, drivingCourseMinimumEnergyConsumption::Vector{DataPoint}, movingSectionMinimumEnergyConsumption::Dict)
+function createOutputDict(settings::Dict, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Dict}, movingSectionMinimumRunningTime::Dict, drivingCourseMinimumEnergyConsumption::Vector{Dict}, movingSectionMinimumEnergyConsumption::Dict)
     # method of function createOutputDict for two operation modes
     if settings[:operationModeMinimumRunningTime]
         outputDict=createOutputDict(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime)
@@ -88,7 +88,7 @@ function createOutputDict(settings::Dict, pathName::String, trainName::String, d
             elseif settings[:detailOfOutput]=="driving course"
                 push!(outputArrayMinimumEnergyConsumption, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to outputArrayMinimumEnergyConsumption
                 for point in drivingCourseMinimumEnergyConsumption
-                    row=[point.i, point.behavior, point.Δs, point.s, point.Δt, point.t, point.Δv, point.v, point.F_T, point.F_R, point.R_path, point.R_train, point.R_traction, point.R_wagons, point.ΔW, point.W, point.ΔE, point.E, point.a]
+                    row=[point[:i], point[:behavior], point[:Δs], point[:s], point[:Δt], point[:t], point[:Δv], point[:v], point[:F_T], point[:F_R], point[:R_path], point[:R_train], point[:R_traction], point[:R_wagons], point[:ΔW], point[:W], point[:ΔE], point[:E], point[:a]]
                     push!(outputArrayMinimumEnergyConsumption, row)             # push row to outputArrayMinimumEnergyConsumption
                 end
             end
@@ -104,7 +104,7 @@ function createOutputDict(settings::Dict, pathName::String, trainName::String, d
 end # function createOutputDict
 
 
-function createOutputCsv(settings::Dict, pathName::String, trainName::String, drivingCourse::Vector{DataPoint}, movingSection::Dict)
+function createOutputCsv(settings::Dict, pathName::String, trainName::String, drivingCourse::Vector{Dict}, movingSection::Dict)
     # method of function createOutputDict for one operation mode
     outputDict=createOutputDict(settings, pathName, trainName, drivingCourse, movingSection)
 
@@ -157,7 +157,7 @@ function createOutputCsv(settings::Dict, pathName::String, trainName::String, dr
     return outputDict
 end #function createOutputCsv
 
-function createOutputCsv(settings::Dict, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{DataPoint}, movingSectionMinimumRunningTime::Dict, drivingCourseMinimumEnergyConsumption::Vector{DataPoint}, movingSectionMinimumEnergyConsumption::Dict)
+function createOutputCsv(settings::Dict, pathName::String, trainName::String, drivingCourseMinimumRunningTime::Vector{Dict}, movingSectionMinimumRunningTime::Dict, drivingCourseMinimumEnergyConsumption::Vector{Dict}, movingSectionMinimumEnergyConsumption::Dict)
     # method of function createOutputDict for two operation modes
     outputDict=createOutputDict(settings, pathName, trainName, drivingCourseMinimumRunningTime, movingSectionMinimumRunningTime, drivingCourseMinimumEnergyConsumption, movingSectionMinimumEnergyConsumption)
 
@@ -246,10 +246,10 @@ end #function createOutputCsv
 
 
 
-function printImportantValues(drivingCourse::Vector{DataPoint})
+function printImportantValues(drivingCourse::Vector{Dict})
     println("i      behavior                 s in m                 v in km/h                t in min               a in m/s^2                F_R in k N                F_T in k N                E in k Wh")
     for i in 1:length(drivingCourse)
-        println(drivingCourse[i].i,".   ",drivingCourse[i].s,"  ",drivingCourse[i].v*3.6,"  ",drivingCourse[i].t/60,"  ",drivingCourse[i].a,"  ",drivingCourse[i].F_R/1000,"  ",drivingCourse[i].F_T/1000,"  ",drivingCourse[i].E/3600/1000)
+        println(drivingCourse[i][:i],".   ",drivingCourse[i][:s],"  ",drivingCourse[i][:v]*3.6,"  ",drivingCourse[i][:t]/60,"  ",drivingCourse[i][:a],"  ",drivingCourse[i][:F_R]/1000,"  ",drivingCourse[i][:F_T]/1000,"  ",drivingCourse[i][:E]/3600/1000)
     end #for
     println("i      behavior                 s in m                 v in km/h                t in min               a in m/s^2                F_R in k N                F_T in k N                E in k Wh")
 end #function printImportantValues
@@ -272,18 +272,18 @@ function printSectionInformation(movingSection::Dict)
     end #for
 end #function printSectionInformation
 
-function plotDrivingCourse(drivingCourse::Vector{DataPoint})
+function plotDrivingCourse(drivingCourse::Vector{Dict})
     a=[]
     E=[]
     s=[]
     t=[]
     v=[]
     for i in 1:length(drivingCourse)
-        push!(a, drivingCourse[i].a)
-        push!(E, drivingCourse[i].E)
-        push!(s, drivingCourse[i].s)
-        push!(t, drivingCourse[i].t)
-        push!(v, drivingCourse[i].v)
+        push!(a, drivingCourse[i][:a])
+        push!(E, drivingCourse[i][:E])
+        push!(s, drivingCourse[i][:s])
+        push!(t, drivingCourse[i][:t])
+        push!(v, drivingCourse[i][:v])
     end #for
 
     p1=plot([s], [v], title = "v in m/s", label = ["v"], xlabel = "s in m")
@@ -304,18 +304,18 @@ function plotDrivingCourse(drivingCourse::Vector{DataPoint})
     println("Plots for different variables have been created.")
 end #function plotDrivingCourse
 
-function plotDrivingCourse(drivingCourseMinimumRunningTime::Vector{DataPoint},drivingCourseMinimumEnergyConsumption::Vector{DataPoint})
+function plotDrivingCourse(drivingCourseMinimumRunningTime::Vector{Dict},drivingCourseMinimumEnergyConsumption::Vector{Dict})
     a_minTime=[]
     E_minTime=[]
     s_minTime=[]
     t_minTime=[]
     v_minTime=[]
     for i in 1:length(drivingCourseMinimumRunningTime)
-        push!(a_minTime, drivingCourseMinimumRunningTime[i].a)
-        push!(E_minTime, drivingCourseMinimumRunningTime[i].E)
-        push!(s_minTime, drivingCourseMinimumRunningTime[i].s)
-        push!(t_minTime, drivingCourseMinimumRunningTime[i].t)
-        push!(v_minTime, drivingCourseMinimumRunningTime[i].v)
+        push!(a_minTime, drivingCourseMinimumRunningTime[i][:a])
+        push!(E_minTime, drivingCourseMinimumRunningTime[i][:E])
+        push!(s_minTime, drivingCourseMinimumRunningTime[i][:s])
+        push!(t_minTime, drivingCourseMinimumRunningTime[i][:t])
+        push!(v_minTime, drivingCourseMinimumRunningTime[i][:v])
     end #for
 
     a_minEnergy=[]
@@ -324,11 +324,11 @@ function plotDrivingCourse(drivingCourseMinimumRunningTime::Vector{DataPoint},dr
     t_minEnergy=[]
     v_minEnergy=[]
     for i in 1:length(drivingCourseMinimumEnergyConsumption)
-        push!(a_minEnergy, drivingCourseMinimumEnergyConsumption[i].a)
-        push!(E_minEnergy, drivingCourseMinimumEnergyConsumption[i].E)
-        push!(s_minEnergy, drivingCourseMinimumEnergyConsumption[i].s)
-        push!(t_minEnergy, drivingCourseMinimumEnergyConsumption[i].t)
-        push!(v_minEnergy, drivingCourseMinimumEnergyConsumption[i].v)
+        push!(a_minEnergy, drivingCourseMinimumEnergyConsumption[i][:a])
+        push!(E_minEnergy, drivingCourseMinimumEnergyConsumption[i][:E])
+        push!(s_minEnergy, drivingCourseMinimumEnergyConsumption[i][:s])
+        push!(t_minEnergy, drivingCourseMinimumEnergyConsumption[i][:t])
+        push!(v_minEnergy, drivingCourseMinimumEnergyConsumption[i][:v])
     end #for
 
     p1=plot([s_minTime,s_minEnergy],

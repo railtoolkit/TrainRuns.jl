@@ -93,21 +93,21 @@ function secureAccelerationBehavior!(movingSection::Dict, settings::Dict, train:
     CSs = movingSection[:characteristicSections]
 
     CSs[1][:v_entry]=0.0     # the entry velocity of the first characteristic section is 0.0 m/s
-    startingPoint=DataPoint()
-    startingPoint.i=1
+    startingPoint=createDataPoint()
+    startingPoint[:i]=1
 
     previousCSv_exit=CSs[1][:v_entry]
     for csId in 1:length(CSs)
         CSs[csId][:v_entry]=min(CSs[csId][:v_entry], previousCSv_exit)
 
-        startingPoint.s=CSs[csId][:s_entry]
-        startingPoint.v=CSs[csId][:v_entry]
-        accelerationCourse=[startingPoint]    # List of data points
+        startingPoint[:s]=CSs[csId][:s_entry]
+        startingPoint[:v]=CSs[csId][:v_entry]
+        accelerationCourse::Vector{Dict} = [startingPoint]    # List of data points
 
         if CSs[csId][:v_entry] < CSs[csId][:v_peak]
             (CSs[csId], accelerationCourse) = addAccelerationPhase!(CSs[csId], accelerationCourse, settings, train, CSs)        # this function changes the accelerationCourse
-            CSs[csId][:v_peak] = max(CSs[csId][:v_entry], accelerationCourse[end].v)
-            CSs[csId][:v_exit] = min(CSs[csId][:v_exit], CSs[csId][:v_peak], accelerationCourse[end].v)
+            CSs[csId][:v_peak] = max(CSs[csId][:v_entry], accelerationCourse[end][:v])
+            CSs[csId][:v_exit] = min(CSs[csId][:v_exit], CSs[csId][:v_peak], accelerationCourse[end][:v])
         else #CSs[csId][:v_entry]==CSs[csId][:v_peak]
             # v_exit stays the same
         end #if
@@ -125,20 +125,20 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
     # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_peak
     CSs = movingSection[:characteristicSections]
 
-    startingPoint=DataPoint()
-    startingPoint.i=1
+    startingPoint=createDataPoint()
+    startingPoint[:i]=1
 
     previousCSv_exit=CSs[1][:v_entry]
 
     for csId in 1:length(CSs)
         CSs[csId][:v_entry]=min(CSs[csId][:v_entry], previousCSv_exit)
 
-        startingPoint.s=CSs[csId][:s_entry]
-        startingPoint.v=CSs[csId][:v_peak]
-        cruisingCourse=[startingPoint]    # List of data points
+        startingPoint[:s]=CSs[csId][:s_entry]
+        startingPoint[:v]=CSs[csId][:v_peak]
+        cruisingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
         (CSs[csId], cruisingCourse)=addCruisingPhase!(CSs[csId], cruisingCourse, CSs[csId][:length], settings, train, CSs, "cruising")        # this function changes the cruisingCourse
-        CSs[csId][:v_exit]=min(CSs[csId][:v_exit], cruisingCourse[end].v)
+        CSs[csId][:v_exit]=min(CSs[csId][:v_exit], cruisingCourse[end][:v])
 
         previousCSv_exit=CSs[csId][:v_exit]
     end #for

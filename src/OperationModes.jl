@@ -15,10 +15,10 @@ approximationLevel = 6      # TODO: define it in TrainRun and give it to each fu
 function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train::Dict)
     CSs::Vector{Dict} = movingSection[:characteristicSections]
 
-    startingPoint=DataPoint()
-    startingPoint.i=1
-    startingPoint.s=CSs[1][:s_entry]
-    drivingCourse=[startingPoint]    # List of data points
+    startingPoint=createDataPoint()
+    startingPoint[:i]=1
+    startingPoint[:s]=CSs[1][:s_entry]
+    drivingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
     #    for CS in CSs
     for csId in 1:length(CSs)
@@ -53,18 +53,18 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
         elseif s_cruising > 0.0 || s_braking == 0.0
         # 09/21 elseif s_cruising > 0.0
         # 09/21 elseif s_cruising > 0.01 # if the cruising section is longer than 1 cm (because of rounding issues not >0.0)
-            if drivingCourse[end].v < CS[:v_peak]
+            if drivingCourse[end][:v] < CS[:v_peak]
                 (CS, drivingCourse)=addAccelerationPhase!(CS, drivingCourse, settings, train, CSs)
             end #if
 
-            if CS[:s_exit]-drivingCourse[end].s-max(0.0, (CS[:v_exit]^2-drivingCourse[end].v^2)/2/train[:a_braking]) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+            if CS[:s_exit]-drivingCourse[end][:s]-max(0.0, (CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking]) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
                 println("ERROR: After accelerating in CS ",csId," the braking distance is too short!")
-                println("     before acceleration in CS",csId, "  with s=",drivingCourse[end].s,"  s_braking=",((CS[:v_exit]^2-drivingCourse[end].v^2)/2/train[:a_braking]),"   s_exit=",CS[:s_exit])
-                println("                             and v=",drivingCourse[end].v,"   v_peak=",CS[:v_peak],"  v_exit=",CS[:v_exit])
+                println("     before acceleration in CS",csId, "  with s=",drivingCourse[end][:s],"  s_braking=",((CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking]),"   s_exit=",CS[:s_exit])
+                println("                             and v=",drivingCourse[end][:v],"   v_peak=",CS[:v_peak],"  v_exit=",CS[:v_exit])
             end
 
-            s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
-            s_cruising=CS[:s_exit]-drivingCourse[end].s-s_braking
+            s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+            s_cruising=CS[:s_exit]-drivingCourse[end][:s]-s_braking
 
             if s_cruising > 0.0
                 (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
@@ -78,17 +78,17 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
         end #if
 
 
-        s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end].v^2)/2/train[:a_braking], digits=approximationLevel))     # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+        s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking], digits=approximationLevel))     # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
 
-        if drivingCourse[end].v > CS[:v_exit]
+        if drivingCourse[end][:v] > CS[:v_exit]
             #(CS, drivingCourse)=addBrakingPhase!(CS, drivingCourse, settings[:massModel], train, CSs)
             (CS, drivingCourse)=addBrakingPhase!(CS, drivingCourse, settings, train, CSs)
         end #if
 
         #= 09/20 old and should never be used:
-        if drivingCourse[end].s < CS[:s_exit]
+        if drivingCourse[end][:s] < CS[:s_exit]
             if haskey(BSs, :cruising)
-                println("INFO: A second cruising section has been added to CS ", csId," from s=",drivingCourse[end].s,"  to s_exit=",CS[:s_exit])
+                println("INFO: A second cruising section has been added to CS ", csId," from s=",drivingCourse[end][:s],"  to s_exit=",CS[:s_exit])
             end
             (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
         end =#
@@ -96,34 +96,33 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
 
     (CSs[end], drivingCourse)=addStandstill!(CSs[end], drivingCourse, settings, train, CSs)
 
-    movingSection[:t] = drivingCourse[end].t            # total running time (in s)
-    movingSection[:E] = drivingCourse[end].E            # total energy consumption (in Ws)
+    movingSection[:t] = drivingCourse[end][:t]            # total running time (in s)
+    movingSection[:E] = drivingCourse[end][:E]            # total energy consumption (in Ws)
 
     return (movingSection, drivingCourse)
 end #function calculateMinimumRunningTime
 
 
-function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict, drivingCourseMinimumRunningTime::Vector{DataPoint}, settings::Dict, train::Dict)
+function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict, drivingCourseMinimumRunningTime::Vector{Dict}, settings::Dict, train::Dict)
  # calculate a train run focussing on using the minimum possible energy consumption
     # booleans for choosing which methods are used for saving energy
     doMethod1=true
     #doMethod1=false
-    #doMethod2=false
+
     doMethod2=true
+    #doMethod2=false
+
     doCombinationOfMethods=true
     #doCombinationOfMethods=false
 
+    # create a new driving course for the minimum energy consumption
+    drivingCourseOriginal = copy(drivingCourseMinimumRunningTime)
+
     #create a new moving section for the minimum energy consumption
     movingSectionOriginal=copyMovingSection(movingSectionMinimumRunningTime)
-    # 01/01 new when Datapoint is a Dict: movingSectionOriginal=copy(movingSectionMinimumRunningTime)
+    # 01/09 old not sure if just copy is enough.. : movingSectionOriginal=copy(movingSectionMinimumRunningTime)
     CSsOrig::Vector{Dict} = movingSectionOriginal[:characteristicSections]
     merge!(movingSectionOriginal, Dict(:energySavingModifications => []))   # list containing all the used energy saving modifications
-
-    # create a new driving course for the minimum energy consumption
-    drivingCourseOriginal=DataPoint[]
-    for i in 1:length(drivingCourseMinimumRunningTime)
-        push!(drivingCourseOriginal, DataPoint(drivingCourseMinimumRunningTime[i]))    # List of data points till the start of energy saving
-    end
 
     # calculate the recovery time
     t_recovery=calculateRecoveryTime(movingSectionOriginal[:length], movingSectionOriginal[:t], train)
@@ -158,12 +157,9 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         end #if
     end # for
 
-#    testNr=0
     # 01/03 old wit too long calculation time: while movingSectionOriginal[:t_recoveryAvailable] > 0.0
     while movingSectionOriginal[:t_recoveryAvailable] >= 1/(10^approximationLevel)
-#        testNr=testNr+1
-#        println("while in OpModes: ", testNr, " mit t_recoveryAvailable=",movingSectionOriginal[:t_recoveryAvailable])
-        # comparison of modifications
+        # compare modifications
         ratioMax=0.0
         csIdMax=0
         typeMax="none"
@@ -207,39 +203,36 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         end
 
         # create new driving course
-        drivingCourseNew=DataPoint[]
-        for i in 1:length(movingSectionOriginal[:energySavingModifications][end][:drivingCourseModified])
-            push!(drivingCourseNew, DataPoint(movingSectionOriginal[:energySavingModifications][end][:drivingCourseModified][i]))
-        end
+        drivingCourseNew = copy(movingSectionOriginal[:energySavingModifications][end][:drivingCourseModified])
 
         #fill up the rest of the driving course with information from the original course
-        drivingCourseNew[end].F_T=drivingCourseOriginal[lastIdOfSelectedCsOriginal].F_T
-        drivingCourseNew[end].R_traction=drivingCourseOriginal[lastIdOfSelectedCsOriginal].R_traction
-        drivingCourseNew[end].R_wagons=drivingCourseOriginal[lastIdOfSelectedCsOriginal].R_wagons
-        drivingCourseNew[end].R_train=drivingCourseOriginal[lastIdOfSelectedCsOriginal].R_train
-        drivingCourseNew[end].R_path=drivingCourseOriginal[lastIdOfSelectedCsOriginal].R_path
-        drivingCourseNew[end].F_R=drivingCourseOriginal[lastIdOfSelectedCsOriginal].F_R
-        drivingCourseNew[end].a=drivingCourseOriginal[lastIdOfSelectedCsOriginal].a
+        drivingCourseNew[end][:F_T]=drivingCourseOriginal[lastIdOfSelectedCsOriginal][:F_T]
+        drivingCourseNew[end][:R_traction]=drivingCourseOriginal[lastIdOfSelectedCsOriginal][:R_traction]
+        drivingCourseNew[end][:R_wagons]=drivingCourseOriginal[lastIdOfSelectedCsOriginal][:R_wagons]
+        drivingCourseNew[end][:R_train]=drivingCourseOriginal[lastIdOfSelectedCsOriginal][:R_train]
+        drivingCourseNew[end][:R_path]=drivingCourseOriginal[lastIdOfSelectedCsOriginal][:R_path]
+        drivingCourseNew[end][:F_R]=drivingCourseOriginal[lastIdOfSelectedCsOriginal][:F_R]
+        drivingCourseNew[end][:a]=drivingCourseOriginal[lastIdOfSelectedCsOriginal][:a]
 
-        endOfModificationId=drivingCourseNew[end].i                 # is needed for updating the other modified driving courses
+        endOfModificationId=drivingCourseNew[end][:i]                 # is needed for updating the other modified driving courses
         difference=endOfModificationId-lastIdOfSelectedCsOriginal
 
         i=lastIdOfSelectedCsOriginal+1
         while i <= length(drivingCourseOriginal)
-            push!(drivingCourseNew, DataPoint(drivingCourseOriginal[i]))
-            drivingCourseNew[end].i=length(drivingCourseNew)
-            drivingCourseNew[end].t=drivingCourseNew[end-1].t+drivingCourseNew[end].Δt
-            drivingCourseNew[end].E=drivingCourseNew[end-1].E+drivingCourseNew[end].ΔE
-            drivingCourseNew[end].W=drivingCourseNew[end-1].W+drivingCourseNew[end].ΔW
+            push!(drivingCourseNew, copy(drivingCourseOriginal[i]))
+            drivingCourseNew[end][:i]=length(drivingCourseNew)
+            drivingCourseNew[end][:t]=drivingCourseNew[end-1][:t]+drivingCourseNew[end][:Δt]
+            drivingCourseNew[end][:E]=drivingCourseNew[end-1][:E]+drivingCourseNew[end][:ΔE]
+            drivingCourseNew[end][:W]=drivingCourseNew[end-1][:W]+drivingCourseNew[end][:ΔW]
             i=i+1
         end # while
 
         # replace the original driving course and CS with the new modified ones
         drivingCourseOriginal=drivingCourseNew
-        CSsOrig[csIdMax]=copy(movingSectionOriginal[:energySavingModifications][end][:csModified])
-        # 01/07 old without copy: CSsOrig[csIdMax]=copyCharacteristicSection(movingSectionOriginal[:energySavingModifications][end][:csModified])
-        movingSectionOriginal[:t]=drivingCourseOriginal[end].t            # total running time (in s)
-        movingSectionOriginal[:E]=drivingCourseOriginal[end].E            # total energy consumption (in Ws)
+        CSsOrig[csIdMax]=copyCharacteristicSection(movingSectionOriginal[:energySavingModifications][end][:csModified])
+        # 01/09 old with copy: CSsOrig[csIdMax]=copy(movingSectionOriginal[:energySavingModifications][end][:csModified])
+        movingSectionOriginal[:t]=drivingCourseOriginal[end][:t]            # total running time (in s)
+        movingSectionOriginal[:E]=drivingCourseOriginal[end][:E]            # total energy consumption (in Ws)
 
         # update all the data point references in the behaviour sections of the following characteristic sections and the other modified characteristic sections
         if difference!= 0
@@ -291,7 +284,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
 end #function calculateMinimumEnergyConsumption
 
 
-function modifyCs(movingSectionOriginal::Dict, drivingCourseOriginal::Vector{DataPoint}, csId::Integer, modificationType::String, settings::Dict, train::Dict)
+function modifyCs(movingSectionOriginal::Dict, drivingCourseOriginal::Vector{Dict}, csId::Integer, modificationType::String, settings::Dict, train::Dict)
 # TODO: refactor and sort this function
     CSsOrig::Vector{Dict} = movingSectionOriginal[:characteristicSections]
 
@@ -301,6 +294,7 @@ function modifyCs(movingSectionOriginal::Dict, drivingCourseOriginal::Vector{Dat
     elseif modificationType == "decreasing maximum velocity"
         # method 2: accelerate to a lower v_peak
         (characteristicSectionModified, drivingCourseModifiedUntilEndOfModifiedCS, new)=decreaseMaximumVelocity(CSsOrig[csId], drivingCourseOriginal, settings, train, CSsOrig, movingSectionOriginal[:t_recoveryAvailable])
+
     elseif modificationType == "combination of energy saving methods"
         # calculate the combination of the previous methods
         (characteristicSectionModified, drivingCourseModifiedUntilEndOfModifiedCS, new)=combineEnergySavingMethods(CSsOrig[csId], drivingCourseOriginal, settings, train, CSsOrig, movingSectionOriginal[:t_recoveryAvailable])
@@ -368,24 +362,7 @@ function createEnergySavingModification()
                                     :drivingCourseModified => [])   # drivingCourse for the modified characteristic section
 end #createEnergySavingModification
 
-function copyEnergySavingModification(original::Dict)
-    copy = Dict(:csId => original[:csId],                       # identifier of the characteristic section
-                :type => original[:type],                       # type of energy saving modification: "increasing coasting" "decreasing maximum velocity" or "combination of decreasing maximum velocity and coasting"
-                :ΔE => original[:ΔE],                           # saved energy (in Ws)
-                :Δt => original[:Δt],                           # time loss (in s)
-                :ratio => original[:ratio],                     # ratio of ΔE and Δt (in Ws/s)
-                :csModified => copy(original[:csModified]))   # the modified characteristic section
-                # 01/07 old without copy: csModified => copyCharacteristicSection(original[:csModified]))   # the modified characteristic section
-
-    drivingCourseModified = DataPoint[]
-    for i in 1:length(original[:drivingCourseModified])
-        push!(drivingCourseModified, DataPoint(original[:drivingCourseModified][i]))
-    end
-    merge!(copy, Dict(:drivingCourseModified => drivingCourseModified))                # drivingCourse for the modified characteristic section
-    return copy
-end #function copyEnergySavingModification
-
-function updateEnergySavingModifications!(energySavingModifications::Vector{Dict}, csIdMax::Integer, drivingCourseNew::Vector{DataPoint}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
+function updateEnergySavingModifications!(energySavingModifications::Vector{Dict}, csIdMax::Integer, drivingCourseNew::Vector{Dict}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
     allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
     difference = endOfModificationId-lastIdOfSelectedCsOriginal
     for modNr in csIdMax+1:length(energySavingModifications)
@@ -401,17 +378,16 @@ function updateEnergySavingModifications!(energySavingModifications::Vector{Dict
             end #for
 
             # correct the points of previous CS in the modified driving course. Copy the new driving course till the beginning of the current CS and change total values of the current modified CS data points accordingly
-            drivingCourseModifiedNew=Vector{DataPoint}()
-            for i in 1:endOfModificationId
-                push!(drivingCourseModifiedNew, DataPoint(drivingCourseNew[i]))
-            end # for
+            drivingCourseModifiedNew = copy(drivingCourseNew[1:endOfModificationId])
+
             i=lastIdOfSelectedCsOriginal+1
             while i <= length(energySavingModifications[modNr][:drivingCourseModified])
-                push!(drivingCourseModifiedNew, DataPoint(energySavingModifications[modNr][:drivingCourseModified][i]))
-                drivingCourseModifiedNew[end].i=length(drivingCourseModifiedNew)
-                drivingCourseModifiedNew[end].t=drivingCourseModifiedNew[end-1].t+drivingCourseModifiedNew[end].Δt
-                drivingCourseModifiedNew[end].E=drivingCourseModifiedNew[end-1].E+drivingCourseModifiedNew[end].ΔE
-                drivingCourseModifiedNew[end].W=drivingCourseModifiedNew[end-1].W+drivingCourseModifiedNew[end].ΔW
+                push!(drivingCourseModifiedNew, copy(energySavingModifications[modNr][:drivingCourseModified][i]))
+
+                drivingCourseModifiedNew[end][:i]=length(drivingCourseModifiedNew)
+                drivingCourseModifiedNew[end][:t]=drivingCourseModifiedNew[end-1][:t]+drivingCourseModifiedNew[end][:Δt]
+                drivingCourseModifiedNew[end][:E]=drivingCourseModifiedNew[end-1][:E]+drivingCourseModifiedNew[end][:ΔE]
+                drivingCourseModifiedNew[end][:W]=drivingCourseModifiedNew[end-1][:W]+drivingCourseModifiedNew[end][:ΔW]
                 i=i+1
             end # while
 
@@ -425,10 +401,10 @@ end #function updateEnergySavingModifications!
 
 function copyMovingSection(original::Dict)
     #TODO after removing the mutable structs: Is it possible to just "copy"?
-    CSsCopy = Vector{Dict}()
+    copiedCSs = Vector{Dict}()
     for csId in 1:length(original[:characteristicSections])
-        push!(CSsCopy, copy(original[:characteristicSections][csId]))
-        # 01/07 old without copy: push!(CSsCopy, copyCharacteristicSection(original[:characteristicSections][csId]))
+        push!(copiedCSs, copyCharacteristicSection(original[:characteristicSections][csId]))
+        # 01/07 old without copy: push!(copiedCSs, copyCharacteristicSection(original[:characteristicSections][csId]))
     end #for
 
     copiedMS = Dict(:id => original[:id],                                   # identifier
@@ -437,15 +413,14 @@ function copyMovingSection(original::Dict)
                 :s_exit => original[:s_exit],                               # last position (in m)
                 :t => original[:t],                                         # total running time (in s)
                 :E => original[:E],                                         # total energy consumption (in Ws)
-                :characteristicSections => CSsCopy)                         # list of containing characteristic sections
+                :characteristicSections => copiedCSs)                         # list of containing characteristic sections
 
     if haskey(original, :energySavingModifications)         # list of containing all the used energy saving modifications
-        ModificationsCopy = Dict[]
+        copiedModifications = Dict[]
         for modId in 1:length(original[:energySavingModifications])
-            push!(ModificationsCopy, copyEnergySavingModification(original[:energySavingModifications][modId])) # TODO or should it be copyEnergySavingModification
-            # 01/07 new when DataPoint is a Dict: push!(ModificationsCopy, copy(original[:energySavingModifications][modId]))
+            push!(copiedModifications, copyEnergySavingModification(original[:energySavingModifications][modId]))
         end #for
-        merge!(copiedMS, Dict(:energySavingModifications => ModificationsCopy))
+        merge!(copiedMS, Dict(:energySavingModifications => copiedModifications))
     end
 
     if haskey(original, :t_recovery)         # total recovery time for energy-saving modifications (in s)
@@ -457,30 +432,17 @@ function copyMovingSection(original::Dict)
     end
     return copiedMS
 end #function copyMovingSection
-#=
-function copyCharacteristicSection(original::Dict)
-    #TODO after removing the mutable structs: Is it possible to just "copy"?
-    copiedCS = Dict(:id => original[:id],         # identifier
-                :s_entry => original[:s_entry],   # first position (in m)
-                :s_exit => original[:s_exit],     # last position  (in m)
-                :length => original[:length],     # total length  (in m)
-                :r_path => original[:r_path],     # path resistance (in ‰)
-                :behaviorSections => Dict(),      # empty list of containing behavior sections
-                :t => original[:t],               # total running time (in s)
-                :E => original[:E],               # total energy consumption (in Ws)
-                :v_limit => original[:v_limit],   # speed limit (in m/s)
-                :v_peak => original[:v_peak],     # maximum reachable speed (in m/s)
-                :v_entry => original[:v_entry],   # maximum entry speed (in m/s)
-                :v_exit => original[:v_exit])     # maximum exit speed (in m/s)
 
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
-    for bs in 1: length(allBs)
-        if haskey(original[:behaviorSections], allBs[bs])
-            #merge!(copiedCS[:behaviorSections], Dict(allBs[bs] => copyBehaviorSection(original[:behaviorSections][allBs[bs]])))
-            merge!(copiedCS[:behaviorSections], Dict(allBs[bs] => copy(original[:behaviorSections][allBs[bs]])))
-        end #if
-    end #for
-    return copiedCS
-end #function copyCharacteristicSection
-=#
+function copyEnergySavingModification(modificaionOriginal::Dict)
+    modificaionCopy = Dict(:csId => modificaionOriginal[:csId],                     # identifier of the characteristic section
+                            :type => modificaionOriginal[:type],                    # type of energy saving modification: "increasing coasting" "decreasing maximum velocity" or "combination of decreasing maximum velocity and coasting"
+                            :ΔE => modificaionOriginal[:ΔE],                     # saved energy (in Ws)
+                            :Δt => modificaionOriginal[:Δt],                     # time loss (in s)
+                            :ratio => modificaionOriginal[:ratio],                  # ratio of ΔE and Δt (in Ws/s)
+                            :csModified => copyCharacteristicSection(modificaionOriginal[:]),          # the modified characteristic section
+                            :drivingCourseModified => copy(modificaionOriginal[:drivingCourseModified]))   # drivingCourse for the modified characteristic section
+
+    return modificaionCopy
+end # copyEnergySavingModification
+
 end #module OperationModes

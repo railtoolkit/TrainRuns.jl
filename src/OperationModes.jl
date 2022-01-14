@@ -188,14 +188,13 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
 
         lastIdOfSelectedCsOriginal = get(CSsOrig[csIdMax][:behaviorSections], :standstill,
                                       get(CSsOrig[csIdMax][:behaviorSections], :braking,
-                                       get(CSsOrig[csIdMax][:behaviorSections], :cruisingAfterCoasting,
                                         get(CSsOrig[csIdMax][:behaviorSections], :coasting,
                                          get(CSsOrig[csIdMax][:behaviorSections], :cruising,
                                           get(CSsOrig[csIdMax][:behaviorSections], :acceleration,
                                            get(CSsOrig[csIdMax][:behaviorSections], :clearing,
                                             get(CSsOrig[csIdMax][:behaviorSections], :breakFree,
                                              get(CSsOrig[csIdMax][:behaviorSections], :diminishing,
-                                               Dict(:dataPoints => [0]))))))))))[:dataPoints][end]
+                                               Dict(:dataPoints => [0])))))))))[:dataPoints][end]
 
         # if there is a diminishing phase its location must be analysed seperately because it could be before acceleration, between acceleration and cruising or after cruising. All the other behavior sections occure in a fixed order.
         if haskey(CSsOrig[csIdMax][:behaviorSections], :diminishing)
@@ -237,7 +236,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         # update all the data point references in the behaviour sections of the following characteristic sections and the other modified characteristic sections
         if difference!= 0
             # update the data point references in the behaviour sections of the following characteristic sections
-            allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
+            allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :braking, :standstill]
             for csId in csIdMax+1:length(CSsOrig)
                 for bs in 1: length(allBs)
                     if haskey(CSsOrig[csId][:behaviorSections], allBs[bs])
@@ -285,7 +284,7 @@ end #function calculateMinimumEnergyConsumption
 
 
 function modifyCs(movingSectionOriginal::Dict, drivingCourseOriginal::Vector{Dict}, csId::Integer, modificationType::String, settings::Dict, train::Dict)
-# TODO: refactor and sort this function
+ # TODO: refactor and sort this function
     CSsOrig::Vector{Dict} = movingSectionOriginal[:characteristicSections]
 
     if modificationType == "increasing coasting"
@@ -363,7 +362,7 @@ function createEnergySavingModification()
 end #createEnergySavingModification
 
 function updateEnergySavingModifications!(energySavingModifications::Vector{Dict}, csIdMax::Integer, drivingCourseNew::Vector{Dict}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
+    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :braking, :standstill]
     difference = endOfModificationId-lastIdOfSelectedCsOriginal
     for modNr in csIdMax+1:length(energySavingModifications)
         if energySavingModifications[modNr][:ratio]>0
@@ -397,7 +396,6 @@ function updateEnergySavingModifications!(energySavingModifications::Vector{Dict
 
     return energySavingModifications
 end #function updateEnergySavingModifications!
-
 
 function copyMovingSection(original::Dict)
     #TODO after removing the mutable structs: Is it possible to just "copy"?

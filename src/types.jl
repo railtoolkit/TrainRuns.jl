@@ -1,10 +1,8 @@
 module types
 
 export copyCharacteristicSection, copyBehaviorSection
-#export trainType
 
-#@enum trainType passenger=1 freight=2 motorCoachTrain=3
-#@enum behavior breakFree=1 clearing=2 acceleration=3 cruising=4diminishing=6 coasting=7 cruisingAfterCoasting=8 braking=9 standstill=10
+#@enum behavior breakFree=1 clearing=2 acceleration=3 cruising=4 diminishing=6 coasting=7 braking=8 standstill=9
 
 ## different sections the whole path can be devided in the following
 ## smallest section of the path is the behavior section. It relates to the containing data points via their identifier.
@@ -13,8 +11,8 @@ function copyBehaviorSection(original::Dict)
     for i in 1:length(original[:dataPoints])
         push!(bsDataPoints, original[:dataPoints][i])
     end
-    copiedBS = Dict(#:type => behavior,                 # type of behavior section: breakFree, clearing, acceleration, cruising, diminishing, coasting, cruisingAfterCoasting, braking or standstill
-                :type => original[:type],           # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting", "braking" or "standstill"
+    copiedBS = Dict(#:type => behavior,                 # type of behavior section: breakFree, clearing, acceleration, cruising, diminishing, coasting, braking or standstill
+                :type => original[:type],           # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "braking" or "standstill"
                 :length => original[:length],       # total length  (in m)
                 :s_entry => original[:s_entry],     # first position (in m)
                 :s_exit => original[:s_exit],       # last position  (in m)
@@ -27,7 +25,7 @@ function copyBehaviorSection(original::Dict)
 end
 
 function copyCharacteristicSection(originalCS::Dict)
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :cruisingAfterCoasting, :braking, :standstill]
+    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :braking, :standstill]
     copiedBSs = Dict()
     for bs in 1: length(allBs)
         if haskey(originalCS[:behaviorSections], allBs[bs])

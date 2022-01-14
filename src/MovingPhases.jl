@@ -1072,8 +1072,8 @@ function addStandstill!(CS::Dict, drivingCourse::Vector{Dict}, settings::Dict, t
 end #function addStandstill!
 
 function createBehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
-    BS= Dict(#:type => behavior,               # type of behavior section: breakFree, clearing, acceleration, cruising, diminishing, coasting, cruisingAfterCoasting, braking or standstill
-            :type => type,                   # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting", "braking" or "standstill"
+    BS= Dict(#:type => behavior,               # type of behavior section: breakFree, clearing, acceleration, cruising, diminishing, coasting, braking or standstill
+            :type => type,                   # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "braking" or "standstill"
             :length => 0.0,                 # total length  (in m)
             :s_entry => s_entry,            # first position (in m)
             :s_exit => 0.0,                 # last position  (in m)
@@ -1090,7 +1090,7 @@ a data point is the smallest element of the driving course. One step of the step
 """
 function createDataPoint()
     dataPoint = Dict(:i => 0,                # identifier and counter variable of the dricing course
-                    :behavior => "",         # type of behavior section the data point is part of ("breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "cruisingAfterCoasting", "braking" or "standstill")
+                    :behavior => "",         # type of behavior section the data point is part of ("breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "braking" or "standstill")
                                              # a data point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
                     :s => 0.0,               # position (in m)
                     :Δs => 0.0,              # step size (in m)

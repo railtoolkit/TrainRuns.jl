@@ -31,6 +31,18 @@ train_run = calculateDrivingDynamics(train, running_path, settings)
 
 # History
 
+## Version 0.7
+
+Refactor all mutable structs as a Dictionaries
+
+- Refactor the mutable struct EnergySavingModification from types.jl as a Dictionary in OperationsModes.jl
+- Refactor the mutable struct CharacteristicSection from types.jl as a Dictionary in Preparation.jl
+- Refactor the mutable struct BehaviorSection from types.jl as a Dictionary in MovingPhases.jl
+- Refactor the mutable struct DataPoint from types.jl as a Dictionary in MovingPhases.jl
+- Remove behavior section "cruisingAfterCoasting"
+- Rename some variables
+
+
 ## Version 0.6.2
 
 Add function addStandstill! for creating the BehaviorSection standstill

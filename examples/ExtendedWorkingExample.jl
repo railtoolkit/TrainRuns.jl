@@ -29,7 +29,8 @@ for path in allPaths
    for train in allTrains
        # println("train: ", train)
        for settings in allSettings
-           testDict=calculateDrivingDynamics(train, path, settings)
+           resultsDict=calculateDrivingDynamics(train, path, settings)
+           exportToCsv(resultsDict)
            sleep(2)
            # println("")
        end

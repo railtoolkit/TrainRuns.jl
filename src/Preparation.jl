@@ -1,6 +1,5 @@
 module Preparation
 
-using ..types
 include("./MovingPhases.jl")
 using .MovingPhases
 

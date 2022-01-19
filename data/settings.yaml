@@ -6,7 +6,7 @@ settings:
   stepVariable: "s in m"                        # step variable of the step method "s in m", "t in s" or "v in m/s"
   stepSize: 10                                  # step size (unit depends on stepVariable s in m, t in s and v in m/s)
   operationModeMinimumRunningTime: true         # operation mode "minimum running time"
-  operationModeMinimumEnergyConsumption: true   # operation mode "minimum energy consumption"
+  operationModeMinimumEnergyConsumption: false  # operation mode "minimum energy consumption"
   typeOfOutput: "julia dictionary"              # output as "julia dictionary" or as "CSV"
   detailOfOutput: "driving course"              # should the output be "minimal" or "driving course"?
   csvDirectory: "~/Desktop/TrainRun"

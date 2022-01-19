@@ -1,6 +1,5 @@
 module MovingPhases
 
-using ..types
 export addAccelerationPhase!, addAccelerationPhaseUntilBraking!, addCruisingPhase!, addCoastingPhaseUntilBraking!, addBrakingPhase!, addBrakingPhaseStepwise!, addStandstill!, calculateForces!
 export createDataPoint
 # addBrakingPhaseStepwise! is not used in the current version of the tool

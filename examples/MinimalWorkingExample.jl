@@ -14,6 +14,6 @@ setting_directory = "data/settings.yaml"
 (train, running_path, settings) = importYamlFiles(train_directory, running_path_directory, setting_directory)
 
 train_run = calculateDrivingDynamics(train, running_path, settings)
-runtime = last(train_run[:outputArrayMinimumRunningTime])[5]
+runtime = train_run[:movingSectionMinimumRunningTime][:t]
 
 println("The V 90 with 10 ore wagons needs $runtime seconds for 10 km with no gradient.")

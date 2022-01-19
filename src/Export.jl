@@ -1,0 +1,85 @@
+module Export
+
+using CSV, DataFrames, Dates
+
+export exportToCsv
+
+function exportToCsv(output::Dict)
+    if output[:settings][:typeOfOutput] == "CSV"
+        pathName = output[:path][:name]
+        trainName = output[:train][:name]
+
+        if output[:settings][:operationModeMinimumRunningTime] == true
+            operationMode = "minimum running time"
+            createCsvFile(output[:movingSectionMinimumRunningTime], output[:drivingCourseMinimumRunningTime], operationMode, pathName, trainName, output[:settings])
+        end
+        if output[:settings][:operationModeMinimumEnergyConsumption] == true
+            operationMode = "minimum energy consumption"
+            createCsvFile(output[:movingSectionMinimumEnergyConsumption], output[:drivingCourseMinimumEnergyConsumption], operationMode, pathName, trainName, output[:settings])
+        end
+        return true
+    end
+    return false
+end #function exportToCsv
+
+function createCsvFile(movingSection::Dict, drivingCourse::Vector{Dict}, operationMode::String, pathName::String, trainName::String, settings::Dict)
+    detailOfOutput = settings[:detailOfOutput]
+
+    massModel = settings[:massModel]
+    stepVariable = settings[:stepVariable]
+    stepSize = string(settings[:stepSize])
+
+    # create summarized data block
+    summarizedData = Array{Any, 1}[]
+    if detailOfOutput=="minimal"
+        push!(summarizedData, ["s (in m)", "t (in s)","E (in Ws)"])                     # push header to summarizedData
+        row=[movingSection[:length], movingSection[:t], movingSection[:E]]
+        push!(summarizedData, row)                                                      # push row to summarizedData
+    elseif detailOfOutput=="driving course"
+        push!(summarizedData, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to summarizedData
+        for point in drivingCourse
+            row=[point[:i], point[:behavior], point[:Δs], point[:s], point[:Δt], point[:t], point[:Δv], point[:v], point[:F_T], point[:F_R], point[:R_path], point[:R_train], point[:R_traction], point[:R_wagons], point[:ΔW], point[:W], point[:ΔE], point[:E], point[:a]]
+            push!(summarizedData, row)             # push row to summarizedData
+        end
+    end
+
+    #create information block
+    allColumns=Array{Any,1}[]
+    push!(allColumns, ["path name", "train name", "operation mode", "mass model", "step variable", "step size", ""])
+    push!(allColumns, [pathName, trainName, operationMode, massModel, stepVariable, stepSize, ""])
+    for column in 3:length(summarizedData[1])
+        push!(allColumns, ["", "", "", "", "", "", ""])
+    end # for
+
+    # add driving data to the array
+    header = summarizedData[1]
+    for column in 1:length(summarizedData[1])
+        push!(allColumns[column], header[column])
+        for row in summarizedData[2:end]
+            push!(allColumns[column], row[column])
+        end
+    end # for
+
+    # combine the columns in a data frame and saving it as a CSV-file at csvDirectory
+    if detailOfOutput=="minimal"
+        df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3])
+    elseif detailOfOutput=="driving course"
+        df=DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16], c17=allColumns[17], c18=allColumns[18], c19=allColumns[19])
+    end
+
+    date = Dates.now()
+    dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
+    if operationMode == "minimum running time"
+        csvFilePath=settings[:csvDirectory]*"/"*dateString*"_MinimumRunningTime.csv"
+    elseif operationMode == "minimum energy consumption"
+        csvFilePath=settings[:csvDirectory]*"/"*dateString*"_MinimumEnergyConsumption.csv"
+    else
+        # should not be possible
+    end
+    CSV.write(csvFilePath, df, header=false)
+    println("The output CSV file has been created for ",operationMode," at ",csvFilePath)
+
+    return true
+end #function createCsvFile
+
+end #module Export

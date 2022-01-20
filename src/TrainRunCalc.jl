@@ -3,21 +3,21 @@ module TrainRunCalc
 # include modules of TrainRunCalc
 include("./Input.jl")
 include("./Preparation.jl")
-include("./MovingPhases.jl")
+include("./Behavior.jl")
 include("./Output.jl")
 
 
 # use modules of TrainRunCalc
 using .Input
 using .Preparation
-using .MovingPhases
+using .Behavior
 using .Output
 
 # export main function
 export calculateDrivingDynamics
 
 approximationLevel = 6  # value for approximation to intersections and precisely calculated digits
-    # TODO:  define it here and give it to each function? (MovingPhases, ...)
+    # TODO:  define it here and give it to each function? (Behavior, ...)
 
 # Calculate the driving dynamics of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
 
@@ -90,15 +90,15 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
 
 
        if s_clearing == CS[:length]
-               # 09/06 TODO: thought about using "cruising" because it is used in EnergySaving and not clearing (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_clearing, settings, train, CSs, "cruising")
-           (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_clearing, settings, train, CSs, "clearing")
+               # 09/06 TODO: thought about using "cruising" because it is used in EnergySaving and not clearing (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_clearing, settings, train, CSs, "cruising")
+           (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_clearing, settings, train, CSs, "clearing")
        elseif s_cruising == CS[:length]
-           (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
+           (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
        elseif s_cruising > 0.0 || s_braking == 0.0
        # 09/21 elseif s_cruising > 0.0
        # 09/21 elseif s_cruising > 0.01 # if the cruising section is longer than 1 cm (because of rounding issues not >0.0)
            if drivingCourse[end][:v] < CS[:v_peak]
-               (CS, drivingCourse)=addAccelerationPhase!(CS, drivingCourse, settings, train, CSs)
+               (CS, drivingCourse)=addAccelerationSection!(CS, drivingCourse, settings, train, CSs)
            end #if
 
            if CS[:s_exit]-drivingCourse[end][:s]-max(0.0, (CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking]) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
@@ -111,13 +111,13 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
            s_cruising=CS[:s_exit]-drivingCourse[end][:s]-s_braking
 
            if s_cruising > 0.0
-               (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
+               (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
            end
        else
 
            if CS[:v_entry] < CS[:v_peak] || s_acceleration > 0.0 # or instead of " || s_acceleration > 0.0" use "v_entry <= v_peak" or "v_i <= v_peak"
            # 09/09 old (not sufficient for steep gradients): if CS[:v_entry] < CS[:v_peak]
-               (CS, drivingCourse)=addAccelerationPhaseUntilBraking!(CS, drivingCourse, settings, train, CSs)
+               (CS, drivingCourse)=addAccelerationSectionUntilBraking!(CS, drivingCourse, settings, train, CSs)
            end #if
        end #if
 
@@ -125,8 +125,8 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
        s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking], digits=approximationLevel))     # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
 
        if drivingCourse[end][:v] > CS[:v_exit]
-           #(CS, drivingCourse)=addBrakingPhase!(CS, drivingCourse, settings[:massModel], train, CSs)
-           (CS, drivingCourse)=addBrakingPhase!(CS, drivingCourse, settings, train, CSs)
+           #(CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings[:massModel], train, CSs)
+           (CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings, train, CSs)
        end #if
 
        #= 09/20 old and should never be used:
@@ -134,7 +134,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
            if haskey(BSs, :cruising)
                println("INFO: A second cruising section has been added to CS ", csId," from s=",drivingCourse[end][:s],"  to s_exit=",CS[:s_exit])
            end
-           (CS, drivingCourse)=addCruisingPhase!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
+           (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
        end =#
    end #for
 

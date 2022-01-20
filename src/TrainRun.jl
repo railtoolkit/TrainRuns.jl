@@ -5,22 +5,22 @@ include("./TrainRunCalc.jl")
 
 # include additional modules
 include("./Import.jl")
-include("./EnergySaving.jl")
 include("./Export.jl")
 
 # include additional modules that are not recommended to use in this state
 include("./AdditionalOutput.jl")
+include("./EnergySaving.jl")
 
 # use main module TrainRunCalc
 using .TrainRunCalc
 
 # use additional modules
 using .Import
-using .EnergySaving
 using .Export
 
 # use additional modules that are not recommended to use in this state
 using .AdditionalOutput
+using .EnergySaving
 
 # main function
 export calculateDrivingDynamics,
@@ -28,7 +28,7 @@ export calculateDrivingDynamics,
 # import functions
 importYamlFiles, importYamlFile,
 
-# functions for saving energy
+# functions for saving energy that are not recommended to use in this state
 addOperationModeEnergySaving!,
 
 # export functions
@@ -38,6 +38,11 @@ exportToCsv,
 plotResults, plotDrivingCourse, printImportantValues, printSectionInformation
 
 # approximationLevel = 6  # value for approximation to intersections
-    # TODO:  define it here and give it to each function? (MovingPhases, EnergySaving, ..)
+    # TODO:  define it here and give it to each function? (Behavior, EnergySaving, ..)
+
+"""
+ TODO: Package description
+"""
+
 
 end # module TrainRun

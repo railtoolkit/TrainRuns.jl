@@ -1,16 +1,17 @@
 # INFO: EnergySaving should not be used because it is not completed yet. It was used to show the possiility of calculating different operation modes.
-# TODO: It has to be optimized so that each ernergy saving merhode is working individually for every train on every path.
+# TODO: It has to be optimized so that each ernergy saving method is working individually for every train on every path.
 
 # TODO: calculation time for passenger trains on path1 is very long and should be reduced
-#TODO: Test if enum trainType is working correctly in function calculateRecoveryTime or if only the else-pathis taken
+# TODO from 2022/01/18: Test if enum trainType is working correctly in function calculateRecoveryTime or if only the else-pathis taken
+# TODO from 2022/01/19: Are here calculations that should be transferred to DrivingDynamics.jl?
 
 module EnergySaving
 
 # include modules of TrainRunCalc
-include("./MovingPhases.jl")
+include("./Behavior.jl")
 
 # use modules of TrainRunCalc
-using .MovingPhases
+using .Behavior
 
 export addOperationModeEnergySaving!
 
@@ -596,11 +597,11 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
 
                     # calculate the new and now shorter cruising section
                     if s_cruising>0.0
-                        (csModified, drivingCourseModified)=addCruisingPhase!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
+                        (csModified, drivingCourseModified)=addCruisingSection!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
                     end
 
                     # calculate the coasting phase until the point the train needs to brake
-                    (csModified, drivingCourseModified)=addCoastingPhaseUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
+                    (csModified, drivingCourseModified)=addCoastingSectionUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
 
                     if drivingCourseModified[end][:v] < csModified[:v_exit] || drivingCourseModified[end][:s] > csModified[:s_exit]
                         # the train reaches v_exit before reaching s_exit. The cruising and coasting sections have to be calculated again with a larger cruising section (so with a smaller reduction of the cruising section)
@@ -612,8 +613,8 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
 
                 # calculate the moving phase between coasting and the end of the CS
                 if drivingCourseModified[end][:v] > csModified[:v_exit]
-                    #(csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings[:massModel], train, allCSs)
-                    (csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings, train, allCSs)
+                    #(csModified, drivingCourseModified)=addBrakingSection!(csModified, drivingCourseModified, settings[:massModel], train, allCSs)
+                    (csModified, drivingCourseModified)=addBrakingSection!(csModified, drivingCourseModified, settings, train, allCSs)
                 end
 
                 if t_recoveryAvailable < csModified[:t]-csOriginal[:t] || drivingCourseModified[end][:v] != csModified[:v_exit] || drivingCourseModified[end][:s] != csModified[:s_exit] # time loss is to high and the CS has to be calculated again with larger cruising section (so with a smaller reduction of the cruising section) or v_exit or s_exit are not reached excatly
@@ -729,11 +730,11 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
 
                     # calculate the new and now shorter cruising section
                     if s_cruising>0.0
-                        (csModified, drivingCourseModified)=addCruisingPhase!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
+                        (csModified, drivingCourseModified)=addCruisingSection!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
                     end
 
                     # calculate the coasting phase until the point the train needs to brake
-                    (csModified, drivingCourseModified)=addCoastingPhaseUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
+                    (csModified, drivingCourseModified)=addCoastingSectionUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
 
                     if drivingCourseModified[end][:v] < csModified[:v_exit] || drivingCourseModified[end][:s] > csModified[:s_exit]
                         # the train reaches v_exit before reaching s_exit. The cruising and coasting sections have to be calculated again with a larger cruising section (so with a smaller reduction of the cruising section)
@@ -745,8 +746,8 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
 
                 # calculate the moving phase between coasting and the end of the CS
                 if drivingCourseModified[end][:v] > csModified[:v_exit]
-                    #(csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings[:massModel], train, allCSs)
-                    (csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings, train, allCSs)
+                    #(csModified, drivingCourseModified)=addBrakingSection!(csModified, drivingCourseModified, settings[:massModel], train, allCSs)
+                    (csModified, drivingCourseModified)=addBrakingSection!(csModified, drivingCourseModified, settings, train, allCSs)
                 end
 
                 if t_recoveryAvailable < csModified[:t]-csOriginal[:t] || drivingCourseModified[end][:v] != csModified[:v_exit] || drivingCourseModified[end][:s] != csModified[:s_exit] # time loss is to high and the CS has to be calculated again with larger cruising section (so with a smaller reduction of the cruising section) or v_exit or s_exit are not reached excatly
@@ -826,11 +827,11 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
             drivingCourseModified = copy(drivingCourse[1:energySavingStartId])  # List of data points till the start of energy saving
 
             # calculate the coasting phase until the point the train needs to brake
-            (csModified, drivingCourseModified)=addCoastingPhaseUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
+            (csModified, drivingCourseModified)=addCoastingSectionUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
 
             # calculate the moving phase between coasting and the end of the CS
             if drivingCourseModified[end][:v] > csModified[:v_exit]
-                (csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings, train, allCSs)
+                (csModified, drivingCourseModified)=addBrakingSection!(csModified, drivingCourseModified, settings, train, allCSs)
             end
 
             if t_recoveryAvailable >= csModified[:t] - csOriginal[:t]
@@ -928,20 +929,19 @@ function decreaseMaximumVelocity(csOriginal::Dict, drivingCourse, settings::Dict
         # copy the drivingCourse till the beginning of energy saving
         drivingCourseModified = copy(drivingCourse[1:energySavingStartId])          # List of data points till the start of energy saving
 
-        #s_braking=max(0.0, ceil((csModified[:v_exit]^2-csModified[:v_peak]^2)/2/train[:a_braking], digits=approximationLevel))       # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
-        s_braking=max(0.0, ceil((csModified[:v_exit]^2-drivingCourseModified[end][:v]^2)/2/train[:a_braking], digits=approximationLevel))       # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
-        s_cruising=csModified[:s_exit]-drivingCourseModified[end][:s]-s_braking
+        s_braking = calcBrakingDistance(drivingCourseModified[end][:v], csModified[:v_exit], train[:a_braking])
+        s_cruising = csModified[:s_exit]-drivingCourseModified[end][:s]-s_braking
 
         if s_cruising > 1/10^approximationLevel
         # 01/09 old if s_cruising > 0.001
-            (csModified, drivingCourseModified)=addCruisingPhase!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
+            (csModified, drivingCourseModified)=addCruisingSection!(csModified, drivingCourseModified, s_cruising, settings, train, allCSs, "cruising")
         end #if
 
 
         # s_brakingAfterCruising=ceil((csModified[:v_exit]^2-drivingCourseModified[end][:v]^2)/2/train[:a_braking], digits=10) #  TODO: check if s_braking and s_brakingAfterCruising are really always the same
         if drivingCourseModified[end][:v]>csModified[:v_exit]
-            #(csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings[:massModel], train, allCSs)
-            (csModified, drivingCourseModified)=addBrakingPhase!(csModified, drivingCourseModified, settings, train, allCSs)
+            #(csModified, drivingCourseModified)=addBrakingSection!(csModified, drivingCourseModified, settings[:massModel], train, allCSs)
+            (csModified, drivingCourseModified)=addBrakingSection!(csModified, drivingCourseModified, settings, train, allCSs)
 
         elseif drivingCourseModified[end][:s]<csModified[:s_exit]
             if (csModified[:s_exit]-drivingCourseModified[end][:s])>0.001

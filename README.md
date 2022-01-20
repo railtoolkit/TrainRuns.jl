@@ -31,6 +31,18 @@ train_run = calculateDrivingDynamics(train, running_path, settings)
 
 # History
 
+## Version 0.8
+
+Refactor the modular structure
+
+- Divide TrainRun into TrainRunCalc with the main functions and Import for importing data from yaml files
+- Extract the modules Export and AdditionalOutput from TrainRunCalc
+- Divide the module Operationsmodes and add its functions to TrainRunCalc and EnergySaving
+- Add the remaining functions of the module types to EnergySaving
+- Divide the module MovingPhases into Behavior and DrivingDynamics
+- Rename the module Preparation to Characteristics
+
+
 ## Version 0.7
 
 Refactor all mutable structs as a Dictionaries

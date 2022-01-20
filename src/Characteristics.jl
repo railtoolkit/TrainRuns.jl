@@ -1,4 +1,4 @@
-module Preparation
+module Characteristics
 
 include("./Behavior.jl")
 using .Behavior
@@ -147,4 +147,4 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
     return movingSection
 end #function secureCruisingBehavior!
 
-end #module Preparation
+end #module Characteristics

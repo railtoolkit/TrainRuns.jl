@@ -1,4 +1,45 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.0
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2022"
+# __license__       = "ISC"
+
 module DrivingDynamics
+
+#########################
+## literature the driving dynamics equations are based on:
+##
+## @incollection{Bruenger:2014, % Chapter 4
+##   author    = {Brünger, Olaf and Dahlhaus, Elias},
+##   year      = {2014},
+##   title     = {Running Time Estimation},
+##   pages     = {?--?},
+##   booktitle = {Railway Timetabling \& Operations.},
+##   editora   = {Hansen, Ingo A.},
+##   editorb   = {Pachl, Jörn},
+##   isbn      = {978-3-777-10462-1},
+##   publisher = {Eurailpress DVV Media Group},
+## }
+## @article{Jaekel:2014,
+##   author    = {Jaekel, Birgit and Albrecht, Thomas},
+##   year      = {2014},
+##   title     = {Comparative analysis of algorithms and models for train running simulation},
+##   journal   = {Journal of Rail Transport Planning \& Management},
+##   doi       = {10.1016/j.jrtpm.2014.06.002},
+##   volume    = {4},
+##   number    = {1-2},
+##   pages     = {14--27},
+##   publisher = {Elsevier},
+## }
+## @Book{Wende:2003,
+##   author    = {Wende, Dietrich},
+##   date      = {2003},
+##   title     = {Fahrdynamik des Schienenverkehrs},
+##   isbn      = {978-3-322-82961-0},
+##   publisher = {Springer-Verlag},
+## }
+#########################
 
 # export resisting forces and acceleration
 export calcTractionUnitResistance, calcWagonsResistance, calcForceFromCoefficient, calcAcceleration,
@@ -11,11 +52,6 @@ calc_ΔW, calc_ΔE,
 
 # export braking information
 calcBrakingDistance, calcBrakingStartVelocity, calcBrakingAcceleration
-
-# literature the driving dynamics equations are based on:
-#  - Brünger, Olaf and Dahlhaus, Elias. 2014. Running Time Estimation. [book authors] Ingo Arne Hansen and Jörn Pachl. Railway Timetabling & Operations. Analysis Modelling Optimisation Simulation Performance Evaluation. Hamburg : Eurailpress DVV Media Group, 2014, edtition 2, chapter 4.
-#  - Jaekel, Birgit and Albrecht, Thomas. 2014. Comparative analysis of algorithms and models for train running simulation. Journal of Rail Transport Planning & Management. 2014.
-#  - Wende, Dietrich. 2003. Fahrdynamik des Schienenverkehrs. Wiesbaden : Vieweg + Teubner, 2003. edition 1.
 
 v00 = 100/3.6     # velocity constant (in m/s)
 g = 9.81          # acceleration due to gravity (in m/s^2)            # TODO: should more digits of g be used?  g=9,80665 m/s^2
@@ -45,7 +81,7 @@ julia> calcTractionUnitResistance(30.0, ? ? ?)
 ```
 """
 function calcTractionUnitResistance(v::AbstractFloat, train::Dict)
-    # equation is based on Wende, page 151
+    # equation is based on [Wende:2003, page 151]
     f_Rtd0 = train[:f_Rtd0]         # coefficient for basic resistance due to the traction units driving axles (in ‰)
     f_Rtc0 = train[:f_Rtc0]         # coefficient for basic resistance due to the traction units carring axles (in ‰)
     F_Rt2 = train[:F_Rt2]           # coefficient for air resistance of the traction units (in N)
@@ -65,7 +101,7 @@ TODO
 calculate and return the wagons vehicle resistance dependend on the velocity
 """
 function calcWagonsResistance(v::AbstractFloat, train::Dict)
-    # equation is based on a combination of the equations of Strahl and Sauthoff (Wende, page 153) with more detailled factors (Lehmann, page 135)
+    # equation is based on a combination of the equations of Strahl and Sauthoff [Wende:2003, page 153] with more detailled factors (Lehmann, page 135)
     f_Rw0 = train[:f_Rw0]       # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
     f_Rw1 = train[:f_Rw1]       # coefficient for the consists resistance to rolling (in ‰)
     f_Rw2 = train[:f_Rw2]       # coefficient fo the consistsr air resistance (in ‰)
@@ -78,7 +114,7 @@ function calcWagonsResistance(v::AbstractFloat, train::Dict)
 end #function calcWagonsResistance
 
 function calcForceFromCoefficient(f_R::Real, m::Real)
-    # equation is based on Wende, page 8
+    # equation is based on [Wende:2003, page 8]
 
     # f_R: specific resistance (in ‰)
     # m: vehicle's mass (in kg)
@@ -88,7 +124,7 @@ function calcForceFromCoefficient(f_R::Real, m::Real)
 end #function calcForceFromCoefficient
 
 function calcAcceleration(F_T::Real, F_R::Real, m_train::Real, ξ_train::Real)
-    # equation is based on Brünger et al., page 72 with a=dv/dt
+    # equation is based on [Bruenger:2014, page 72] with a=dv/dt
 
     # F_T: tractive effort (in N)
     # F_R: resisting forces (in N)
@@ -100,7 +136,7 @@ function calcAcceleration(F_T::Real, F_R::Real, m_train::Real, ξ_train::Real)
 end #function calcAcceleration
 
 function calc_Δs_with_Δt(Δt::Real, a_prev::Real, v_prev::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # Δt: time step (in s)
     # a_prev: acceleration from previous data point
@@ -110,7 +146,7 @@ function calc_Δs_with_Δt(Δt::Real, a_prev::Real, v_prev::Real)
 end #function calc_Δs_with_Δt
 
 function calc_Δs_with_Δv(Δv::Real, a_prev::Real, v_prev::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # Δv: velocity step (in m/s)
     # a_prev: acceleration from previous data point
@@ -120,7 +156,7 @@ function calc_Δs_with_Δv(Δv::Real, a_prev::Real, v_prev::Real)
 end #function calc_Δs_with_Δv
 
 function calc_Δt_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # Δs: distance step (in m)
     # a_prev: acceleration from previous data point
@@ -131,7 +167,7 @@ function calc_Δt_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
 end #function calc_Δt_with_Δs
 
 function calc_Δt_with_Δv(Δv::Real, a_prev::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # Δv: velocity step (in m/s)
     # a_prev: acceleration from previous data point
@@ -140,7 +176,7 @@ function calc_Δt_with_Δv(Δv::Real, a_prev::Real)
 end #function calc_Δt_with_Δv
 
 function calc_Δt_with_constant_v(Δs::Real, v::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # Δs: distance step (in m)
     # v: constant velocity (in m/s)
@@ -149,7 +185,7 @@ function calc_Δt_with_constant_v(Δs::Real, v::Real)
 end #function calc_Δt_with_constant_v
 
 function calc_Δv_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # Δs: distance step (in m)
     # a_prev: acceleration from previous data point
@@ -159,7 +195,7 @@ function calc_Δv_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
 end #function calc_Δv_with_Δs
 
 function calc_Δv_with_Δt(Δt::Real, a_prev::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # Δt: time step (in s)
     # a_prev: acceleration from previous data point
@@ -168,10 +204,8 @@ function calc_Δv_with_Δt(Δt::Real, a_prev::Real)
     return Δv
 end #function calc_Δv_with_Δt
 
-
-
 function calc_ΔW(F_T_prev::Real, Δs::Real)
-    # equation is based on Wende, page 17
+    # equation is based on [Wende:2003, page 17]
 
     # F_T_prev: tractive force from previous data point
     # Δs: distance step
@@ -180,7 +214,7 @@ function calc_ΔW(F_T_prev::Real, Δs::Real)
 end #function calc_ΔW
 
 function calc_ΔE(ΔW::Real)
-    # simplified equation is based on Jaekel et al., page 6
+    # simplified equation is based on [Jaekel:2014, page 6]
 
     # ΔW: mechanical work in this step (in Ws)
     ΔE = ΔW                 # energy consumption in this step (in Ws)
@@ -188,7 +222,7 @@ function calc_ΔE(ΔW::Real)
 end #function calc_ΔW
 
 function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # v_start: velocity at the start of braking (in m/s)
     # v_end: target velocity at the end of braking (in m/s)
@@ -199,7 +233,7 @@ function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real)
 end #function calcBrakingDistance
 
 function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # v_end: target velocity at the end of braking (in m/s)
     # a_braking: constant braking acceleration (in m/s^2)
@@ -209,7 +243,7 @@ function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real)
 end #function calcBrakingStartVelocity
 
 function calcBrakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)
-    # equation is based on Wende, page 37
+    # equation is based on [Wende:2003, page 37]
 
     # v_start: braking start velocity (in m/s)
     # v_end: target velocity at the end of braking (in m/s)

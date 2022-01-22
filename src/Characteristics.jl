@@ -29,12 +29,12 @@ function createMovingSection(path::Dict, v_trainLimit::Real)
         previousSection = path[:sections][row-1]
         currentSection = path[:sections][row]
         if min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit) || previousSection[:f_Rp] != currentSection[:f_Rp]
-            push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit)))
+            push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), path))
             s_csStart = currentSection[:s_start]
             csId = csId+1
         end #if
     end #for
-    push!(CSs, createCharacteristicSection(csId, s_csStart, path[:sections][end], min(path[:sections][end][:v_limit], v_trainLimit)))
+    push!(CSs, createCharacteristicSection(csId, s_csStart, path[:sections][end], min(path[:sections][end][:v_limit], v_trainLimit), path))
 
     movingSection= Dict(:id => 1,                       # identifier    # if there is more than one moving section in a later version of this tool the id should not be constant anymore
                         :length => pathLength,          # total length (in m)
@@ -49,21 +49,36 @@ end #function createMovingSection
 
 
 ## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
-function createCharacteristicSection(csId::Integer, s_csStart::Real, section::Dict, v_csLimit::Real)
+function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, path::Dict)
     # Create and return a characteristic section dependent on the paths attributes
-    characteristicSection= Dict(:id => csId,                            # identifier
-                                :s_entry => s_csStart,                  # first position (in m)
+    characteristicSection= Dict(:id => id,                            # identifier
+                                :s_entry => s_entry,                    # first position (in m)
                                 :s_exit => section[:s_end],             # last position  (in m)
-                                :length => section[:s_end]-s_csStart,   # total length  (in m)
+                                :length => section[:s_end] -s_entry,    # total length  (in m)
                                 :r_path => section[:f_Rp],              # path resistance (in ‰)
                                 :behaviorSections => Dict(),            # list of containing behavior sections
                                 :t => 0.0,                              # total running time (in s)
                                 :E => 0.0,                              # total energy consumption (in Ws)
-                                :v_limit => v_csLimit,                  # speed limit (in m/s)
+                                :v_limit => v_limit,                    # speed limit (in m/s)
                                 # initializing :v_entry, :v_peak and :v_exit with :v_limit
-                                :v_peak => v_csLimit,                   # maximum reachable speed (in m/s)
-                                :v_entry => v_csLimit,                  # maximum entry speed (in m/s)
-                                :v_exit => v_csLimit)                   # maximum exit speed (in m/s)
+                                :v_peak => v_limit,                     # maximum reachable speed (in m/s)
+                                :v_entry => v_limit,                    # maximum entry speed (in m/s)
+                                :v_exit => v_limit)                     # maximum exit speed (in m/s)
+
+    # list of positions of every point of interest (POI) in this charateristic section for which data points should be calculated
+    s_exit = characteristicSection[:s_exit]
+    pointsOfInterest = Vector{Real}()
+    if haskey(path, :pointsOfInterest)
+        for POI in path[:pointsOfInterest]
+            if s_entry < POI && POI < s_exit
+                push!(pointsOfInterest, POI)
+            end
+        end
+    end
+    push!(pointsOfInterest, s_exit)     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
+
+    merge!(characteristicSection, Dict(:pointsOfInterest => pointsOfInterest))
+
     return characteristicSection
 end #function createCharacteristicSection
 

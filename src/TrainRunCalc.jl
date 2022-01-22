@@ -43,7 +43,7 @@ function calculateDrivingDynamics(train::Dict, path::Dict, settings::Dict)
 
     # calculate the train run for oparation mode "minimum running time"
     if settings[:operationModeMinimumRunningTime] || settings[:operationModeMinimumEnergyConsumption]
-        (movingSection, drivingCourse)=calculateMinimumRunningTime!(movingSection, settings, train)
+        (movingSection, drivingCourse) = calculateMinimumRunningTime!(movingSection, settings, train)
         println("The driving course for the shortest running time has been calculated.")
 
         # summarize data and create an output dictionary
@@ -79,11 +79,6 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
        s_cruising = CS[:length] - s_breakFree - s_clearing - s_acceleration - s_braking
 
        # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
-           # 01/07 old: delete!(BSs, :breakFree)
-           # 01/07 old: delete!(BSs, :clearing)
-           # 01/07 old: delete!(BSs, :acceleration)
-           # 01/07 old: delete!(BSs, :diminishing)
-           # 01/07 old: delete!(BSs, :cruising)
        CS[:behaviorSections] = Dict()
        CS[:E] = 0.0
        CS[:t] = 0.0
@@ -98,7 +93,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
        # 09/21 elseif s_cruising > 0.0
        # 09/21 elseif s_cruising > 0.01 # if the cruising section is longer than 1 cm (because of rounding issues not >0.0)
            if drivingCourse[end][:v] < CS[:v_peak]
-               (CS, drivingCourse)=addAccelerationSection!(CS, drivingCourse, settings, train, CSs)
+               (CS, drivingCourse) = addAccelerationSection!(CS, drivingCourse, settings, train, CSs)
            end #if
 
            if CS[:s_exit]-drivingCourse[end][:s]-max(0.0, (CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking]) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
@@ -121,8 +116,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
            end #if
        end #if
 
-
-       s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking], digits=approximationLevel))     # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
 
        if drivingCourse[end][:v] > CS[:v_exit]
            #(CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings[:massModel], train, CSs)
@@ -138,7 +132,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
        end =#
    end #for
 
-   (CSs[end], drivingCourse)=addStandstill!(CSs[end], drivingCourse, settings, train, CSs)
+   (CSs[end], drivingCourse) = addStandstill!(CSs[end], drivingCourse, settings, train, CSs)
 
    movingSection[:t] = drivingCourse[end][:t]            # total running time (in s)
    movingSection[:E] = drivingCourse[end][:E]            # total energy consumption (in Ws)

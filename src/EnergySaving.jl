@@ -4,6 +4,7 @@
 # TODO: calculation time for passenger trains on path1 is very long and should be reduced
 # TODO from 2022/01/18: Test if enum trainType is working correctly in function calculateRecoveryTime or if only the else-pathis taken
 # TODO from 2022/01/19: Are here calculations that should be transferred to DrivingDynamics.jl?
+# TODO from 2022/01/22: use always copyCharacteristicSection and don't do it manually like "csModified=Dict(:id => csOriginal[:id], ..." three times
 
 module EnergySaving
 
@@ -35,7 +36,7 @@ function addOperationModeEnergySaving!(summarizedDict::Dict)
         # summarize data and create an output dictionary
         merge!(summarizedDict, Dict(:movingSectionMinimumEnergyConsumption => movingSectionMinimumEnergyConsumption, :drivingCourseMinimumEnergyConsumption => drivingCourseMinimumEnergyConsumption))
     else
-        println("No output for minimum energy consumption has been demanded and so none will be calculated")
+        println("No output for minimum energy consumption has been demanded and so none will be calculated.")
     end #if
 
     return summarizedDict
@@ -275,7 +276,8 @@ function copyCharacteristicSection(originalCS::Dict)
                  :v_limit => originalCS[:v_limit],      # speed limit (in m/s)
                  :v_peak => originalCS[:v_peak],        # maximum reachable speed (in m/s)
                  :v_entry => originalCS[:v_entry],      # maximum entry speed (in m/s)
-                 :v_exit => originalCS[:v_exit])        # maximum exit speed (in m/s)
+                 :v_exit => originalCS[:v_exit],        # maximum exit speed (in m/s)
+                 :pointsOfInterest => originalCS[:pointsOfInterest])     # points of interest for which data points should be calculated
 
         return copiedCS
 end # CharacteristicSection
@@ -699,7 +701,8 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
                                     :v_limit => csOriginal[:v_limit],   # speed limit (in m/s)
                                     :v_peak => csOriginal[:v_peak],     # maximum reachable speed (in m/s)
                                     :v_entry => csOriginal[:v_entry],   # maximum entry speed (in m/s)
-                                    :v_exit => csOriginal[:v_exit])     # maximum exit speed (in m/s)
+                                    :v_exit => csOriginal[:v_exit],     # maximum exit speed (in m/s)
+                                    :pointsOfInterest => csOriginal[:pointsOfInterest])     # points of interest for which data points should be calculated
 
                     BSsModified = csModified[:behaviorSections]
                     if haskey(BSsOriginal, :breakFree)
@@ -774,7 +777,8 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
                             :v_limit => csOriginal[:v_limit],   # speed limit (in m/s)
                             :v_peak => csOriginal[:v_peak],     # maximum reachable speed (in m/s)
                             :v_entry => csOriginal[:v_entry],   # maximum entry speed (in m/s)
-                            :v_exit => csOriginal[:v_exit])     # maximum exit speed (in m/s)
+                            :v_exit => csOriginal[:v_exit],     # maximum exit speed (in m/s)
+                            :pointsOfInterest => csOriginal[:pointsOfInterest])     # points of interest for which data points should be calculated
 
             BSsModified = csModified[:behaviorSections]
             if haskey(BSsOriginal, :breakFree)
@@ -881,7 +885,9 @@ function decreaseMaximumVelocity(csOriginal::Dict, drivingCourse, settings::Dict
                         :v_limit => csOriginal[:v_limit],   # speed limit (in m/s)
                         :v_peak => csOriginal[:v_peak],     # maximum reachable speed (in m/s)
                         :v_entry => csOriginal[:v_entry],   # maximum entry speed (in m/s)
-                        :v_exit => csOriginal[:v_exit])     # maximum exit speed (in m/s)
+                        :v_exit => csOriginal[:v_exit],     # maximum exit speed (in m/s)
+                        :pointsOfInterest => csOriginal[:pointsOfInterest])     # points of interest for which data points should be calculated
+
         BSsModified = csModified[:behaviorSections]
         if haskey(BSsOriginal, :breakFree)
             breakFreeSection=copyBehaviorSection(BSsOriginal[:breakFree])

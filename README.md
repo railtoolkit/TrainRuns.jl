@@ -21,9 +21,10 @@ Review the settings.yaml file for your appropriate settings.
 include("../src/TrainRun.jl")
 using .TrainRun
 
-train =  "data/trains/train_freight_V90withOreConsist.yaml"
-running_path = "data/paths/path_1_10km_nConst_vConst.yaml"
-settings = "data/settings.yaml"
+train_directory =  "data/trains/train_freight_V90withOreConsist.yaml"
+running_path_directory = "data/paths/path_1_10km_nConst_vConst.yaml"
+settings_directory = "data/settings.yaml"
+(train, running_path, settings) = importYamlFiles(train_directory, running_path_directory, setting_directory)
 
 train_run = calculateDrivingDynamics(train, running_path, settings)
 ```

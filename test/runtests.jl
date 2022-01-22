@@ -8,24 +8,25 @@
 using TrainRun, Test
 
 allPaths=[]
-push!(allPaths, "data/paths/path_1_10km_nConst_vConst.yaml")
-push!(allPaths, "data/paths/path_2_10km_nVar_vConst.yaml")
-push!(allPaths, "data/paths/path_3_10km_nConst_vVar.yaml")
-push!(allPaths, "data/paths/path_4_real_Ostsachsen_DG-DN_spp_5.yaml")
+push!(allPaths, importYamlFile(:path, "data/paths/path_1_10km_nConst_vConst.yaml"))
+push!(allPaths, importYamlFile(:path, "data/paths/path_2_10km_nVar_vConst.yaml"))
+push!(allPaths, importYamlFile(:path, "data/paths/path_3_10km_nConst_vVar.yaml"))
+push!(allPaths, importYamlFile(:path, "data/paths/path_4_real_Germany_EastSaxony_DG-DN.yaml"))
+
 
 allSettings=[]
-push!(allSettings, "data/settings.yaml")
+push!(allSettings, importYamlFile(:settings, "data/settings.yaml"))
 
 allTrains=[]
-push!(allTrains, "data/trains/train_freight_V90withOreConsist.yaml")
-push!(allTrains, "data/trains/train_passenger_SiemensDesiroClassic.yaml")
-push!(allTrains, "data/trains/train_passenger_IC2.yaml")
+push!(allTrains, importYamlFile(:train, "data/trains/train_freight_V90withOreConsist.yaml"))
+push!(allTrains, importYamlFile(:train, "data/trains/train_passenger_SiemensDesiroClassic.yaml"))
+push!(allTrains, importYamlFile(:train, "data/trains/train_passenger_IC2.yaml"))
 
-for pathDirectory in allPaths
-  for trainDirectory in allTrains
-    for settingsDirectory in allSettings
-      testDict=calculateDrivingDynamics(trainDirectory, pathDirectory, settingsDirectory)
-
+for path in allPaths
+  for train in allTrains
+    for settings in allSettings
+      testDict=calculateDrivingDynamics(train, path, settings)
+      exportToCsv(testDict)
       sleep(2)
 
       # TODO:

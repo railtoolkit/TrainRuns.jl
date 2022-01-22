@@ -125,10 +125,10 @@ function plotDrivingCourse(drivingCourseMinimumRunningTime::Vector{Dict},driving
     println("Plots for different variables have been created.")
 end #function plotDrivingCourse
 
-function printImportantValues(drivingCourse::Vector{Dict})
+function printImportantValues(dataPoints::Vector{Dict})
     println("i      behavior                 s in m                 v in km/h                t in min               a in m/s^2                F_R in k N                F_T in k N                E in k Wh")
-    for i in 1:length(drivingCourse)
-        println(drivingCourse[i][:i],".   ",drivingCourse[i][:s],"  ",drivingCourse[i][:v]*3.6,"  ",drivingCourse[i][:t]/60,"  ",drivingCourse[i][:a],"  ",drivingCourse[i][:F_R]/1000,"  ",drivingCourse[i][:F_T]/1000,"  ",drivingCourse[i][:E]/3600/1000)
+    for i in 1:length(dataPoints)
+        println(dataPoints[i][:i],".   ",dataPoints[i][:behavior],"  ",dataPoints[i][:s],"  ",dataPoints[i][:v]*3.6,"  ",dataPoints[i][:t]/60,"  ",dataPoints[i][:a],"  ",dataPoints[i][:F_R]/1000,"  ",dataPoints[i][:F_T]/1000,"  ",dataPoints[i][:E]/3600/1000)
     end #for
     println("i      behavior                 s in m                 v in km/h                t in min               a in m/s^2                F_R in k N                F_T in k N                E in k Wh")
 end #function printImportantValues
@@ -136,13 +136,13 @@ end #function printImportantValues
 function printSectionInformation(movingSection::Dict)
     CSs::Vector{Dict} = movingSection[:characteristicSections]
 
-    println("MS   mit length=", movingSection[:length]," mit t=", movingSection[:t])
+    println("MS   with length=", movingSection[:length]," with t=", movingSection[:t])
     allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :braking, :standstill]
     for csId in 1:length(CSs)
-        println("CS ",csId,"  mit length=", CSs[csId][:length]," mit t=", CSs[csId][:t])
+        println("CS ",csId,"  with length=", CSs[csId][:length]," with t=", CSs[csId][:t])
         for bs in 1: length(allBs)
             if haskey(CSs[csId][:behaviorSections], allBs[bs])
-                println("BS ",allBs[bs], "   mit s_entry=", CSs[csId][:behaviorSections][allBs[bs]][:s_entry], "   und t=", CSs[csId][:behaviorSections][allBs[bs]][:t])
+                println("BS ",allBs[bs], "   with s_entry=", CSs[csId][:behaviorSections][allBs[bs]][:s_entry], "   and t=", CSs[csId][:behaviorSections][allBs[bs]][:t])
         #        for point in 1:length(CSs[csId][:behaviorSections][allBs[bs]][:dataPoints])
         #            println(CSs[csId][:behaviorSections][allBs[bs]][:dataPoints][point])
         #        end

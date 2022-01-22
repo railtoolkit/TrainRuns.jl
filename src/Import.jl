@@ -10,9 +10,9 @@ export importYamlFiles, importYamlFile
 Read the input information from YAML files for train, path and settings, save it in different dictionaries and return them.
 """
 function importYamlFiles(trainDirectory::String, pathDirectory::String, settingsDirectory::String)
-     train=importTrainFromYaml(trainDirectory)
-     path=importPathFromYaml(pathDirectory)
-     settings=importSettingsFromYaml(settingsDirectory)
+     train = importTrainFromYaml(trainDirectory)
+     path = importPathFromYaml(pathDirectory)
+     settings = importSettingsFromYaml(settingsDirectory)
 
      return (train, path, settings)
  end #function importYamlFiles
@@ -114,13 +114,15 @@ function importPathFromYaml(pathDirectory::String)
     data = YAML.load(open(pathDirectory))
 
     name = getString!(data, "path", "name")
-    id=1                                                    # path identifier
+    id=1                                     # path identifier
     sections = getSections!(data)
 
     # save values in the path Dict
     path = Dict(:name => name,
                 :id => id,
                 :sections => sections)
+
+    addPointsOfInterest!(path, data)
 
     informAboutUnusedKeys(data, "path") # inform the user, which keywords of the imported data are not used in this tool
 
@@ -501,6 +503,48 @@ function getSections!(data::Dict)
 
     return sections
 end #function getSections!
+
+function addPointsOfInterest!(path::Dict, data::Dict)
+    # read the section starting positions and corresponding information
+    if haskey(data["path"],"pointsOfInterest") && data["path"]["pointsOfInterest"]!=nothing
+        pointsOfInterest = data["path"]["pointsOfInterest"]
+        delete!(data["path"], "pointsOfInterest")
+
+        sortingNeeded = false
+        errorDetected = false
+        for element in 1:length(pointsOfInterest)
+            if typeof(pointsOfInterest[element]) <: Real
+                if element > 1
+                    if pointsOfInterest[element] < pointsOfInterest[element-1]
+                        sortingNeeded = true
+                        println("INFO at reading the path yaml file: The point of interest in element ", element ," (",pointsOfInterest[element]," m) has to be higher than the value of the previous element (",pointsOfInterest[element-1]," m). The points of interest will be sorted.")
+                    end
+                end
+            else
+                errorDetected = true
+                println("ERROR at reading the path yaml file: The point of interest in element ", element ," is no real floating point number.")
+            end
+        end # for
+
+        if errorDetected
+            error("ERROR at reading the path yaml file: The values of the point of interest have to be corrected.")
+        end
+        if sortingNeeded == true
+            sort!(pointsOfInterest)
+        end
+
+        copiedPOIs = []
+        for element in 1:length(pointsOfInterest)
+            if element == 1
+                push!(copiedPOIs, pointsOfInterest[element])
+            elseif element > 1 && pointsOfInterest[element] > pointsOfInterest[element-1]
+                push!(copiedPOIs, pointsOfInterest[element])
+            end
+        end # for
+        merge!(path, Dict(:pointsOfInterest => copiedPOIs))
+    end
+    return (path, data)
+end #function addPointsOfInterest!
 
 function informAboutUnusedKeys(data::Dict, dataSet::String)         # inform the user which keywords of the imported data are not used in this tool
     if length(data[dataSet])>0

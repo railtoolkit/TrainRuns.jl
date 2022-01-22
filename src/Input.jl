@@ -68,6 +68,7 @@ function checkAndSetPath!(path::Dict)
     checkString(path, "path", :name)
     # TODO checkId ? path[:id]                                                  # path identifier
     checkAndSetSections!(path)
+    checkAndSetPOIs!(path)
 
 # TODO:    informAboutUnusedKeys(path, "path") # inform the user, which Symbols of the input dictionary are not used in this tool
 
@@ -399,6 +400,52 @@ function checkAndSetSections!(path::Dict)
 
     return path
 end #function checkAndSetSections!
+
+function checkAndSetPOIs!(path::Dict)
+    # read the section starting positions and corresponding information
+    if haskey(path,:pointsOfInterest)
+        if path[:pointsOfInterest] != nothing
+            pointsOfInterest = path[:pointsOfInterest]
+
+            sortingNeeded = false
+            errorDetected = false
+            for element in 1:length(pointsOfInterest)
+                if typeof(pointsOfInterest[element]) <: Real
+                    if element > 1
+                        if pointsOfInterest[element] < pointsOfInterest[element-1]
+                            sortingNeeded = true
+                            println("INFO at checking the input dictionary for the path: The point of interest in element ", element ," (",pointsOfInterest[element]," m) has to be higher than the value of the previous element (",pointsOfInterest[element-1]," m). The points of interest will be sorted.")
+                        end
+                    end
+                else
+                    errorDetected = true
+                    println("ERROR at checking the input dictionary for the path: The point of interest in element ", element ," is no real floating point number.")
+                end
+            end # for
+
+            if errorDetected
+                error("ERROR at checking the input dictionary for the path: The values of the point of interest have to be corrected.")
+            end
+            if sortingNeeded == true
+                sort!(pointsOfInterest)
+            end
+
+            copiedPOIs = []
+            for element in 1:length(pointsOfInterest)
+                if element == 1
+                    push!(copiedPOIs, pointsOfInterest[element])
+                elseif element > 1 && pointsOfInterest[element] > pointsOfInterest[element-1]
+                    push!(copiedPOIs, pointsOfInterest[element])
+                end
+            end # for
+            path[:pointsOfInterest] = copiedPOIs
+        end
+    else
+        delete!(path, :pointsOfInterest)
+    end
+
+    return path
+end #function checkAndSetPOIs!
 
 function informAboutUnusedKeys(dictionary::Dict, dictionaryType::String)         # inform the user which Symbols of the input dictionary are not used in this tool
 #=    if length(dictionary)>0

@@ -32,7 +32,13 @@ julia> calculateDrivingDynamics(trainDict, pathDict, settingsDict)
 todo !!!
 ```
 """
-function calculateDrivingDynamics(train::Dict, path::Dict, settings::Dict)
+function calculateDrivingDynamics(trainInput::Dict, pathInput::Dict, settingsInput::Dict)
+    # copy Input data for not changing them
+    # TODO: or should they be changed? enormally it would only make it "better" except for settings[:detailOfOutput] == "points of interest" && !haskey(path, :pointsOfInterest)
+    train = copy(trainInput)
+    path = copy(pathInput)
+    settings = copy(settingsInput)
+
     # check the input data
     (train, path, settings) = checkAndSetInput!(train, path, settings)
     println("The input has been checked.")

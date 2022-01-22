@@ -17,6 +17,10 @@ function checkAndSetInput!(train::Dict, path::Dict, settings::Dict)
      checkAndSetPath!(path)
      checkAndSetSettings!(settings)
 
+     if settings[:detailOfOutput] == "points of interest" && !haskey(path, :pointsOfInterest)
+         settings[:detailOfOutput] = "driving course"
+         println("INFO at checking the input for settings and path: settings[:detailOfOutput] is 'points of interest' but the path does not have a list for pointsOfInterest. Therefore the detailOfOut is changed to 'driving course'.")
+     end
      return (train, path, settings)
 end #function checkAndSetInput!
 
@@ -92,7 +96,7 @@ function checkAndSetSettings!(settings::Dict)
         # TODO: it could be checked if the path is existing on the pc
     end # if
 
-    checkString(settings, "settings", :detailOfOutput, ["minimal", "driving course"])    # should the output be "minimal" or "driving course"
+    checkString(settings, "settings", :detailOfOutput, ["minimal", "points of interest", "driving course"])    # should the output be "minimal" or are "points of interest" or the complete "driving course" required?
 
 # TODO:    informAboutUnusedKeys(settings, "settings")         # inform the user, which Symbols of the input dictionary are not used in this tool
 
@@ -424,7 +428,7 @@ function checkAndSetPOIs!(path::Dict)
             end # for
 
             if errorDetected
-                error("ERROR at checking the input dictionary for the path: The values of the point of interest have to be corrected.")
+                error("ERROR at checking the input dictionary for the path: The values of pointsOfInterest have to be corrected.")
             end
             if sortingNeeded == true
                 sort!(pointsOfInterest)
@@ -439,9 +443,11 @@ function checkAndSetPOIs!(path::Dict)
                 end
             end # for
             path[:pointsOfInterest] = copiedPOIs
+
+        else
+            println("INFO at checking the input dictionary for the path: The key pointsOfInterest exists but without values.")
+            delete!(path, :pointsOfInterest)
         end
-    else
-        delete!(path, :pointsOfInterest)
     end
 
     return path

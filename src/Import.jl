@@ -157,7 +157,7 @@ function importSettingsFromYaml(settingsDirectory::String)
         # TODO: it could be checked if the path is existing on the pc
     end # if
 
-    settings[:detailOfOutput] = getString!(data, "settings", "detailOfOutput", ["minimal", "driving course"])    # should the output be "minimal" or "driving course"
+    settings[:detailOfOutput] = getString!(data, "settings", "detailOfOutput", ["minimal", "points of interest", "driving course"])    # should the output be "minimal" or are "points of interest" or the complete "driving course" required?
 
     informAboutUnusedKeys(data, "settings")         # inform the user, which keywords of the imported data are not used in this tool
 

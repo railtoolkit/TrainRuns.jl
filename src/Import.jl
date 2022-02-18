@@ -15,7 +15,7 @@ function importYamlFiles(trainDirectory::String, pathDirectory::String, settings
      settings = importSettingsFromYaml(settingsDirectory)
 
      return (train, path, settings)
- end #function importYamlFiles
+end #function importYamlFiles
 
  """
  Read the input information from one of the YAML files for train, path or settings, save it in a Dictionary and return it.

@@ -1,4 +1,4 @@
-# INFO: EnergySaving should not be used because it is not completed yet. It was used to show the possiility of calculating different operation modes.
+# INFO: EnergySaving should not be used because it is not completed yet. It was used to show the possibility of calculating different operation modes.
 # TODO: It has to be optimized so that each ernergy saving method is working individually for every train on every path.
 
 # TODO: calculation time for passenger trains on path1 is very long and should be reduced

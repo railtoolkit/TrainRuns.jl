@@ -19,7 +19,7 @@ train:
   # for the traction unit (F_Rt=f_Rtd0*m_td*g+f_Rtc0*m_tc*g+F_Rt2*((v+Δv_t)/v00)^2)
   f_Rtd0: 3.0       # coefficient for basic resistance due to the traction units driving axles (in ‰) (source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "f_WL0" -> 2.5 ‰ to 3.5 ‰)
   f_Rtc0: 1.4       # coefficient for basic resistance due to the traction units carring axles (in ‰) (source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "f_WW0" -> 1.2 ‰ to 1.6 ‰)
-  F_Rt2: 2600       # coefficient for air resistance of the traction units (in N) (source: the closest parameters are used: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "Fzg. vierachsig, abgerundeter Kopf" plus "Sektion bei Mehrteiligkeit"  -> 2200 N to 400 N)
+  F_Rt2: 2600       # coefficient for air resistance of the traction units (in N) (source: the closest parameters are used: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "Fzg. vierachsig, abgerundeter Kopf" plus "Sektion bei Mehrteiligkeit"  -> 2200 N + 400 N)
 
   # for the consist (set of wagons) (F_Rw=m_w*g*(f_Rw0+f_Rw1*v/v00+f_Rw2*((v+Δv_w)/v00)^2))
   f_Rw0:        # coefficient for basic resistance of the set of wagons (in ‰)  (source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic -> no separate wagons)

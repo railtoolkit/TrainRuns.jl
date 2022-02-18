@@ -79,25 +79,26 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
        s_breakFree = get(BSs, :breakFree, Dict(:length=>0.0))[:length]
        s_clearing = get(BSs, :clearing, Dict(:length=>0.0))[:length]
        s_acceleration = get(BSs, :acceleration, Dict(:length=>0.0))[:length]
-       s_braking = max(0.0, ceil((CS[:v_exit]^2-CS[:v_peak]^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
+       s_braking = calcBrakingDistance(CS[:v_peak], CS[:v_exit], train[:a_braking])
+        # old: s_braking = max(0.0, ceil((CS[:v_exit]^2-CS[:v_peak]^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
 
        # calculate the cruising sections length
-       s_cruising = CS[:length] - s_breakFree - s_clearing - s_acceleration - s_braking
+       s_cruising = max(0.0, CS[:length] - s_breakFree - s_clearing - s_acceleration - s_braking)
 
        # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
        CS[:behaviorSections] = Dict()
        CS[:E] = 0.0
        CS[:t] = 0.0
 
+# TODO 02/09: could there be a better structure for processing the different moving phases? (this if fork was added on 2022/09/02)
+      if s_clearing > 0.0 && s_breakFree + s_acceleration == 0.0
+          (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_clearing, settings, train, CSs, "clearing")
+      end
 
-       if s_clearing == CS[:length]
-               # 09/06 TODO: thought about using "cruising" because it is used in EnergySaving and not clearing (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_clearing, settings, train, CSs, "cruising")
-           (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_clearing, settings, train, CSs, "clearing")
-       elseif s_cruising == CS[:length]
+       if s_cruising == CS[:length]
            (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
        elseif s_cruising > 0.0 || s_braking == 0.0
-       # 09/21 elseif s_cruising > 0.0
-       # 09/21 elseif s_cruising > 0.01 # if the cruising section is longer than 1 cm (because of rounding issues not >0.0)
+
            if drivingCourse[end][:v] < CS[:v_peak]
                (CS, drivingCourse) = addAccelerationSection!(CS, drivingCourse, settings, train, CSs)
            end #if
@@ -115,7 +116,6 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
                (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
            end
        else
-
            if CS[:v_entry] < CS[:v_peak] || s_acceleration > 0.0 # or instead of " || s_acceleration > 0.0" use "v_entry <= v_peak" or "v_i <= v_peak"
            # 09/09 old (not sufficient for steep gradients): if CS[:v_entry] < CS[:v_peak]
                (CS, drivingCourse)=addAccelerationSectionUntilBraking!(CS, drivingCourse, settings, train, CSs)

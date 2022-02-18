@@ -61,7 +61,7 @@ function checkAndSetTrain!(train::Dict)
     checkAndSetPositiveNumber!(train, "train", :f_Rw1, "‰", 0.0)    # coefficient for the consists resistance to rolling (in ‰)
     checkAndSetPositiveNumber!(train, "train", :f_Rw2, "‰", 0.0)    # coefficient fo the consistsr air resistance (in ‰)
 
-#    informAboutUnusedKeys(train, "train") # inform the user, which Symbols of the input dictionary are not used in this tool
+# TODO:    informAboutUnusedKeys(train, "train") # inform the user, which Symbols of the input dictionary are not used in this tool
 
     return train
 end #function checkAndSetTrain!
@@ -394,7 +394,7 @@ function checkAndSetSections!(path::Dict)
 
 
             if length(checkedSections)>1 && sections[section][:s_start] != checkedSections[end-1][:s_end]
-                error("ERROR at checking the input dictionary for the path[:sections]: The starting position of the ",section,". section does not euqaul the last position of the previous section. The sections have to be sequential.")
+                error("ERROR at checking the input dictionary for the path[:sections]: The starting position of the ",section,". section (s=",sections[section][:s_start]," m) does not euqal the last position of the previous section(s=",checkedSections[end-1][:s_end]," m). The sections have to be sequential.")
                 # TODO: maybe if there is a gab create a new section and only if there a jumps in the wrong direction throw an error?
             end
         end #for

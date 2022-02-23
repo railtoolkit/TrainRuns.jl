@@ -1,3 +1,10 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.2
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2020-2022"
+# __license__       = "ISC"
+
 module TrainRunCalc
 
 # include modules of TrainRunCalc
@@ -34,7 +41,7 @@ todo !!!
 """
 function calculateDrivingDynamics(trainInput::Dict, pathInput::Dict, settingsInput::Dict)
     # copy Input data for not changing them
-    # TODO: or should they be changed? enormally it would only make it "better" except for settings[:detailOfOutput] == "points of interest" && !haskey(path, :pointsOfInterest)
+    # TODO: or should they be changed? normally it would only make it "better" except for settings[:detailOfOutput] == "points of interest" && !haskey(path, :pointsOfInterest)
     train = copy(trainInput)
     path = copy(pathInput)
     settings = copy(settingsInput)
@@ -52,7 +59,7 @@ function calculateDrivingDynamics(trainInput::Dict, pathInput::Dict, settingsInp
         (movingSection, drivingCourse) = calculateMinimumRunningTime!(movingSection, settings, train)
         println("The driving course for the shortest running time has been calculated.")
 
-        # summarize data and create an output dictionary
+        # accumulate data and create an output dictionary
         output = createOutputDict(train, settings, path, movingSection, drivingCourse)
     else
         output = Dict()
@@ -72,10 +79,22 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
 
    #    for CS in CSs
    for csId in 1:length(CSs)
-       # check if the CS has a cruising section
        CS = CSs[csId]
        BSs = CS[:behaviorSections]
 
+       # for testing:
+       if drivingCourse[end][:s] != CS[:s_entry]
+           if haskey(BSs, :cruising)
+               println("ERROR: In CS", csId," the train run starts at s=",drivingCourse[end][:s]," and not s_entry=",CS[:s_entry])
+           end
+       end
+       if drivingCourse[end][:v] > CS[:v_entry]
+           if haskey(BSs, :cruising)
+               println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_entry=",CS[:v_entry])
+           end
+       end
+
+       # check if the CS has a cruising section
        s_breakFree = get(BSs, :breakFree, Dict(:length=>0.0))[:length]
        s_clearing = get(BSs, :clearing, Dict(:length=>0.0))[:length]
        s_acceleration = get(BSs, :acceleration, Dict(:length=>0.0))[:length]
@@ -100,7 +119,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
        elseif s_cruising > 0.0 || s_braking == 0.0
 
            if drivingCourse[end][:v] < CS[:v_peak]
-               (CS, drivingCourse) = addAccelerationSection!(CS, drivingCourse, settings, train, CSs)
+               (CS, drivingCourse) = addAccelerationSection!(CS, drivingCourse, settings, train, CSs, false) # TODO or better ignoreBraking = true?
            end #if
 
            if CS[:s_exit]-drivingCourse[end][:s]-max(0.0, (CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking]) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
@@ -118,7 +137,8 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
        else
            if CS[:v_entry] < CS[:v_peak] || s_acceleration > 0.0 # or instead of " || s_acceleration > 0.0" use "v_entry <= v_peak" or "v_i <= v_peak"
            # 09/09 old (not sufficient for steep gradients): if CS[:v_entry] < CS[:v_peak]
-               (CS, drivingCourse)=addAccelerationSectionUntilBraking!(CS, drivingCourse, settings, train, CSs)
+    # old 02/22       (CS, drivingCourse)=addAccelerationSectionUntilBraking!(CS, drivingCourse, settings, train, CSs)
+           (CS, drivingCourse) = addAccelerationSection!(CS, drivingCourse, settings, train, CSs, false)
            end #if
        end #if
 
@@ -129,13 +149,18 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
            (CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings, train, CSs)
        end #if
 
-       #= 09/20 old and should never be used:
-       if drivingCourse[end][:s] < CS[:s_exit]
+       # for testing:
+       if drivingCourse[end][:s] != CS[:s_exit]
            if haskey(BSs, :cruising)
-               println("INFO: A second cruising section has been added to CS ", csId," from s=",drivingCourse[end][:s],"  to s_exit=",CS[:s_exit])
+               println("ERROR: In CS", csId," the train run ends at s=",drivingCourse[end][:s]," and not s_exit=",CS[:s_exit])
            end
-           (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
-       end =#
+       end
+       if drivingCourse[end][:v] > CS[:v_exit]
+           if haskey(BSs, :cruising)
+               println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_exit=",CS[:v_exit])
+           end
+       end
+
    end #for
 
    (CSs[end], drivingCourse) = addStandstill!(CSs[end], drivingCourse, settings, train, CSs)

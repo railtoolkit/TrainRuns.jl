@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 # -*- coding: UTF-8 -*-
-# __julia-version__ = 1.7.0
+# __julia-version__ = 1.7.2
 # __author__        = "Max Kannenberg"
 # __copyright__     = "2022"
 # __license__       = "ISC"
@@ -53,7 +53,7 @@ calc_ΔW, calc_ΔE,
 # export braking information
 calcBrakingDistance, calcBrakingStartVelocity, calcBrakingAcceleration
 
-v00 = 100/3.6     # velocity constant (in m/s)
+v00 = 100/3.6     # velocity factor (in m/s)
 g = 9.81          # acceleration due to gravity (in m/s^2)            # TODO: should more digits of g be used?  g=9,80665 m/s^2
 
 approximationLevel = 6  # value for approximation to intersections TODO further explanation (e.g. approximationLevel = 3 -> with stepSize 10 m the approximation will be calculated accurate on 10 mm ; 1s -> 1 ms; 1 km/h -> 3.6 mm/s)
@@ -199,7 +199,6 @@ function calc_Δv_with_Δt(Δt::Real, a_prev::Real)
 
     # Δt: time step (in s)
     # a_prev: acceleration from previous data point
-    # v_prev: velocitiy from previous data point
     Δv = Δt * a_prev        # step size (in m/s)
     return Δv
 end #function calc_Δv_with_Δt

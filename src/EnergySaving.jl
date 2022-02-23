@@ -1,3 +1,10 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.2
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2020-2022"
+# __license__       = "ISC"
+
 # INFO: EnergySaving should not be used because it is not completed yet. It was used to show the possibility of calculating different operation modes.
 # TODO: It has to be optimized so that each ernergy saving method is working individually for every train on every path.
 
@@ -24,22 +31,22 @@ approximationLevel = 6  # value for approximation to intersections
 ## functions for calculating the operation mode for the minimum energy consumption
 
 # calculate the train run for operation mode "minimum energy consumption"
-function addOperationModeEnergySaving!(summarizedDict::Dict)
-    if summarizedDict[:settings][:operationModeMinimumEnergyConsumption] == true
-        movingSectionMinimumRunningTime = summarizedDict[:movingSectionMinimumRunningTime]
-        drivingCourseMinimumRunningTime = summarizedDict[:drivingCourseMinimumRunningTime]
-        settings = summarizedDict[:settings]
-        train = summarizedDict[:train]
+function addOperationModeEnergySaving!(accumulatedDict::Dict)
+    if accumulatedDict[:settings][:operationModeMinimumEnergyConsumption] == true
+        movingSectionMinimumRunningTime = accumulatedDict[:movingSectionMinimumRunningTime]
+        drivingCourseMinimumRunningTime = accumulatedDict[:drivingCourseMinimumRunningTime]
+        settings = accumulatedDict[:settings]
+        train = accumulatedDict[:train]
         (movingSectionMinimumEnergyConsumption, drivingCourseMinimumEnergyConsumption)=calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime, drivingCourseMinimumRunningTime, settings, train)
         println("The driving course for the lowest energy consumption has been calculated.")
 
-        # summarize data and create an output dictionary
-        merge!(summarizedDict, Dict(:movingSectionMinimumEnergyConsumption => movingSectionMinimumEnergyConsumption, :drivingCourseMinimumEnergyConsumption => drivingCourseMinimumEnergyConsumption))
+        # accumulate data and create an output dictionary
+        merge!(accumulatedDict, Dict(:movingSectionMinimumEnergyConsumption => movingSectionMinimumEnergyConsumption, :drivingCourseMinimumEnergyConsumption => drivingCourseMinimumEnergyConsumption))
     else
         println("No output for minimum energy consumption has been demanded and so none will be calculated.")
     end #if
 
-    return summarizedDict
+    return accumulatedDict
 end #function addOperationModeEnergySaving!
 
 function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict, drivingCourseMinimumRunningTime::Vector{Dict}, settings::Dict, train::Dict)
@@ -603,7 +610,7 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
                     end
 
                     # calculate the coasting phase until the point the train needs to brake
-                    (csModified, drivingCourseModified)=addCoastingSectionUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
+                    (csModified, drivingCourseModified)=addCoastingSection!(csModified, drivingCourseModified, settings, train, allCSs)
 
                     if drivingCourseModified[end][:v] < csModified[:v_exit] || drivingCourseModified[end][:s] > csModified[:s_exit]
                         # the train reaches v_exit before reaching s_exit. The cruising and coasting sections have to be calculated again with a larger cruising section (so with a smaller reduction of the cruising section)
@@ -737,7 +744,7 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
                     end
 
                     # calculate the coasting phase until the point the train needs to brake
-                    (csModified, drivingCourseModified)=addCoastingSectionUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
+                    (csModified, drivingCourseModified)=addCoastingSection!(csModified, drivingCourseModified, settings, train, allCSs)
 
                     if drivingCourseModified[end][:v] < csModified[:v_exit] || drivingCourseModified[end][:s] > csModified[:s_exit]
                         # the train reaches v_exit before reaching s_exit. The cruising and coasting sections have to be calculated again with a larger cruising section (so with a smaller reduction of the cruising section)
@@ -831,7 +838,7 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
             drivingCourseModified = copy(drivingCourse[1:energySavingStartId])  # List of data points till the start of energy saving
 
             # calculate the coasting phase until the point the train needs to brake
-            (csModified, drivingCourseModified)=addCoastingSectionUntilBraking!(csModified, drivingCourseModified, settings, train, allCSs)
+            (csModified, drivingCourseModified)=addCoastingSection!(csModified, drivingCourseModified, settings, train, allCSs)
 
             # calculate the moving phase between coasting and the end of the CS
             if drivingCourseModified[end][:v] > csModified[:v_exit]
@@ -961,7 +968,8 @@ function decreaseMaximumVelocity(csOriginal::Dict, drivingCourse, settings::Dict
             println("         Therefore   s=",drivingCourseModified[end][:s]," will be set s_exit=",csModified[:s_exit]," because the difference is only ",csModified[:s_exit]-drivingCourseModified[end][:s]," m.")
             println("          v=",drivingCourseModified[end][:v]," m/s   v_exit=",csOriginal[:v_exit] ," m/s")
 
-            drivingCourseModified[end][:s]=csModified[:s_exit]       # rounding up to s_exit
+            drivingCourseModified[end][:s] = csModified[:s_exit]       # rounding up to s_exit
+            drivingCourseModified[end][:Δs] = drivingCourseModified[end][:s] - drivingCourseModified[end-1][:s]
         end #if
 
         if t_recoveryAvailable >= csModified[:t] - csOriginal[:t]

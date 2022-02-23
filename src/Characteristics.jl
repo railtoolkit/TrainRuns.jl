@@ -1,3 +1,10 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.2
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2020-2022"
+# __license__       = "ISC"
+
 module Characteristics
 
 include("./Behavior.jl")
@@ -121,7 +128,8 @@ function secureAccelerationBehavior!(movingSection::Dict, settings::Dict, train:
         accelerationCourse::Vector{Dict} = [startingPoint]    # List of data points
 
         if CSs[csId][:v_entry] < CSs[csId][:v_peak]
-            (CSs[csId], accelerationCourse) = addAccelerationSection!(CSs[csId], accelerationCourse, settings, train, CSs)        # this function changes the accelerationCourse
+        # 02/22 old     (CSs[csId], accelerationCourse) = addAccelerationSection!(CSs[csId], accelerationCourse, settings, train, CSs)        # this function changes the accelerationCourse
+            (CSs[csId], accelerationCourse) = addAccelerationSection!(CSs[csId], accelerationCourse, settings, train, CSs, true)        # this function changes the accelerationCourse
             CSs[csId][:v_peak] = max(CSs[csId][:v_entry], accelerationCourse[end][:v])
             CSs[csId][:v_exit] = min(CSs[csId][:v_exit], CSs[csId][:v_peak], accelerationCourse[end][:v])
         else #CSs[csId][:v_entry]==CSs[csId][:v_peak]

@@ -77,21 +77,74 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
    startingPoint[:s]=CSs[1][:s_entry]
    drivingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
-   #    for CS in CSs
+   for csId in 1:length(CSs)
+       CS = CSs[csId]
+
+           # for testing
+           if drivingCourse[end][:s] != CS[:s_entry]
+               println("ERROR: In CS", csId," the train run starts at s=",drivingCourse[end][:s]," and not s_entry=",CS[:s_entry])
+           end
+           if drivingCourse[end][:v] > CS[:v_entry]
+               println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_entry=",CS[:v_entry])
+           end
+
+       if drivingCourse[end][:v] < CS[:v_peak]
+           (CS, drivingCourse) = addAccelerationSection!(CS, drivingCourse, settings, train, CSs, false)
+       end #if
+
+       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+       s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
+
+
+       if s_cruising > 0.0  # TODO: define a minimum cruising length?
+           (CS, drivingCourse) = addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
+       end
+
+       if drivingCourse[end][:v] > CS[:v_exit]
+           (CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings, train, CSs)
+       end #if
+
+
+           # for testing:
+           if drivingCourse[end][:s] != CS[:s_exit]
+               println("ERROR: In CS", csId," the train run ends at s=",drivingCourse[end][:s]," and not s_exit=",CS[:s_exit])
+           end
+           if drivingCourse[end][:v] > CS[:v_exit]
+               println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_exit=",CS[:v_exit])
+           end
+   end #for
+
+   (CSs[end], drivingCourse) = addStandstill!(CSs[end], drivingCourse, settings, train, CSs)
+
+   movingSection[:t] = drivingCourse[end][:t]            # total running time (in s)
+   movingSection[:E] = drivingCourse[end][:E]            # total energy consumption (in Ws)
+
+   return (movingSection, drivingCourse)
+end #function calculateMinimumRunningTime
+
+end # module TrainRunCalc
+
+
+ #=
+# calculate a train run focussing on using the minimum possible running time
+function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train::Dict)
+   CSs::Vector{Dict} = movingSection[:characteristicSections]
+
+   startingPoint=createDataPoint()
+   startingPoint[:i]=1
+   startingPoint[:s]=CSs[1][:s_entry]
+   drivingCourse::Vector{Dict} = [startingPoint]    # List of data points
+
    for csId in 1:length(CSs)
        CS = CSs[csId]
        BSs = CS[:behaviorSections]
 
        # for testing:
        if drivingCourse[end][:s] != CS[:s_entry]
-           if haskey(BSs, :cruising)
-               println("ERROR: In CS", csId," the train run starts at s=",drivingCourse[end][:s]," and not s_entry=",CS[:s_entry])
-           end
+           println("ERROR: In CS", csId," the train run starts at s=",drivingCourse[end][:s]," and not s_entry=",CS[:s_entry])
        end
        if drivingCourse[end][:v] > CS[:v_entry]
-           if haskey(BSs, :cruising)
-               println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_entry=",CS[:v_entry])
-           end
+           println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_entry=",CS[:v_entry])
        end
 
        # check if the CS has a cruising section
@@ -151,14 +204,10 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
 
        # for testing:
        if drivingCourse[end][:s] != CS[:s_exit]
-           if haskey(BSs, :cruising)
-               println("ERROR: In CS", csId," the train run ends at s=",drivingCourse[end][:s]," and not s_exit=",CS[:s_exit])
-           end
+           println("ERROR: In CS", csId," the train run ends at s=",drivingCourse[end][:s]," and not s_exit=",CS[:s_exit])
        end
        if drivingCourse[end][:v] > CS[:v_exit]
-           if haskey(BSs, :cruising)
-               println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_exit=",CS[:v_exit])
-           end
+           println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_exit=",CS[:v_exit])
        end
 
    end #for
@@ -172,3 +221,4 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
 end #function calculateMinimumRunningTime
 
 end # module TrainRunCalc
+ =#

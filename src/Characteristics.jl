@@ -14,10 +14,11 @@ export preparateSections
 
 ## create a moving section and its containing characteristic sections with secured braking, acceleration and cruising behavior
 function preparateSections(path::Dict, train::Dict, settings::Dict)
-    movingSection=createMovingSection(path, train[:v_limit])
-    movingSection=secureBrakingBehavior!(movingSection, train[:a_braking])
-    movingSection=secureAccelerationBehavior!(movingSection, settings, train)
-    movingSection=secureCruisingBehavior!(movingSection, settings, train)
+    movingSection = createMovingSection(path, train[:v_limit])
+    movingSection = secureBrakingBehavior!(movingSection, train[:a_braking])
+    movingSection = secureAccelerationBehavior!(movingSection, settings, train)
+    movingSection = secureCruisingBehavior!(movingSection, settings, train)
+
     return movingSection
 end #function preparateSections
 
@@ -95,17 +96,25 @@ function secureBrakingBehavior!(movingSection::Dict, a_braking::Real)
         CSs = movingSection[:characteristicSections]
 
         csId = length(CSs)
-        CSs[csId][:v_exit] = 0.0     # the exit velocity of the last characteristic section is 0.0 m/s
+        followingCSv_entry = 0.0     # the exit velocity of the last characteristic section is 0.0 m/s
         while csId >= 1
-            v_entryMax = calcBrakingStartVelocity(CSs[csId][:v_exit], a_braking, CSs[csId][:length])
-            #v_entryMax=floor(v_entryMax, digits=12)
+            CS = CSs[csId]
 
-            CSs[csId][:v_entry] = min(CSs[csId][:v_limit], v_entryMax)
-            CSs[csId][:v_peak] = CSs[csId][:v_entry]
+            CS[:v_exit] = min(CS[:v_limit], followingCSv_entry)
+
+            v_entryMax = calcBrakingStartVelocity(CS[:v_exit], a_braking, CS[:length])
+
+            CS[:v_entry] = min(CS[:v_limit], v_entryMax)
+            CS[:v_peak] = CS[:v_entry]
+
+
+            # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
+            CS[:behaviorSections] = Dict()
+            CS[:E] = 0.0
+            CS[:t] = 0.0
+
+            followingCSv_entry = CS[:v_entry]
             csId = csId - 1
-            if csId >= 1
-                CSs[csId][:v_exit]=min(CSs[csId][:v_limit], CSs[csId+1][:v_entry])
-            end #if
         end #while
     return movingSection
 end #function secureBrakingBehavior!
@@ -120,23 +129,27 @@ function secureAccelerationBehavior!(movingSection::Dict, settings::Dict, train:
     startingPoint[:i] = 1
 
     previousCSv_exit = CSs[1][:v_entry]
-    for csId in 1:length(CSs)
-        CSs[csId][:v_entry] = min(CSs[csId][:v_entry], previousCSv_exit)
+    for CS in CSs
+        CS[:v_entry] = min(CS[:v_entry], previousCSv_exit)
 
-        startingPoint[:s] = CSs[csId][:s_entry]
-        startingPoint[:v] = CSs[csId][:v_entry]
+        startingPoint[:s] = CS[:s_entry]
+        startingPoint[:v] = CS[:v_entry]
         accelerationCourse::Vector{Dict} = [startingPoint]    # List of data points
 
-        if CSs[csId][:v_entry] < CSs[csId][:v_peak]
-        # 02/22 old     (CSs[csId], accelerationCourse) = addAccelerationSection!(CSs[csId], accelerationCourse, settings, train, CSs)        # this function changes the accelerationCourse
-            (CSs[csId], accelerationCourse) = addAccelerationSection!(CSs[csId], accelerationCourse, settings, train, CSs, true)        # this function changes the accelerationCourse
-            CSs[csId][:v_peak] = max(CSs[csId][:v_entry], accelerationCourse[end][:v])
-            CSs[csId][:v_exit] = min(CSs[csId][:v_exit], CSs[csId][:v_peak], accelerationCourse[end][:v])
-        else #CSs[csId][:v_entry]==CSs[csId][:v_peak]
+        if CS[:v_entry] < CS[:v_peak]
+            (CS, accelerationCourse) = addAccelerationSection!(CS, accelerationCourse, settings, train, CSs, true)        # this function changes the accelerationCourse
+            CS[:v_peak] = max(CS[:v_entry], accelerationCourse[end][:v])
+            CS[:v_exit] = min(CS[:v_exit], CS[:v_peak], accelerationCourse[end][:v])
+        else #CS[:v_entry] == CS[:v_peak]
             # v_exit stays the same
         end #if
 
-        previousCSv_exit=CSs[csId][:v_exit]
+        previousCSv_exit = CS[:v_exit]
+
+        # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
+        CS[:behaviorSections] = Dict()
+        CS[:E] = 0.0
+        CS[:t] = 0.0
     end #for
 
     return movingSection
@@ -154,17 +167,22 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
 
     previousCSv_exit = CSs[1][:v_entry]
 
-    for csId in 1:length(CSs)
-        CSs[csId][:v_entry] = min(CSs[csId][:v_entry], previousCSv_exit)
+    for CS in CSs
+        CS[:v_entry] = min(CS[:v_entry], previousCSv_exit)
 
-        startingPoint[:s] = CSs[csId][:s_entry]
-        startingPoint[:v] = CSs[csId][:v_peak]
+        startingPoint[:s] = CS[:s_entry]
+        startingPoint[:v] = CS[:v_peak]
         cruisingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
-        (CSs[csId], cruisingCourse) = addCruisingSection!(CSs[csId], cruisingCourse, CSs[csId][:length], settings, train, CSs, "cruising")        # this function changes the cruisingCourse
-        CSs[csId][:v_exit] = min(CSs[csId][:v_exit], cruisingCourse[end][:v])
+        (CS, cruisingCourse) = addCruisingSection!(CS, cruisingCourse, CS[:length], settings, train, CSs, "cruising")        # this function changes the cruisingCourse
+        CS[:v_exit] = min(CS[:v_exit], cruisingCourse[end][:v])
 
-        previousCSv_exit = CSs[csId][:v_exit]
+        previousCSv_exit = CS[:v_exit]
+
+        # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
+        CS[:behaviorSections] = Dict()
+        CS[:E] = 0.0
+        CS[:t] = 0.0
     end #for
 
     return movingSection

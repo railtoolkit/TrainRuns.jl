@@ -1,3 +1,10 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.2
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2020-2022"
+# __license__       = "ISC"
+
 module Export
 
 using CSV, DataFrames, Dates
@@ -39,17 +46,17 @@ function createCsvFile(movingSection::Dict, dataPointsToExport::Vector{Dict}, op
     stepVariable = settings[:stepVariable]
     stepSize = string(settings[:stepSize])
 
-    # create summarized data block
-    summarizedData = Array{Any, 1}[]
+    # create accumulated data block
+    accumulatedData = Array{Any, 1}[]
     if detailOfOutput == "minimal"
-        push!(summarizedData, ["s (in m)", "t (in s)","E (in Ws)"])                     # push header to summarizedData
+        push!(accumulatedData, ["s (in m)", "t (in s)","E (in Ws)"])                     # push header to accumulatedData
         row = [movingSection[:length], movingSection[:t], movingSection[:E]]
-        push!(summarizedData, row)                                                      # push row to summarizedData
+        push!(accumulatedData, row)                                                      # push row to accumulatedData
     elseif detailOfOutput == "driving course" || detailOfOutput == "points of interest"
-        push!(summarizedData, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to summarizedData
+        push!(accumulatedData, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to accumulatedData
         for point in dataPointsToExport
             row = [point[:i], point[:behavior], point[:Δs], point[:s], point[:Δt], point[:t], point[:Δv], point[:v], point[:F_T], point[:F_R], point[:R_path], point[:R_train], point[:R_traction], point[:R_wagons], point[:ΔW], point[:W], point[:ΔE], point[:E], point[:a]]
-            push!(summarizedData, row)             # push row to summarizedData
+            push!(accumulatedData, row)             # push row to accumulatedData
         end
     end
 
@@ -57,15 +64,15 @@ function createCsvFile(movingSection::Dict, dataPointsToExport::Vector{Dict}, op
     allColumns=Array{Any,1}[]
     push!(allColumns, ["path name", "train name", "operation mode", "mass model", "step variable", "step size", ""])
     push!(allColumns, [pathName, trainName, operationMode, massModel, stepVariable, stepSize, ""])
-    for column in 3:length(summarizedData[1])
+    for column in 3:length(accumulatedData[1])
         push!(allColumns, ["", "", "", "", "", "", ""])
     end # for
 
     # add driving data to the array
-    header = summarizedData[1]
-    for column in 1:length(summarizedData[1])
+    header = accumulatedData[1]
+    for column in 1:length(accumulatedData[1])
         push!(allColumns[column], header[column])
-        for row in summarizedData[2:end]
+        for row in accumulatedData[2:end]
             push!(allColumns[column], row[column])
         end
     end # for

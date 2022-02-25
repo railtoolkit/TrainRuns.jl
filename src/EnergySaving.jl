@@ -136,13 +136,13 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
                                       get(CSsOrig[csIdMax][:behaviorSections], :braking,
                                         get(CSsOrig[csIdMax][:behaviorSections], :coasting,
                                          get(CSsOrig[csIdMax][:behaviorSections], :cruising,
-                                          get(CSsOrig[csIdMax][:behaviorSections], :acceleration,
+                                          get(CSsOrig[csIdMax][:behaviorSections], :accelerating,
                                            get(CSsOrig[csIdMax][:behaviorSections], :clearing,
                                             get(CSsOrig[csIdMax][:behaviorSections], :breakFree,
                                              get(CSsOrig[csIdMax][:behaviorSections], :diminishing,
                                                Dict(:dataPoints => [0])))))))))[:dataPoints][end]
 
-        # if there is a diminishing phase its location must be analysed seperately because it could be before acceleration, between acceleration and cruising or after cruising. All the other behavior sections occure in a fixed order.
+        # if there is a diminishing phase its location must be analysed seperately because it could be before accelerating, between accelerating and cruising or after cruising. All the other behavior sections occure in a fixed order.
         if haskey(CSsOrig[csIdMax][:behaviorSections], :diminishing)
             lastIdOfSelectedCsOriginal = max(lastIdOfSelectedCsOriginal, CSsOrig[csIdMax][:behaviorSections][:diminishing][:dataPoints][end])
         end
@@ -182,7 +182,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         # update all the data point references in the behaviour sections of the following characteristic sections and the other modified characteristic sections
         if difference!= 0
             # update the data point references in the behaviour sections of the following characteristic sections
-            allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :braking, :standstill]
+            allBs=[:breakFree, :clearing, :accelerating, :cruising, :diminishing, :coasting, :braking, :standstill]
             for csId in csIdMax+1:length(CSsOrig)
                 for bs in 1: length(allBs)
                     if haskey(CSsOrig[csId][:behaviorSections], allBs[bs])
@@ -263,7 +263,7 @@ function copyMovingSection(original::Dict)
 end #function copyMovingSection
 
 function copyCharacteristicSection(originalCS::Dict)
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :braking, :standstill]
+    allBs=[:breakFree, :clearing, :accelerating, :cruising, :diminishing, :coasting, :braking, :standstill]
     copiedBSs = Dict()
     for bs in 1: length(allBs)
         if haskey(originalCS[:behaviorSections], allBs[bs])
@@ -295,8 +295,8 @@ function copyBehaviorSection(original::Dict)
     for i in 1:length(original[:dataPoints])
         push!(bsDataPoints, original[:dataPoints][i])
     end
-    copiedBS = Dict(#:type => behavior,                 # type of behavior section: breakFree, clearing, acceleration, cruising, diminishing, coasting, braking or standstill
-                :type => original[:type],           # type of behavior section: "breakFree", "clearing", "acceleration", "cruising", "diminishing", "coasting", "braking" or "standstill"
+    copiedBS = Dict(#:type => behavior,                 # type of behavior section: breakFree, clearing, accelerating, cruising, diminishing, coasting, braking or standstill
+                :type => original[:type],           # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "standstill"
                 :length => original[:length],       # total length  (in m)
                 :s_entry => original[:s_entry],     # first position (in m)
                 :s_exit => original[:s_exit],       # last position  (in m)
@@ -320,7 +320,7 @@ function createEnergySavingModification()
 end #createEnergySavingModification
 
 function updateEnergySavingModifications!(energySavingModifications::Vector{Dict}, csIdMax::Integer, drivingCourseNew::Vector{Dict}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :braking, :standstill]
+    allBs=[:breakFree, :clearing, :accelerating, :cruising, :diminishing, :coasting, :braking, :standstill]
     difference = endOfModificationId-lastIdOfSelectedCsOriginal
     for modNr in csIdMax+1:length(energySavingModifications)
         if energySavingModifications[modNr][:ratio]>0
@@ -522,7 +522,7 @@ end #function calculateRecoveryTime
 # TODO: a refactoring caused worse drivingsCourses. see the commented function below
 function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, settings::Dict, train::Dict, allCSs::Vector{Dict}, t_recoveryAvailable::AbstractFloat)
     BSsOriginal = csOriginal[:behaviorSections]
-    if (haskey(BSsOriginal, :cruising) || (haskey(BSsOriginal, :diminishing) && get(BSsOriginal, :diminishing, Dict(:dataPoints =>[0]))[:dataPoints][1] > get(BSsOriginal, :acceleration, Dict(:dataPoints =>[0]))[:dataPoints][1])) && haskey(BSsOriginal, :braking)
+    if (haskey(BSsOriginal, :cruising) || (haskey(BSsOriginal, :diminishing) && get(BSsOriginal, :diminishing, Dict(:dataPoints =>[0]))[:dataPoints][1] > get(BSsOriginal, :accelerating, Dict(:dataPoints =>[0]))[:dataPoints][1])) && haskey(BSsOriginal, :braking)
         # check if cruising or diminishing should be reduced for coasting
         if haskey(BSsOriginal, :cruising) && haskey(BSsOriginal, :diminishing)
             if BSsOriginal[:cruising][:dataPoints][1] > BSsOriginal[:diminishing][:dataPoints][1]
@@ -546,7 +546,7 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
         csModifiedInitial = copyCharacteristicSection(csOriginal)
         BSsModified = csModifiedInitial[:behaviorSections]
 
-        # delete bahavior sections that will be recalculated except breakFree, clearing, acceleration, diminishing
+        # delete bahavior sections that will be recalculated except breakFree, clearing, accelerating, diminishing
         # and rest total running time and energy consumption
         if haskey(BSsModified, :coasting)
             csModifiedInitial[:E] = csModifiedInitial[:E] - BSsModified[:coasting][:E]
@@ -635,11 +635,11 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
 
 
         elseif reduceDiminishing
-            # TODO: At the moment diminishing is reduced similar to the acceleration in decreaseMaximumVelocity. To reduce code the methods for reducing cruising phase and reducing the diminishing phase can be combined in some parts.
+            # TODO: At the moment diminishing is reduced similar to the accelerating in decreaseMaximumVelocity. To reduce code the methods for reducing cruising phase and reducing the diminishing phase can be combined in some parts.
             csModified = csModifiedInitial
             diminishingSection = BSsModified[:diminishing]
 
-            # remove the last diminishing waypoint
+            # remove the last diminishing data point
             t_diff = drivingCourse[diminishingSection[:dataPoints][end]][:t] - drivingCourse[diminishingSection[:dataPoints][end-1]][:t]
             E_diff = drivingCourse[diminishingSection[:dataPoints][end]][:E] - drivingCourse[diminishingSection[:dataPoints][end-1]][:E]
             pop!(diminishingSection[:dataPoints])
@@ -718,17 +718,17 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
                         csModified[:E] = csModified[:E] + BSsModified[:breakFree][:E]
                         csModified[:t] = csModified[:t] + BSsModified[:breakFree][:t]
                     end
-                    if haskey(BSsOriginal, :clearing)            # this section is needed before acceleration if the train wants to accelerate to a speed higher than the limit in a previous CS where parts of the train are still located
+                    if haskey(BSsOriginal, :clearing)            # this section is needed before accelerating if the train wants to accelerate to a speed higher than the limit in a previous CS where parts of the train are still located
                         clearingSection=copyBehaviorSection(BSsOriginal[:clearing])
                         merge!(BSsModified, Dict(:clearing=>clearingSection))
                         csModified[:E] = csModified[:E] + BSsModified[:clearing][:E]
                         csModified[:t] = csModified[:t] + BSsModified[:clearing][:t]
                     end
-                    if haskey(BSsOriginal, :acceleration)
-                        accelerationSection=copyBehaviorSection(BSsOriginal[:acceleration])
-                        merge!(BSsModified, Dict(:acceleration=>accelerationSection))
-                        csModified[:E] = csModified[:E] + BSsModified[:acceleration][:E]
-                        csModified[:t] = csModified[:t] + BSsModified[:acceleration][:t]
+                    if haskey(BSsOriginal, :accelerating)
+                        acceleratingSection=copyBehaviorSection(BSsOriginal[:accelerating])
+                        merge!(BSsModified, Dict(:accelerating=>acceleratingSection))
+                        csModified[:E] = csModified[:E] + BSsModified[:accelerating][:E]
+                        csModified[:t] = csModified[:t] + BSsModified[:accelerating][:t]
                     end
                     if haskey(BSsOriginal, :diminishing)
                         diminishingSection=copyBehaviorSection(BSsOriginal[:diminishing])
@@ -769,7 +769,7 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
 
 
         elseif reduceDiminishing
-            # TODO: At the moment diminishing is reduced like the acceleration in decreaseMaximumVelocity. To reduce code the methods for reducing cruising phase and reducing the diminishing phase can be combined in some parts.
+            # TODO: At the moment diminishing is reduced like the accelerating in decreaseMaximumVelocity. To reduce code the methods for reducing cruising phase and reducing the diminishing phase can be combined in some parts.
 
             # copy csOriginal to csModified
             # 12/28 old: csModified=CharacteristicSection(csOriginal[:id], csOriginal[:length], csOriginal[:s_entry], csOriginal[:s_exit], 0.0, 0.0, csOriginal[:v_limit], csOriginal[:v_peak], csOriginal[:v_entry], csOriginal[:v_exit], csOriginal[:r_path], Dict{Symbol, Dict}())
@@ -794,17 +794,17 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
                 csModified[:E] = csModified[:E] + BSsModified[:breakFree][:E]
                 csModified[:t] = csModified[:t] + BSsModified[:breakFree][:t]
             end
-            if haskey(BSsOriginal, :clearing)            # this section is needed before acceleration if the train wants to accelerate to a speed higher than the limit in a previous CS where parts of the train are still located
+            if haskey(BSsOriginal, :clearing)            # this section is needed before accelerating if the train wants to accelerate to a speed higher than the limit in a previous CS where parts of the train are still located
                 clearingSection=copyBehaviorSection(BSsOriginal[:clearing])
                 merge!(BSsModified, Dict(:clearing=>clearingSection))
                 csModified[:E] = csModified[:E] + BSsModified[:clearing][:E]
                 csModified[:t] = csModified[:t] + BSsModified[:clearing][:t]
             end
-            if haskey(BSsOriginal, :acceleration)
-                accelerationSection=copyBehaviorSection(BSsOriginal[:acceleration])
-                merge!(BSsModified, Dict(:acceleration=>accelerationSection))
-                csModified[:E] = csModified[:E] + BSsModified[:acceleration][:E]
-                csModified[:t] = csModified[:t] + BSsModified[:acceleration][:t]
+            if haskey(BSsOriginal, :accelerating)
+                acceleratingSection=copyBehaviorSection(BSsOriginal[:accelerating])
+                merge!(BSsModified, Dict(:accelerating=>acceleratingSection))
+                csModified[:E] = csModified[:E] + BSsModified[:accelerating][:E]
+                csModified[:t] = csModified[:t] + BSsModified[:accelerating][:t]
             end
             if haskey(BSsOriginal, :cruising)
                 cruisingSection=copyBehaviorSection(BSsOriginal[:cruising])
@@ -815,7 +815,7 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
 
             diminishingSection=copyBehaviorSection(BSsOriginal[:diminishing])
             if length(diminishingSection[:dataPoints]) > 2
-                # remove the last diminishing waypoint
+                # remove the last diminishing data point
                 pop!(diminishingSection[:dataPoints])
 
                 diminishingSection[:v_exit]=drivingCourse[diminishingSection[:dataPoints][end]][:v]                               # exit speed (in m/s)
@@ -865,18 +865,18 @@ function increaseCoastingSection(csOriginal::Dict, drivingCourse::Vector{Dict}, 
     end
 end # function increaseCoastingSection
 
-# method 2 with shortening the acceleration by stepsize
+# method 2 with shortening the accelerating by stepsize
 function decreaseMaximumVelocity(csOriginal::Dict, drivingCourse, settings::Dict, train::Dict, allCSs::Vector{Dict}, t_recoveryAvailable::AbstractFloat)
     # TODO doesn't work that well alone. works better with combineEnergySavingMethods. why? does a while loop end to early or something like this?
     #function decreaseMaximumVelocity(csOriginal::CharacteristicSection, drivingCourse::Vector{Dict}, settings::Dict, train::Dict, allCSs::Vector{CharacteristicSection}, t_recoveryAvailable::AbstractFloat)
     BSsOriginal = csOriginal[:behaviorSections]
-    if haskey(BSsOriginal, :acceleration) && csOriginal[:v_peak] > csOriginal[:v_entry] && csOriginal[:v_peak] > csOriginal[:v_exit]
-        accelerationSection = copyBehaviorSection(BSsOriginal[:acceleration])
+    if haskey(BSsOriginal, :accelerating) && csOriginal[:v_peak] > csOriginal[:v_entry] && csOriginal[:v_peak] > csOriginal[:v_exit]
+        acceleratingSection = copyBehaviorSection(BSsOriginal[:accelerating])
 
-        if drivingCourse[accelerationSection[:dataPoints][end]-1][:v] < csOriginal[:v_exit]
+        if drivingCourse[acceleratingSection[:dataPoints][end]-1][:v] < csOriginal[:v_exit]
             # 12/29 old, now not with empty but with original CS and DC: return (Dict(), [], false)    # TODO: Does the empty CS-Dict need default attributes?
             return (csOriginal, drivingCourse, false)
-            # TODO: or calculate a new acceleration phase with v_exit as v_peak? it will be very short, shorter than the step size.
+            # TODO: or calculate a new accelerating phase with v_exit as v_peak? it will be very short, shorter than the step size.
         end
 
         # copy csOriginal to csModified
@@ -902,14 +902,14 @@ function decreaseMaximumVelocity(csOriginal::Dict, drivingCourse, settings::Dict
             csModified[:E] = csModified[:E] + BSsModified[:breakFree][:E]
             csModified[:t] = csModified[:t] + BSsModified[:breakFree][:t]
         end
-        if haskey(BSsOriginal, :diminishing) && BSsModified[:diminishing][:dataPoints][1] < BSsModified[:acceleration][:dataPoints][1]
+        if haskey(BSsOriginal, :diminishing) && BSsModified[:diminishing][:dataPoints][1] < BSsModified[:accelerating][:dataPoints][1]
             diminishingSection=copyBehaviorSection(BSsOriginal[:diminishing])
             merge!(BSsModified, Dict(:diminishing=>diminishingSection))
             csModified[:E] = csModified[:E] + BSsModified[:diminishing][:E]
             csModified[:t] = csModified[:t] + BSsModified[:diminishing][:t]
         end
 
-        if length(accelerationSection[:dataPoints]) > 2
+        if length(acceleratingSection[:dataPoints]) > 2
             if haskey(BSsOriginal, :clearing)
                 clearingSection=copyBehaviorSection(BSsOriginal[:clearing])
                 merge!(BSsModified, Dict(:clearing=>clearingSection))
@@ -917,23 +917,23 @@ function decreaseMaximumVelocity(csOriginal::Dict, drivingCourse, settings::Dict
                 csModified[:t] = csModified[:t] + BSsModified[:clearing][:t]
             end
 
-            # remove the last acceleration waypoint from the accelerationSection
-            pop!(accelerationSection[:dataPoints])
-            energySavingStartId = accelerationSection[:dataPoints][end]
+            # remove the last data point from the acceleratingSection
+            pop!(acceleratingSection[:dataPoints])
+            energySavingStartId = acceleratingSection[:dataPoints][end]
 
-            accelerationSection[:v_exit]=drivingCourse[energySavingStartId][:v]                               # exit speed (in m/s)
-            accelerationSection[:s_exit]=drivingCourse[energySavingStartId][:s]                               # last position (in m)
-            accelerationSection[:length]=accelerationSection[:s_exit]-accelerationSection[:s_entry]           # total length  (in m)
-            accelerationSection[:t]=drivingCourse[energySavingStartId][:t]-drivingCourse[accelerationSection[:dataPoints][1]][:t]       # total running time (in s)
-            accelerationSection[:E]=drivingCourse[energySavingStartId][:E]-drivingCourse[accelerationSection[:dataPoints][1]][:E]       # total energy consumption (in Ws)
+            acceleratingSection[:v_exit]=drivingCourse[energySavingStartId][:v]                               # exit speed (in m/s)
+            acceleratingSection[:s_exit]=drivingCourse[energySavingStartId][:s]                               # last position (in m)
+            acceleratingSection[:length]=acceleratingSection[:s_exit]-acceleratingSection[:s_entry]           # total length  (in m)
+            acceleratingSection[:t]=drivingCourse[energySavingStartId][:t]-drivingCourse[acceleratingSection[:dataPoints][1]][:t]       # total running time (in s)
+            acceleratingSection[:E]=drivingCourse[energySavingStartId][:E]-drivingCourse[acceleratingSection[:dataPoints][1]][:E]       # total energy consumption (in Ws)
 
-            merge!(BSsModified, Dict(:acceleration=>accelerationSection))
-            csModified[:E] = csModified[:E] + accelerationSection[:E]
-            csModified[:t] = csModified[:t] + accelerationSection[:t]
+            merge!(BSsModified, Dict(:accelerating=>acceleratingSection))
+            csModified[:E] = csModified[:E] + acceleratingSection[:E]
+            csModified[:t] = csModified[:t] + acceleratingSection[:t]
 
         else
-            # The acceleration section is only one step. This step is removed and if there is a clearing section it will be combined with the new cruising section.
-            energySavingStartId=get(BSsOriginal, :clearing, get(BSsOriginal, :acceleration, Dict(:dataPoints =>[0])))[:dataPoints][1]
+            # The accelerating section is only one step. This step is removed and if there is a clearing section it will be combined with the new cruising section.
+            energySavingStartId=get(BSsOriginal, :clearing, get(BSsOriginal, :accelerating, Dict(:dataPoints =>[0])))[:dataPoints][1]
         end
 
         # TODO: should v_peak be reduced or is it enough to pop the data points?
@@ -976,8 +976,8 @@ function decreaseMaximumVelocity(csOriginal::Dict, drivingCourse, settings::Dict
 
             return (csModified, drivingCourseModified, true)
         else # time loss is to high. so there is no energy saving modification for this CS with the available recovery time
-            # 09/06 old: else # time loss is to high and the CS has to be calculated again with larger acceleration section (so with a smaller reduction of the acceleration section)
-            # 09/06 old: accelerationReduction=min(accelerationReduction/10, csModified[:v_peak]-csModified[:v_entry], csModified[:v_peak]-csModified[:v_exit])
+            # 09/06 old: else # time loss is to high and the CS has to be calculated again with larger accelerating section (so with a smaller reduction of the accelerating section)
+            # 09/06 old: acceleratingReduction=min(acceleratingReduction/10, csModified[:v_peak]-csModified[:v_entry], csModified[:v_peak]-csModified[:v_exit])
                 # TODO: just return false or take smaller steps?
 
             # 12/29 old, now not with empty but with original CS and DC: return (Dict(), [], false)    # TODO: Does the empty CS-Dict need default attributes?
@@ -992,7 +992,7 @@ function decreaseMaximumVelocity(csOriginal::Dict, drivingCourse, settings::Dict
 
 
     else
-        # there is no energy saving modification for this CS because v_peak can not be lowered below v_entry or v_exit or because there is no acceleration section that can be transformed into a cruising section
+        # there is no energy saving modification for this CS because v_peak can not be lowered below v_entry or v_exit or because there is no accelerating section that can be transformed into a cruising section
         # 12/29 old, now not with empty but with original CS and DC: return (Dict(), [], false)    # TODO: Does the empty CS-Dict need default attributes?
         return (csOriginal, drivingCourse, false)
     end #if haskey
@@ -1001,8 +1001,8 @@ end # function decreaseMaximumVelocity
 # combination of method 1 and method 2
 function combineEnergySavingMethods(csOriginal::Dict, drivingCourse::Vector{Dict}, settings::Dict, train::Dict, allCSs::Vector{Dict}, t_recoveryAvailable::AbstractFloat)
     BSsOriginal = csOriginal[:behaviorSections]
- #    if haskey(BSsOriginal, :acceleration) && (haskey(BSsOriginal, :braking) || haskey(BSsOriginal, :coasting)) && csOriginal[:v_peak]>csOriginal[:v_entry] && csOriginal[:v_peak]>csOriginal[:v_exit]
-    if haskey(BSsOriginal, :acceleration) && (haskey(BSsOriginal, :braking) || haskey(BSsOriginal, :coasting)) && drivingCourse[get(BSsOriginal, :acceleration, Dict(:dataPoints =>[0]))[:dataPoints][end]][:v] > max(csOriginal[:v_entry], csOriginal[:v_exit])
+ #    if haskey(BSsOriginal, :accelerating) && (haskey(BSsOriginal, :braking) || haskey(BSsOriginal, :coasting)) && csOriginal[:v_peak]>csOriginal[:v_entry] && csOriginal[:v_peak]>csOriginal[:v_exit]
+    if haskey(BSsOriginal, :accelerating) && (haskey(BSsOriginal, :braking) || haskey(BSsOriginal, :coasting)) && drivingCourse[get(BSsOriginal, :accelerating, Dict(:dataPoints =>[0]))[:dataPoints][end]][:v] > max(csOriginal[:v_entry], csOriginal[:v_exit])
         # copy the characteristic section
         csCombined = copyCharacteristicSection(csOriginal)
 
@@ -1034,7 +1034,7 @@ function combineEnergySavingMethods(csOriginal::Dict, drivingCourse::Vector{Dict
         end # while
         return (csCombined, drivingCourseCombined, (ΔE>0.0))# && Δt>0.0))
     else
-        # there is no energy saving modification for this CS because v_peak can not be lowered below v_entry or v_exit or because there is no acceleration section and braking section or coasting section that can be transformed into a cruising section or coasting section
+        # there is no energy saving modification for this CS because v_peak can not be lowered below v_entry or v_exit or because there is no accelerating section and braking section or coasting section that can be transformed into a cruising section or coasting section
         # 12/29 old, now not with empty but with original CS and DC: return (Dict(), [], false)    # TODO: Does the empty CS-Dict need default attributes?
         return (csOriginal, drivingCourse, false)
     end #if

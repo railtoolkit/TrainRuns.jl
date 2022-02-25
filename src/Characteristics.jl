@@ -12,11 +12,11 @@ using .Behavior
 
 export preparateSections
 
-## create a moving section and its containing characteristic sections with secured braking, acceleration and cruising behavior
+## create a moving section and its containing characteristic sections with secured braking, accelerating and cruising behavior
 function preparateSections(path::Dict, train::Dict, settings::Dict)
     movingSection = createMovingSection(path, train[:v_limit])
     movingSection = secureBrakingBehavior!(movingSection, train[:a_braking])
-    movingSection = secureAccelerationBehavior!(movingSection, settings, train)
+    movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
     movingSection = secureCruisingBehavior!(movingSection, settings, train)
 
     return movingSection
@@ -119,8 +119,8 @@ function secureBrakingBehavior!(movingSection::Dict, a_braking::Real)
     return movingSection
 end #function secureBrakingBehavior!
 
-## define the intersection velocities between the characterisitc sections to secure acceleration behavior
-function secureAccelerationBehavior!(movingSection::Dict, settings::Dict, train::Dict)
+## define the intersection velocities between the characterisitc sections to secure accelerating behavior
+function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train::Dict)
     # this function limits the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises aterwards
     CSs = movingSection[:characteristicSections]
 
@@ -134,12 +134,12 @@ function secureAccelerationBehavior!(movingSection::Dict, settings::Dict, train:
 
         startingPoint[:s] = CS[:s_entry]
         startingPoint[:v] = CS[:v_entry]
-        accelerationCourse::Vector{Dict} = [startingPoint]    # List of data points
+        acceleratingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
         if CS[:v_entry] < CS[:v_peak]
-            (CS, accelerationCourse) = addAccelerationSection!(CS, accelerationCourse, settings, train, CSs, true)        # this function changes the accelerationCourse
-            CS[:v_peak] = max(CS[:v_entry], accelerationCourse[end][:v])
-            CS[:v_exit] = min(CS[:v_exit], CS[:v_peak], accelerationCourse[end][:v])
+            (CS, acceleratingCourse) = addAcceleratingSection!(CS, acceleratingCourse, settings, train, CSs, true)        # this function changes the acceleratingCourse
+            CS[:v_peak] = max(CS[:v_entry], acceleratingCourse[end][:v])
+            CS[:v_exit] = min(CS[:v_exit], CS[:v_peak], acceleratingCourse[end][:v])
         else #CS[:v_entry] == CS[:v_peak]
             # v_exit stays the same
         end #if
@@ -153,7 +153,7 @@ function secureAccelerationBehavior!(movingSection::Dict, settings::Dict, train:
     end #for
 
     return movingSection
-end #function secureAccelerationBehavior!
+end #function secureAcceleratingBehavior!
 
 
 

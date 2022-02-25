@@ -1,3 +1,10 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.2
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2020-2022"
+# __license__       = "ISC"
+
 # INFO: AdditionalOutput should not be used because it is not completed yet. It was used to show first results during development.
 # TODO: It has to be optimized so that the created plots and printed information is clear and understandable.
 
@@ -38,9 +45,11 @@ function plotDrivingCourse(drivingCourse::Vector{Dict})
         push!(v, drivingCourse[i][:v])
     end #for
 
-    p1=plot([s], [v], title = "v in m/s", label = ["v"], xlabel = "s in m")
+#    p1=plot([s], [v], title = "v in m/s", label = ["v"], xlabel = "s in m")
+    p1=plot([s/1000], [v*3.6], title = "v in km/h", label = ["v"], xlabel = "s in km")
 
-    p2=plot([t], [v], title = "v in m/s", label = ["v"], xlabel = "t in s")
+#    p2=plot([t], [v], title = "v in m/s", label = ["v"], xlabel = "t in s")
+    p2=plot([t/60], [v*3.6], title = "v in km/h", label = ["v"], xlabel = "t in min")
 
  #   p3=plot([s], [t], title = "t in s", label = ["t"], xlabel = "s in m")
 
@@ -137,7 +146,7 @@ function printSectionInformation(movingSection::Dict)
     CSs::Vector{Dict} = movingSection[:characteristicSections]
 
     println("MS   with length=", movingSection[:length]," with t=", movingSection[:t])
-    allBs=[:breakFree, :clearing, :acceleration, :cruising, :diminishing, :coasting, :braking, :standstill]
+    allBs=[:breakFree, :clearing, :accelerating, :cruising, :diminishing, :coasting, :braking, :standstill]
     for csId in 1:length(CSs)
         println("CS ",csId,"  with length=", CSs[csId][:length]," with t=", CSs[csId][:t])
         for bs in 1: length(allBs)

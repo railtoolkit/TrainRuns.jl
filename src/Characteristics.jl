@@ -137,6 +137,7 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
         acceleratingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
         if CS[:v_entry] < CS[:v_peak]
+            (CS, acceleratingCourse) = addBreakFreeSection!(CS, acceleratingCourse, settings, train, CSs, true)
             (CS, acceleratingCourse) = addAcceleratingSection!(CS, acceleratingCourse, settings, train, CSs, true)        # this function changes the acceleratingCourse
             CS[:v_peak] = max(CS[:v_entry], acceleratingCourse[end][:v])
             CS[:v_exit] = min(CS[:v_exit], CS[:v_peak], acceleratingCourse[end][:v])

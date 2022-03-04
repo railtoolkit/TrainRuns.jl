@@ -26,10 +26,6 @@ export calculateDrivingDynamics
 approximationLevel = 6  # value for approximation to intersections and precisely calculated digits
     # TODO:  define it here and give it to each function? (Behavior, ...)
 
-
-    # INFO for diminishing and cruising: if v decreases to a value where F_T-F_R is positive the train could accelerate to a value of v where F_T-F_R is negative and so forth and so on. In Behavior.jl it is realized not oscillating with accelerating and diminishing but just with cruising instead of accelerating und therefore keeping the velocity value where F_T-F_R>0.
-
-
 # Calculate the driving dynamics of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
 
 """
@@ -76,9 +72,14 @@ end # function calculateDrivingDynamics
 function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train::Dict)
    CSs::Vector{Dict} = movingSection[:characteristicSections]
 
+   if settings[:massModel] == "homogeneous strip"
+       println("WARNING: ! ! ! TrainRun.jl doesn't work reliably for the mass model homogeneous strip. This mass model should not be used ! ! !")
+   end
+
    startingPoint=createDataPoint()
    startingPoint[:i]=1
    startingPoint[:s]=CSs[1][:s_entry]
+   calculateForces!(startingPoint, CSs, 1, "default", train, settings[:massModel]) # traction effort and resisting forces (in N)
    drivingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
    for csId in 1:length(CSs)
@@ -92,21 +93,48 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
                println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_entry=",CS[:v_entry])
            end
 
-       if drivingCourse[end][:v] < CS[:v_peak]
-           (CS, drivingCourse) = addAcceleratingSection!(CS, drivingCourse, settings, train, CSs, false)
-       end #if
-
-       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
-       s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
+        if drivingCourse[end][:v] == 0.0
+            (CS, drivingCourse) = addBreakFreeSection!(CS, drivingCourse, settings, train, CSs, false)
+        end #if
 
 
-       if s_cruising > 0.0  # TODO: define a minimum cruising length?
-           (CS, drivingCourse) = addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
-       end
+        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+        brakingStartReached = drivingCourse[end][:s] + s_braking == CS[:s_exit]
+        testFlag = false     # for testing
 
-       if drivingCourse[end][:v] > CS[:v_exit]
-           (CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings, train, CSs)
-       end #if
+        while !brakingStartReached && drivingCourse[end][:s] +s_braking < CS[:s_exit]
+            calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings[:massModel])     # traction effort and resisting forces (in N)
+
+            if drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
+                if drivingCourse[end][:v] < CS[:v_peak] - 1/10^approximationLevel * settings[:stepSize] # TODO: check if multiplying with stepSize is necessary
+                    (CS, drivingCourse, brakingStartReached) = addAcceleratingSection!(CS, drivingCourse, settings, train, CSs, false)
+                    #s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                    #    testFlag && println("in CS",CS[:id]," after accelerating s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
+                else
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                    s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
+
+                    if s_cruising > 0.0  # TODO: define a minimum cruising length?
+
+                            (CS, drivingCourse, brakingStartReached) = addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
+                            s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                                testFlag && println("in CS",CS[:id]," after cruising s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
+
+            #            TODO: add downhillBraking as a special cruising Section:
+            #                (CS, drivingCourse, brakingStartReached) = addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "downhillBraking")
+
+                    end
+                end #if
+            else
+                (CS, drivingCourse, brakingStartReached) = addDiminishingSection!(CS, drivingCourse, settings, train, CSs)
+                s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                #    testFlag && println("in CS",CS[:id]," after diminishing s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
+            end
+        end
+
+        if drivingCourse[end][:v] > CS[:v_exit]
+            (CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings, train, CSs)
+        end #if
 
 
            # for testing:
@@ -127,102 +155,3 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
 end #function calculateMinimumRunningTime
 
 end # module TrainRunCalc
-
-
- #=
-# calculate a train run focussing on using the minimum possible running time
-function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train::Dict)
-   CSs::Vector{Dict} = movingSection[:characteristicSections]
-
-   startingPoint=createDataPoint()
-   startingPoint[:i]=1
-   startingPoint[:s]=CSs[1][:s_entry]
-   drivingCourse::Vector{Dict} = [startingPoint]    # List of data points
-
-   for csId in 1:length(CSs)
-       CS = CSs[csId]
-       BSs = CS[:behaviorSections]
-
-       # for testing:
-       if drivingCourse[end][:s] != CS[:s_entry]
-           println("ERROR: In CS", csId," the train run starts at s=",drivingCourse[end][:s]," and not s_entry=",CS[:s_entry])
-       end
-       if drivingCourse[end][:v] > CS[:v_entry]
-           println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_entry=",CS[:v_entry])
-       end
-
-       # check if the CS has a cruising section
-       s_breakFree = get(BSs, :breakFree, Dict(:length=>0.0))[:length]
-       s_clearing = get(BSs, :clearing, Dict(:length=>0.0))[:length]
-       s_accelerating = get(BSs, :accelerating, Dict(:length=>0.0))[:length]
-       s_braking = calcBrakingDistance(CS[:v_peak], CS[:v_exit], train[:a_braking])
-        # old: s_braking = max(0.0, ceil((CS[:v_exit]^2-CS[:v_peak]^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
-
-       # calculate the cruising sections length
-       s_cruising = max(0.0, CS[:length] - s_breakFree - s_clearing - s_accelerating - s_braking)
-
-       # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
-       CS[:behaviorSections] = Dict()
-       CS[:E] = 0.0
-       CS[:t] = 0.0
-
-# TODO 02/09: could there be a better structure for processing the different moving phases? (this if fork was added on 2022/09/02)
-      if s_clearing > 0.0 && s_breakFree + s_accelerating == 0.0
-          (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_clearing, settings, train, CSs, "clearing")
-      end
-
-       if s_cruising == CS[:length]
-           (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
-       elseif s_cruising > 0.0 || s_braking == 0.0
-
-           if drivingCourse[end][:v] < CS[:v_peak]
-               (CS, drivingCourse) = addAcceleratingSection!(CS, drivingCourse, settings, train, CSs, false) # TODO or better ignoreBraking = true?
-           end #if
-
-           if CS[:s_exit]-drivingCourse[end][:s]-max(0.0, (CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking]) < -0.001   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
-               println("ERROR: After accelerating in CS ",csId," the braking distance is too short!")
-               println("     before accelerating in CS",csId, "  with s=",drivingCourse[end][:s],"  s_braking=",((CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking]),"   s_exit=",CS[:s_exit])
-               println("                             and v=",drivingCourse[end][:v],"   v_peak=",CS[:v_peak],"  v_exit=",CS[:v_exit])
-           end
-
-           s_braking=max(0.0, ceil((CS[:v_exit]^2-drivingCourse[end][:v]^2)/2/train[:a_braking], digits=approximationLevel))   # ceil is used to be sure that the train reaches v_exit at s_exit in spite of rounding errors
-           s_cruising=CS[:s_exit]-drivingCourse[end][:s]-s_braking
-
-           if s_cruising > 0.0
-               (CS, drivingCourse)=addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
-           end
-       else
-           if CS[:v_entry] < CS[:v_peak] || s_accelerating > 0.0 # or instead of " || s_accelerating > 0.0" use "v_entry <= v_peak" or "v_i <= v_peak"
-           # 09/09 old (not sufficient for steep gradients): if CS[:v_entry] < CS[:v_peak]
-    # old 02/22       (CS, drivingCourse)=addAcceleratingSectionUntilBraking!(CS, drivingCourse, settings, train, CSs)
-           (CS, drivingCourse) = addAcceleratingSection!(CS, drivingCourse, settings, train, CSs, false)
-           end #if
-       end #if
-
-       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
-
-       if drivingCourse[end][:v] > CS[:v_exit]
-           #(CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings[:massModel], train, CSs)
-           (CS, drivingCourse)=addBrakingSection!(CS, drivingCourse, settings, train, CSs)
-       end #if
-
-       # for testing:
-       if drivingCourse[end][:s] != CS[:s_exit]
-           println("ERROR: In CS", csId," the train run ends at s=",drivingCourse[end][:s]," and not s_exit=",CS[:s_exit])
-       end
-       if drivingCourse[end][:v] > CS[:v_exit]
-           println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_exit=",CS[:v_exit])
-       end
-
-   end #for
-
-   (CSs[end], drivingCourse) = addStandstill!(CSs[end], drivingCourse, settings, train, CSs)
-
-   movingSection[:t] = drivingCourse[end][:t]            # total running time (in s)
-   movingSection[:E] = drivingCourse[end][:E]            # total energy consumption (in Ws)
-
-   return (movingSection, drivingCourse)
-end #function calculateMinimumRunningTime
-
-end # module TrainRunCalc
- =#

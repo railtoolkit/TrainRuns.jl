@@ -10,7 +10,7 @@ using .TrainRun
 
 train_directory =  "data/trains/train_freight_V90withOreConsist.yaml"
 running_path_directory = "data/paths/path_1_10km_nConst_vConst.yaml"
-setting_directory = "data/settings.yaml"
+setting_directory = "data/settings/settings_distanceStep_massPoint.yaml"
 (train, running_path, settings) = importYamlFiles(train_directory, running_path_directory, setting_directory)
 
 train_run = calculateDrivingDynamics(train, running_path, settings)

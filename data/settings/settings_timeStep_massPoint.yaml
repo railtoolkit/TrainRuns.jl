@@ -1,0 +1,12 @@
+%YAML 1.2
+---
+settings:
+# settings for the simulation
+  massModel: "mass point"                       # model type of train mass "mass point" or "homogeneous strip"
+  stepVariable: "t in s"                        # step variable of the step method "s in m", "t in s" or "v in m/s"
+  stepSize: 3.0                                 # step size (unit depends on stepVariable s in m, t in s and v in m/s)
+  operationModeMinimumRunningTime: true         # operation mode "minimum running time"
+  operationModeMinimumEnergyConsumption: false  # operation mode "minimum energy consumption"
+  typeOfOutput: "julia dictionary"              # output as "julia dictionary" or as "CSV"
+  detailOfOutput: "driving course"              # should the output be "minimal", "points of interest" or "driving course"?
+  csvDirectory: "~/Desktop/TrainRun"

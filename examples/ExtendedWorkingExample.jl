@@ -16,7 +16,7 @@ push!(allPaths, importYamlFile(:path, "data/paths/path_4_real_Germany_EastSaxony
 
 
 allSettings=[]
-push!(allSettings, importYamlFile(:settings, "data/settings.yaml"))
+push!(allSettings, importYamlFile(:settings, "data/settings/settings_distanceStep_massPoint.yaml"))
 
 allTrains=[]
 push!(allTrains, importYamlFile(:train, "data/trains/train_freight_V90withOreConsist.yaml"))

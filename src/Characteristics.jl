@@ -36,7 +36,10 @@ function createMovingSection(path::Dict, v_trainLimit::Real)
     for row in 2:length(path[:sections])
         previousSection = path[:sections][row-1]
         currentSection = path[:sections][row]
-        if min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit) || previousSection[:f_Rp] != currentSection[:f_Rp]
+        speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
+        pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
+        if speedLimitIsDifferent || pathResistanceIsDifferent
+        # 03/09 old: if min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit) || previousSection[:f_Rp] != currentSection[:f_Rp]
             push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), path))
             s_csStart = currentSection[:s_start]
             csId = csId+1

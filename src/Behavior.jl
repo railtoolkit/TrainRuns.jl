@@ -67,12 +67,13 @@ function calculatePathResistance(CSs::Vector{Dict}, csId::Integer, s::Real, mass
         pathResistance = calcForceFromCoefficient(CSs[csId][:r_path], train[:m_train])
     elseif massModel == "homogeneous strip"
         pathResistance = 0.0
-        while csId > 0 && s-train[:length] < CSs[csId][:s_exit]
-            pathResistance = pathResistance + (min(s, CSs[csId][:s_exit]) - max(s-train[:length], CSs[csId][:s_entry])) / train[:length] * calcForceFromCoefficient(CSs[csId][:r_path], train[:m_train])
+        s_rear = s - train[:length]     # position of the rear of the train
+        while csId > 0 && s_rear < CSs[csId][:s_exit]
+            pathResistance = pathResistance + (min(s, CSs[csId][:s_exit]) - max(s_rear, CSs[csId][:s_entry])) / train[:length] * calcForceFromCoefficient(CSs[csId][:r_path], train[:m_train])
             csId = csId-1
             if csId == 0
                 # TODO: currently for values  < movingSection[:s_entry] the values of movingSection[:s_entry]  will be used
-                return pathResistance + (CSs[1][:s_entry] - (s-train[:length])) / train[:length] * calcForceFromCoefficient(CSs[1][:r_path], train[:m_train])
+                return pathResistance + (CSs[1][:s_entry] - s_rear) / train[:length] * calcForceFromCoefficient(CSs[1][:r_path], train[:m_train])
             end #if
         end #while
     end #if
@@ -126,7 +127,9 @@ function moveAStep(previousPoint::Dict, stepVariable::String, stepSize::Real, cs
            newPoint[:Δt] = calc_Δt_with_constant_v(newPoint[:Δs], previousPoint[:v])    # step size (in s)
            newPoint[:Δv] = 0.0                                                          # step size (in m/s)
         else
-            if previousPoint[:a] < 0.0 && ((previousPoint[:v]/previousPoint[:a])^2+2*newPoint[:Δs]/previousPoint[:a])<0.0 || (previousPoint[:v]^2+2*newPoint[:Δs]*previousPoint[:a])<0.0  # checking if the parts of the following square roots will be <0.0
+            # check if the parts of the following square roots will be <0.0 in the functions calc_Δt_with_Δs and calc_Δv_with_Δs
+            squareRootPartIsNegative = (previousPoint[:v]/previousPoint[:a])^2+2*newPoint[:Δs]/previousPoint[:a] < 0.0 || previousPoint[:v]^2+2*newPoint[:Δs]*previousPoint[:a] < 0.0
+            if previousPoint[:a] < 0.0 && squareRootPartIsNegative
                 error("ERROR: The train stops during the accelerating section in CS",csId," because the tractive effort is lower than the resistant forces.",
                 "       Before the stop the last point has the values s=",previousPoint[:s]," m,  v=",previousPoint[:v]," m/s,  a=",previousPoint[:a]," m/s^2,",
                 "       F_T=",previousPoint[:F_T]," N,  R_traction=",previousPoint[:R_traction]," N,  R_wagons=",previousPoint[:R_wagons]," N,  R_path=",previousPoint[:R_path]," N.")
@@ -226,9 +229,9 @@ function getCurrentSpeedLimit(CSs::Vector{Dict}, csWithTrainHeadId::Integer, s::
 end #function getCurrentSpeedLimit
 
 function getNextPointOfInterest(pointsOfInterest::Vector{Real}, s::Real)
-    for POI in pointsOfInterest
-        if POI > s
-            return POI
+    for s_POI in pointsOfInterest
+        if s_POI > s
+            return s_POI
         end
     end
     error("ERROR in getNextPointOfInterest: There is no POI higher than s=",s," m.")
@@ -238,7 +241,11 @@ end #function getNextPointOfInterest
 # Therefore it gets its first data point and the characteristic section and returns the characteristic section including the behavior section for breakFree if needed.
 # Info: currently the values of the breakFree section will be calculated like in the accelerating section
 function addBreakFreeSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Dict, train::Dict, CSs::Vector{Dict}, ignoreBraking::Bool)
-    if drivingCourse[end][:v]==0.0 && drivingCourse[end][:s]<CS[:s_exit]
+    # conditions for the break free section
+    targetPositionReached = drivingCourse[end][:s] >= CS[:s_exit]
+    trainIsHalting = drivingCourse[end][:v] == 0.0
+
+    if trainIsHalting && !targetPositionReached
         BS = createBehaviorSection("breakFree", drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
         drivingCourse[end][:behavior] = BS[:type]
 
@@ -301,38 +308,34 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings
 
     # conditions for the accelerating section
     targetSpeedReached = drivingCourse[end][:v] >= CS[:v_peak]
-    trainAtEnd = drivingCourse[end][:s] >= CS[:s_exit]
+    targetPositionReached = drivingCourse[end][:s] >= CS[:s_exit]
     tractionSurplus = drivingCourse[end][:F_T] > drivingCourse[end][:F_R]
-
-    if ignoreBraking
-        s_braking = 0.0
-    else
-        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
-    end
     brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
 
     # use the conditions for the accelerating section
-    if !targetSpeedReached && !trainAtEnd && tractionSurplus
+    if !targetSpeedReached && !targetPositionReached && tractionSurplus && !brakingStartReached
         BS = createBehaviorSection("accelerating", drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
         drivingCourse[end][:behavior] = BS[:type]
-        while !targetSpeedReached && !trainAtEnd && tractionSurplus && !brakingStartReached
+
+        currentSpeedLimit = getCurrentSpeedLimit(CSs, CS[:id], drivingCourse[end][:s], train[:length])
+        speedLimitReached = drivingCourse[end][:v] > currentSpeedLimit[:v]
+            #targetSpeedReached = speedLimitReached
+        while !targetSpeedReached && !targetPositionReached && tractionSurplus && !brakingStartReached
             currentStepSize = settings[:stepSize]   # initialize the step size that can be reduced near intersections
             nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
-            currentSpeedLimit = getCurrentSpeedLimit(CSs, CS[:id], drivingCourse[end][:s], train[:length])
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest
 
             for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 if !ignoreBraking
                     s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
                 end
 
-                while drivingCourse[end][:v] < CS[:v_peak] && drivingCourse[end][:v] <= currentSpeedLimit[:v] && !brakingStartReached && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:F_T] > drivingCourse[end][:F_R]      # as long as s_i + s_braking < s_CSexit
-                # 03/02 old: while drivingCourse[end][:v] < CS[:v_peak] && drivingCourse[end][:v] <= currentSpeedLimit[:v] && drivingCourse[end][:s] +s_braking < CS[:s_exit] && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:F_T] > drivingCourse[end][:F_R]      # as long as s_i + s_braking < s_CSexit
-                # 02/23 old: while drivingCourse[end][:v] < CS[:v_peak] && drivingCourse[end][:s] +s_braking < CS[:s_exit] && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:F_T] > drivingCourse[end][:F_R]      # as long as s_i + s_braking < s_CSexit
-                if drivingCourse[end][:s] >= currentSpeedLimit[:s_end]
-                    # could be asked after creating an data point. This way here prevents even a minimal exceedance of speed limit will be noticed. On the other hand the train cruises possibly a little to long
-                    currentSpeedLimit = getCurrentSpeedLimit(CSs, CS[:id], drivingCourse[end][:s], train[:length])
-                end
-
+                while !targetSpeedReached && !speedLimitReached && !brakingStartReached && !pointOfInterestReached && tractionSurplus
+                # 03/08 old: while drivingCourse[end][:v] < CS[:v_peak] && drivingCourse[end][:v] <= currentSpeedLimit[:v] && !brakingStartReached && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:F_T] > drivingCourse[end][:F_R]      # as long as s_i + s_braking < s_CSexit
+                    if drivingCourse[end][:s] >= currentSpeedLimit[:s_end]
+                        # could be asked after creating an data point. This way here prevents even a minimal exceedance of speed limit will be noticed. On the other hand the train cruises possibly a little to long
+                        currentSpeedLimit = getCurrentSpeedLimit(CSs, CS[:id], drivingCourse[end][:s], train[:length])
+                    end
 
                     # acceleration (in m/s^2):
                     drivingCourse[end][:a] = calcAcceleration(drivingCourse[end][:F_T], drivingCourse[end][:F_R], train[:m_train], train[:ξ_train])
@@ -343,10 +346,17 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings
                     push!(BS[:dataPoints], drivingCourse[end][:i])
 
                     calculateForces!(drivingCourse[end], CSs, CS[:id], BS[:type], train, settings[:massModel])
+
+                    # conditions for the next while cycle
                     if !ignoreBraking
                         s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
-                        brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
                     end
+                    brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
+                    speedLimitReached = drivingCourse[end][:v] > currentSpeedLimit[:v]
+                    targetSpeedReached = drivingCourse[end][:v] >= CS[:v_peak]
+                        #targetSpeedReached = speedLimitReached
+                    pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest   # POIs include s_exit as well
+                    tractionSurplus = drivingCourse[end][:F_T] > drivingCourse[end][:F_R]
                 end #while
 
                 if CS[:id]==0
@@ -384,24 +394,36 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings
                     elseif drivingCourse[end][:v] > currentSpeedLimit[:v]
                         testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," case: v=", drivingCourse[end][:v]," > v_limitCurrent=",currentSpeedLimit[:v])    # for testing
                         (CS, drivingCourse, BS) = considerFormerSpeedLimit!(CS, drivingCourse, BS, settings, train, CSs, currentSpeedLimit)
+                        # conditions for the next for cycle
+                        if !ignoreBraking
+                            s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                        end
+                        brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
+                        speedLimitReached = false
+                        targetSpeedReached = drivingCourse[end][:v] >= CS[:v_peak]
+                            #targetSpeedReached = speedLimitReached
+                        tractionSurplus = drivingCourse[end][:F_T] > drivingCourse[end][:F_R]
+
                         break
                         # TODO: think about alternative: handle the the position where the rear of the train leaves a CS similar to a POI. Then it will be calculated exactly and even a minimal exceedance of speed limit will be noticed
 
                     elseif drivingCourse[end][:s] +s_braking == CS[:s_exit]
                         testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],",+",s_braking," = ",drivingCourse[end][:s] +s_braking," == s_exit=",CS[:s_exit])    # for testing
-                        brakingStartReached = true
                         if s_braking == 0.0
-                            trainAtEnd = true
+                            targetPositionReached = true
                         end
                         break
 
                     elseif drivingCourse[end][:v] == CS[:v_peak]
                         testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," case: v=", drivingCourse[end][:v]," == v_peak=",CS[:v_peak])    # for testing
-                        targetSpeedReached = true
+                    #    targetSpeedReached = true
                         break
 
                     elseif drivingCourse[end][:s] == nextPointOfInterest
                         testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," case: s=", drivingCourse[end][:s]," == nextPOI=",nextPointOfInterest)    # for testing
+                        if nextPointOfInterest == CS[:s_exit]
+                            targetPositionReached = true
+                        end
                         break
 
                     else
@@ -414,7 +436,14 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings
                     # delete last data point for recalculating the last step with reduced step size
                     pop!(drivingCourse)
                     pop!(BS[:dataPoints])
+
+                    # conditions for the next for cycle
                     brakingStartReached = false
+                    speedLimitReached = false
+                    targetSpeedReached = false
+                    targetPositionReached = false
+                    pointOfInterestReached = false
+                    tractionSurplus = true
 
                 else # if the level of approximation is reached
                     if drivingCourse[end][:v] > CS[:v_peak]
@@ -426,7 +455,7 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings
 
                     elseif drivingCourse[end][:s] + s_braking > CS[:s_exit]
                         testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],",+",s_braking," = ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])    # for testing
-                        brakingStartReached = true
+                        #brakingStartReached = true
                         if s_braking > 0.0
                             pop!(drivingCourse)
                             pop!(BS[:dataPoints])
@@ -442,30 +471,33 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings
 
                     elseif drivingCourse[end][:F_T] <= drivingCourse[end][:F_R]
                         testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," case: F_T=", drivingCourse[end][:F_T]," <= F_R=",drivingCourse[end][:F_R])    # for testing
-                        tractionSurplus = false
+                        #tractionSurplus = false
 
                     elseif drivingCourse[end][:v] > currentSpeedLimit[:v]
                         testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," case: v=", drivingCourse[end][:v]," > v_limitCurrent=",currentSpeedLimit[:v])    # for testing
                         (CS, drivingCourse, BS) = considerFormerSpeedLimit!(CS, drivingCourse, BS, settings, train, CSs, currentSpeedLimit)
+                        speedLimitReached = false
+
                         # TODO: think about alternative: handle the the position where the rear of the train leaves a CS similar to a POI. Then it will be calculated exactly and the train start accelerating immediately and not only at the next data point.
 
                     else
                         if drivingCourse[end][:s] + s_braking == CS[:s_exit]
                             testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," else case and there: s +s_braking=", drivingCourse[end][:s],",+",s_braking," = ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])    # for testing
-                            brakingStartReached = true
                         end
                     end
 
                     # TODO is it possible to put this into to the if-fork?
                     if drivingCourse[end][:s] == CS[:s_exit]
-                        trainAtEnd = true
+                        targetPositionReached = true
                     end
+
                 end
             end #for
 
             if drivingCourse[end][:s] == CS[:s_exit]
-                trainAtEnd = true
+                targetPositionReached = true
             end
+
         end #while
 
         if length(BS[:dataPoints]) > 1
@@ -494,11 +526,14 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, s_cruising::
     # traction effort and resisting forces (in N)
     calculateForces!(drivingCourse[end], CSs, CS[:id], "cruising", train, settings[:massModel])
 
+    # conditions for cruising section
     s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
+    speedIsValid = drivingCourse[end][:v]>0.0 && drivingCourse[end][:v]<=CS[:v_peak]
+    tractionSurplus = drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
 
-    if drivingCourse[end][:v]>0.0 && drivingCourse[end][:v]<=CS[:v_peak] && !brakingStartReached && drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
-    # old: if drivingCourse[end][:v]>0.0 && drivingCourse[end][:v]<=CS[:v_peak] && drivingCourse[end][:s]<CS[:s_exit] && drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
+    if speedIsValid && !brakingStartReached && tractionSurplus
+    # 03/04 old: if drivingCourse[end][:v]>0.0 && drivingCourse[end][:v]<=CS[:v_peak] && !brakingStartReached && drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
         BS = createBehaviorSection(cruisingType, drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
         drivingCourse[end][:behavior] = BS[:type]
 
@@ -511,16 +546,16 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, s_cruising::
         if settings[:massModel]=="homogeneous strip" && CS[:id] > 1
             # conditions for cruising section
             trainInPreviousCS = drivingCourse[end][:s] < CS[:s_entry] + train[:length]
-            trainAtEnd = drivingCourse[end][:s] >= BS[:s_entry] +s_cruising
-            tractionSurplus = drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
+            targetPositionReached = drivingCourse[end][:s] >= BS[:s_entry] +s_cruising
 
             # use the conditions for the cruising section
-            while trainInPreviousCS && !trainAtEnd && tractionSurplus
+            while trainInPreviousCS && !targetPositionReached && tractionSurplus
                 currentStepSize = settings[:stepSize]
                 nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
 
                 for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
-                    while drivingCourse[end][:s] < CS[:s_entry] + train[:length] && drivingCourse[end][:s] < BS[:s_entry] +s_cruising && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:F_T]>=drivingCourse[end][:F_R]
+                    while trainInPreviousCS && targetPositionReached && !pointOfInterestReached && tractionSurplus
+                    # 03/09 old: while drivingCourse[end][:s] < CS[:s_entry] + train[:length] && drivingCourse[end][:s] < BS[:s_entry] +s_cruising && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:F_T]>=drivingCourse[end][:F_R]
                      # the tractive effort is lower than the resisiting forces and the train has use the highest possible effort to try to stay at v_peak OR the mass model homogeneous strip is used and parts of the train are still in former CS
                       #TODO: maybe just consider former CS with different path resistance?
 
@@ -538,6 +573,12 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, s_cruising::
 
                         # traction effort and resisting forces (in N)
                         calculateForces!(drivingCourse[end], CSs, CS[:id], "cruising", train, settings[:massModel])
+
+                        # conditions for the next while cycle
+                        pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest   # POIs include s_exit as well
+                        tractionSurplus = drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
+                        targetPositionReached = drivingCourse[end][:s] >= BS[:s_entry] +s_cruising
+                        trainInPreviousCS = drivingCourse[end][:s] < CS[:s_entry] + train[:length]
                     end #while
 
                     # check which limit was reached and adjust the currentStepSize for the next cycle
@@ -560,11 +601,9 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, s_cruising::
                             end
 
                         elseif drivingCourse[end][:s] == BS[:s_entry] + s_cruising # || drivingCourse[end][:s]==CS[:s_exit]
-                            trainAtEnd = true
                             break
 
                         elseif drivingCourse[end][:s] >= CS[:s_entry] + train[:length]
-                            trainInPreviousCS = false
                             break
 
                         elseif drivingCourse[end][:s] == nextPointOfInterest
@@ -578,22 +617,25 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, s_cruising::
                         pop!(drivingCourse)
                         pop!(BS[:dataPoints])
 
+                        # conditions for the next for cycle
+                        pointOfInterestReached = false
+                        tractionSurplus = true
+                        targetPositionReached = false
+                        trainInPreviousCS = true
+
                     else # if the level of approximation is reached
                         if drivingCourse[end][:s] > nextPointOfInterest
                             drivingCourse[end][:s] = nextPointOfInterest # round s down to nextPointOfInterest
                             drivingCourse[end][:Δs] = drivingCourse[end][:s] - drivingCourse[end-1][:s]
                         elseif drivingCourse[end][:s] > BS[:s_entry]+s_cruising
-                            trainAtEnd = true
                             if BS[:type] != "clearing"
                                 pop!(drivingCourse)
                                 pop!(BS[:dataPoints])
                             end
                         elseif drivingCourse[end][:s] == BS[:s_entry]+s_cruising
-                            trainAtEnd = true
                             break
                         elseif drivingCourse[end][:F_T] < drivingCourse[end][:F_R]
-                            tractionSurplus = false
-
+                            break
                         else
 
                         end
@@ -602,9 +644,12 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, s_cruising::
             end #while
         end #if
 
-        # TODO oder soll das lieber nach oben in den else des letzten Durchlaufs. Noch mal genauer ansehen, ob hier was doppelt gemoppelt ist
-        #if drivingCourse[end][:s] < BS[:s_entry]+s_cruising && drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
-        while drivingCourse[end][:s] < BS[:s_entry]+s_cruising && drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
+        # conditions for the next while cycle
+        targetPositionReached = drivingCourse[end][:s] >= BS[:s_entry] +s_cruising
+        tractionSurplus = drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
+
+        while !targetPositionReached && tractionSurplus
+        # 03/09 old: while drivingCourse[end][:s] < BS[:s_entry]+s_cruising && drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
             nextPointOfInterest = min(BS[:s_entry]+s_cruising, getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s]))
             drivingCourse[end][:a] = 0.0    # acceleration (in m/s^2)
 
@@ -618,6 +663,10 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, s_cruising::
             push!(BS[:dataPoints], drivingCourse[end][:i])
 
             calculateForces!(drivingCourse[end], CSs, CS[:id], "cruising", train, settings[:massModel])
+
+            # conditions for the next while cycle
+            targetPositionReached = drivingCourse[end][:s] >= BS[:s_entry] +s_cruising
+            tractionSurplus = drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
         end #while
 
         # TODO: realize this better inside the upper loops?
@@ -646,26 +695,25 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings:
     calculateForces!(drivingCourse[end], CSs, CS[:id], "diminishing", train, settings[:massModel])
     # conditions for diminishing section
     targetSpeedReached = drivingCourse[end][:v] <= 0.0
-    trainAtEnd = drivingCourse[end][:s] >= CS[:s_exit]
-    tractionSurplus = drivingCourse[end][:F_T] > drivingCourse[end][:F_R]
+    targetPositionReached = drivingCourse[end][:s] >= CS[:s_exit]
+    tractionSurplus = drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
 
     s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
 
     # use the conditions for the diminishing section
-    if !tractionSurplus && !targetSpeedReached && !trainAtEnd
+    if !tractionSurplus && !targetSpeedReached && !targetPositionReached
         BS = createBehaviorSection("diminishing", drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
         drivingCourse[end][:behavior] = BS[:type]
 
-        while !tractionSurplus && !targetSpeedReached && !trainAtEnd && !brakingStartReached
+        while !tractionSurplus && !targetSpeedReached && !targetPositionReached && !brakingStartReached
             currentStepSize=settings[:stepSize]   # initialize the step size that can be reduced near intersections
             nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest
 
             for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
-                s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
-                #while drivingCourse[end][:F_T] <= drivingCourse[end][:F_R] && drivingCourse[end][:s] + s_braking < CS[:s_exit] && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:v]>0.0       # as long as s_i + s_braking < s_end
-                #while drivingCourse[end][:F_T] < drivingCourse[end][:F_R] && drivingCourse[end][:s] + s_braking < CS[:s_exit] && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:v]>0.0       # as long as s_i + s_braking < s_end
-                while drivingCourse[end][:F_T] < drivingCourse[end][:F_R] && !brakingStartReached && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:v]>0.0       # as long as s_i + s_braking < s_end
+                while !tractionSurplus && !brakingStartReached && !pointOfInterestReached && !targetSpeedReached
+                # 03/09 old: while drivingCourse[end][:F_T] < drivingCourse[end][:F_R] && !brakingStartReached && drivingCourse[end][:s] < nextPointOfInterest && drivingCourse[end][:v]>0.0       # as long as s_i + s_braking < s_end
                     # acceleration (in m/s^2):
                     drivingCourse[end][:a] = calcAcceleration(drivingCourse[end][:F_T], drivingCourse[end][:F_R], train[:m_train], train[:ξ_train])
 
@@ -674,9 +722,14 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings:
                     drivingCourse[end][:behavior] = BS[:type]
                     push!(BS[:dataPoints], drivingCourse[end][:i])
 
+                    calculateForces!(drivingCourse[end], CSs, CS[:id], BS[:type], train, settings[:massModel])
+
+                    # conditions for the next while cycle
                     s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
                     brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
-                    calculateForces!(drivingCourse[end], CSs, CS[:id], BS[:type], train, settings[:massModel])
+                    pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest
+                    targetSpeedReached = drivingCourse[end][:v] <= 0.0
+                    tractionSurplus = drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
                 end #while
 
                 if CS[:id]==0
@@ -711,7 +764,6 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings:
 
                     elseif drivingCourse[end][:s] + s_braking == CS[:s_exit]
                         testFlag && println("in CS",CS[:id]," diminishing cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," == s_exit=",CS[:s_exit])    # for testing
-                        brakingStartReached = true
                         break
 
                     elseif drivingCourse[end][:s] == nextPointOfInterest
@@ -720,11 +772,9 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings:
 
                     elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R]
                         testFlag && println("in CS",CS[:id]," diminishing cycle",cycle," case: F_T=", drivingCourse[end][:F_T]," == F_R=",drivingCourse[end][:F_R])    # for testing
-                        tractionSurplus = true
                         break
 
                     elseif drivingCourse[end][:v] == 0.0
-                        targetSpeedReached = true
                         error("ERROR: The train stops during diminishing run in CS",CS[:id]," at position s=",drivingCourse[end][:s]," m because the maximum tractive effort is lower than the resistant forces.",
                         "       Before the stop the last point has the values s=",drivingCourse[end-1][:s]," m  v=",drivingCourse[end-1][:v]," m/s  a=",drivingCourse[end-1][:a]," m/s^2",
                         "       F_T=",drivingCourse[end-1][:F_T]," N  R_traction=",drivingCourse[end-1][:R_traction]," N  R_wagons=",drivingCourse[end-1][:R_wagons]," N  R_path=",drivingCourse[end-1][:R_path]," N.")
@@ -735,12 +785,16 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings:
                     # delete last data point for recalculating the last step with reduced step size
                     pop!(drivingCourse)
                     pop!(BS[:dataPoints])
+
+                    # conditions for the next for cycle
                     brakingStartReached = false
+                    pointOfInterestReached = false
+                    targetSpeedReached = false
+                    tractionSurplus = false
 
                 else # if the level of approximation is reached
                     if drivingCourse[end][:v] <= 0.0
                         testFlag && println("in CS",CS[:id]," diminishing cycle",cycle," case: v=", drivingCourse[end][:v]," <= 0.0")    # for testing
-                        targetSpeedReached = true
                         # push!(BS[:dataPoints], drivingCourse[end][:i])
                         error("ERROR: The train stops during diminishing run in CS",CS[:id]," because the maximum tractive effort is lower than the resistant forces.",
                         "       Before the stop the last point has the values s=",drivingCourse[end-1][:s]," m  v=",drivingCourse[end-1][:v]," m/s  a=",drivingCourse[end-1][:a]," m/s^2",
@@ -748,9 +802,12 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings:
 
                     elseif s_braking > 0.0 && drivingCourse[end][:s] + s_braking > CS[:s_exit]
                         testFlag && println("in CS",CS[:id]," diminishing cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])    # for testing
-                        brakingStartReached = true
                         pop!(drivingCourse)
                         pop!(BS[:dataPoints])
+
+                        pointOfInterestReached = false
+                        targetSpeedReached = false
+                        tractionSurplus = false
 
                     elseif drivingCourse[end][:s] > nextPointOfInterest
                         testFlag && println("in CS",CS[:id]," diminishing cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest=",nextPointOfInterest)    # for testing
@@ -759,7 +816,6 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings:
 
                     elseif drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
                         testFlag && println("in CS",CS[:id]," diminishing cycle",cycle," case: F_T=", drivingCourse[end][:F_T]," >= F_R=", drivingCourse[end][:F_R])    # for testing
-                        tractionSurplus = true
                         break
 
                     else
@@ -767,14 +823,14 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings:
                         #println("     and s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
                         #println("     and s=", drivingCourse[end][:s]," <= nextPointOfInterest=",nextPointOfInterest)    # for testing
 
-                        if drivingCourse[end][:s] + s_braking == CS[:s_exit]
-                            brakingStartReached = true
-                        end
+                    #    if drivingCourse[end][:s] + s_braking == CS[:s_exit]
+                    #        brakingStartReached = true
+                    #    end
                     end #if
 
                     # TODO is it possible to put this into to the if-fork?
                     if drivingCourse[end][:s] == CS[:s_exit]
-                        trainAtEnd = true
+                        targetPositionReached = true
                     end
                 end #if
             end #for
@@ -807,23 +863,24 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Di
 
     # conditions for coasting section
     targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit]
-    trainAtEnd = drivingCourse[end][:s] >= CS[:s_exit]
+    targetPositionReached = drivingCourse[end][:s] >= CS[:s_exit]
 
     s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
 
     # use the conditions for the coasting section
-    if !targetSpeedReached && !trainAtEnd
+    if !targetSpeedReached && !targetPositionReached
        BS = createBehaviorSection("coasting", drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
        drivingCourse[end][:behavior] = BS[:type]
 
-       while !targetSpeedReached && !trainAtEnd && !brakingStartReached
+       while !targetSpeedReached && !targetPositionReached && !brakingStartReached
            currentStepSize=settings[:stepSize]  # initialize the step size that can be reduced near intersections
            nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
+           pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest
 
            for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
-                s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
-                while drivingCourse[end][:v] > CS[:v_exit] && drivingCourse[end][:v] <= CS[:v_peak] && !brakingStartReached && drivingCourse[end][:s] < nextPointOfInterest # as long as s_i + s_braking < s_end
+                while !targetSpeedReached && !brakingStartReached && !pointOfInterestReached
+                # 03/09 old : while drivingCourse[end][:v] > CS[:v_exit] && drivingCourse[end][:v] <= CS[:v_peak] && !brakingStartReached && drivingCourse[end][:s] < nextPointOfInterest
                    # traction effort and resisting forces (in N):
                    calculateForces!(drivingCourse[end], CSs, CS[:id], BS[:type], train, settings[:massModel])
 
@@ -835,16 +892,24 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Di
                    drivingCourse[end][:behavior] = BS[:type]
                    push!(BS[:dataPoints], drivingCourse[end][:i])
 
+                   # conditions for the next while cycle
                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
                    brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
+                   pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest
+                   targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit] || drivingCourse[end][:v] > CS[:v_peak]
                 end # while
+
+                testFlag = false
 
                 # check which limit was reached and adjust the currentStepSize for the next cycle
                 if cycle < approximationLevel+1
                    if drivingCourse[end][:s] + s_braking > CS[:s_exit]
+                       testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])    # for testing
                        currentStepSize = settings[:stepSize] / 10.0^cycle
 
                    elseif drivingCourse[end][:s] > nextPointOfInterest
+                       testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest=",nextPointOfInterest)    # for testing
+
                        if settings[:stepVariable] == "s in m"
                            currentStepSize = nextPointOfInterest - drivingCourse[end-1][:s]
                        else
@@ -852,26 +917,29 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Di
                        end
 
                    elseif drivingCourse[end][:v] < CS[:v_exit]  # TODO: if accelereation and coasting functions will be combined this case is only for coasting
+                       testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: v=", drivingCourse[end][:v]," < v_exit=", CS[:v_exit])    # for testing
                         if settings[:stepVariable] == "v in m/s"
                             currentStepSize = drivingCourse[end-1][:v] - CS[:v_exit]
                         else
                             currentStepSize = settings[:stepSize] / 10.0^cycle
                         end
                    elseif drivingCourse[end][:v] > CS[:v_peak]
+                       testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: v=", drivingCourse[end][:v]," > v_peak=", CS[:v_peak])    # for testing
                        if settings[:stepVariable] == "v in m/s"
                            currentStepSize = CS[:v_peak] - drivingCourse[end-1][:v]
                        else
                            currentStepSize = settings[:stepSize] / 10.0^cycle
                        end
                    elseif drivingCourse[end][:s] + s_braking == CS[:s_exit]
-                       trainAtEnd = true
+                       testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," == s_exit=",CS[:s_exit])    # for testing
                        break
 
                    elseif drivingCourse[end][:v] == CS[:v_exit]
-                       targetSpeedReached = true
+                       testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: v=", drivingCourse[end][:v]," == v_exit=", CS[:v_exit])    # for testing
                        break
 
                    elseif drivingCourse[end][:s] == nextPointOfInterest
+                       testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: s =", drivingCourse[end][:s]," > nextPointOfInterest=",nextPointOfInterest)    # for testing
                        break
 
                    else
@@ -881,7 +949,12 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Di
                    # delete last data point for recalculating the last step with reduced step size
                    pop!(drivingCourse)
                    pop!(BS[:dataPoints])
+
+                   # conditions for the next for cycle
                    brakingStartReached = false
+                   pointOfInterestReached = false
+                   targetSpeedReached = false
+
 
                else # if the level of approximation is reached
                     if drivingCourse[end][:v] <= 0.0
@@ -890,13 +963,11 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Di
                         "       F_T=",drivingCourse[end-1][:F_T]," N  R_traction=",drivingCourse[end-1][:R_traction]," N  R_wagons=",drivingCourse[end-1][:R_wagons]," N  R_path=",drivingCourse[end-1][:R_path]," N and s_braking=",s_braking,"m.")
 
                    elseif drivingCourse[end][:s] + s_braking > CS[:s_exit]
-                       brakingStartReached = true
                        # delete last data point because it went to far
                        pop!(drivingCourse)
                        pop!(BS[:dataPoints])
 
                    elseif drivingCourse[end][:v] > CS[:v_peak] # if the train gets to fast it has to brake  # TODO: if accelereation and coasting functions will be combined this case is different for coasting and also the order of if cases is different
-                       targetSpeedReached = true
                        # delete last data point because it went to far
                        pop!(drivingCourse)
                        pop!(BS[:dataPoints])
@@ -915,9 +986,7 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Di
                        drivingCourse[end][:s] = nextPointOfInterest # round s down to nextPointOfInterest
                        drivingCourse[end][:Δs] = drivingCourse[end][:s] - drivingCourse[end-1][:s]
                    else
-                       if drivingCourse[end][:s] + s_braking == CS[:s_exit]
-                           brakingStartReached = true
-                       end
+                       # do nothing for example for drivingCourse[end][:s] + s_braking == CS[:s_exit]
                    end
                end
            end #for
@@ -945,19 +1014,21 @@ end #function addCoastingSection!
 function addBrakingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Dict, train::Dict, CSs::Vector{Dict})
     # conditions for braking section
     targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit]
-    trainAtEnd = drivingCourse[end][:s] >= CS[:s_exit]
+    targetPositionReached = drivingCourse[end][:s] >= CS[:s_exit]
 
     # use the conditions for the braking section
-    if !targetSpeedReached && !trainAtEnd
+    if !targetSpeedReached && !targetPositionReached
         BS = createBehaviorSection("braking", drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
         drivingCourse[end][:behavior] = BS[:type]
 
-        while !targetSpeedReached && !trainAtEnd
+        while !targetSpeedReached && !targetPositionReached
             currentStepSize = settings[:stepSize]  # initialize the step size that can be reduced near intersections
             nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest
 
             for cycle in 1:approximationLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
-                while drivingCourse[end][:v] > CS[:v_exit] && !targetSpeedReached && drivingCourse[end][:s] < CS[:s_exit] && drivingCourse[end][:s] < nextPointOfInterest
+                while !targetSpeedReached && !targetPositionReached && !pointOfInterestReached
+                # 03/09 old: while drivingCourse[end][:v] > CS[:v_exit] && !targetSpeedReached && drivingCourse[end][:s] < CS[:s_exit] && drivingCourse[end][:s] < nextPointOfInterest
                   # traction effort and resisting forces (in N):
                   calculateForces!(drivingCourse[end], CSs, CS[:id], BS[:type], train, settings[:massModel])
 
@@ -979,6 +1050,11 @@ function addBrakingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Dic
                       push!(BS[:dataPoints], drivingCourse[end][:i])
                   end
                   #println(drivingCourse[end][:i],".  s=",drivingCourse[end][:s],"  s_exit=", CS[:s_exit],"  v_exit=", CS[:v_exit],"  v=",drivingCourse[end][:v])
+
+                  # conditions for the next while cycle
+                  pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest
+                  targetPositionReached = drivingCourse[end][:s] >= CS[:s_exit]
+                  targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit]
                 end # while
 
                 # check which limit was reached and adjust the currentStepSize for the next cycle
@@ -997,21 +1073,16 @@ function addBrakingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Dic
                             currentStepSize = settings[:stepSize] / 10.0^cycle
                         end
                     elseif drivingCourse[end][:v] == CS[:v_exit] && drivingCourse[end][:s] == CS[:s_exit]
-                        targetSpeedReached = true
-                        trainAtEnd = true
                         break
                     elseif drivingCourse[end][:v] == CS[:v_exit]
-                        targetSpeedReached = true
-                        trainAtEnd = true
-                    #    println("during braking section in CS",CS[:id],": rounding s up from ", drivingCourse[end][:s] ," to ", CS[:s_exit]) # for testing
                         recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], CS[:v_exit])
+                        targetPositionReached = true
                     #    println("  with a=", drivingCourse[end-1][:a]) # for testing
                         break
                     elseif drivingCourse[end][:s] == CS[:s_exit]
-                        targetSpeedReached = true
-                        trainAtEnd = true
                     #    println("during braking section in CS",CS[:id],": rounding v down from ", drivingCourse[end][:v] ," to ", CS[:v_exit]) # for testing
                         recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], CS[:v_exit])
+                        targetSpeedReached = true
                     #    println("  with a=", drivingCourse[end-1][:a]) # for testing
                         break
                     elseif drivingCourse[end][:s] == nextPointOfInterest
@@ -1022,18 +1093,21 @@ function addBrakingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Dic
                     pop!(drivingCourse)
                     pop!(BS[:dataPoints])
 
+                    # conditions for the next for cycle
+                    pointOfInterestReached = false
+                    targetPositionReached = false
+                    targetSpeedReached = false
+
                 else # if the level of approximation is reached
                     if drivingCourse[end][:v] < 0.0
+                        # TODO: drivingCourse[end][:v] < CS[:v_exit] should be enough
                         # reset last point with setting v=v_exit
-                       targetSpeedReached = true
-                       trainAtEnd = true
                     #   println("during braking section in CS",CS[:id],": rounding v up from ", drivingCourse[end][:v] ," to ", CS[:v_exit]) # for testing
                        recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], 0.0)
-                   #    println("  with a=", drivingCourse[end-1][:a]) # for testing
+                       targetPositionReached = true
+                    #    println("  with a=", drivingCourse[end-1][:a]) # for testing
                        break
                    elseif drivingCourse[end][:s] > CS[:s_exit]
-                       targetSpeedReached = true
-                       trainAtEnd = true
                 #       println("during braking section in CS",CS[:id],": rounding s down from ", drivingCourse[end][:s] ," to ", CS[:s_exit]) # for testing
                       # recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], CS[:v_exit])
                        drivingCourse[end][:s] = CS[:s_exit]
@@ -1043,29 +1117,24 @@ function addBrakingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Dic
                         drivingCourse[end][:Δs] = drivingCourse[end][:s] - drivingCourse[end-1][:s]
                         break
                     elseif drivingCourse[end][:v] == CS[:v_exit] && drivingCourse[end][:s] == CS[:s_exit]
-                        targetSpeedReached = true
-                        trainAtEnd = true
                         break
                     elseif drivingCourse[end][:v] < CS[:v_exit]
                         # reset last point with setting v=v_exit
-                        targetSpeedReached = true
-                        trainAtEnd = true
                     #    println("during braking section in CS",CS[:id],": rounding s up from ", drivingCourse[end][:s] ," to ", CS[:s_exit]) # for testing
                         recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], CS[:v_exit])
+                        targetPositionReached = true
                     #    println("  with a=", drivingCourse[end-1][:a]) # for testing
                         break
                    elseif drivingCourse[end][:v] == CS[:v_exit]
-                        targetSpeedReached = true
-                        trainAtEnd = true
                     #    println("during braking section in CS",CS[:id],": rounding s up from ", drivingCourse[end][:s] ," to ", CS[:s_exit]) # for testing
                         recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], CS[:v_exit])
+                        targetPositionReached = true
                     #    println("  with a=", drivingCourse[end-1][:a]) # for testing
                         break
                     elseif drivingCourse[end][:s] == CS[:s_exit]
-                        targetSpeedReached = true
-                        trainAtEnd = true
                     #    println("during braking section in CS",CS[:id],": rounding v down from ", drivingCourse[end][:v] ," to ", CS[:v_exit]) # for testing
                         recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], CS[:v_exit])
+                        targetSpeedReached = true
                     #    println("  with a=", drivingCourse[end-1][:a]) # for testing
                         break
                     else

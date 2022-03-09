@@ -100,15 +100,15 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
 
         s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
         brakingStartReached = drivingCourse[end][:s] + s_braking == CS[:s_exit]
+        drivingCourse[end][:s] + s_braking > CS[:s_exit] && error("ERROR: In CS", csId,": s +s_braking=", drivingCourse[end][:s],",+",s_braking," > ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])
         testFlag = false     # for testing
 
-        while !brakingStartReached && drivingCourse[end][:s] +s_braking < CS[:s_exit]
+        while !brakingStartReached
             calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings[:massModel])     # traction effort and resisting forces (in N)
 
             if drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
                 if drivingCourse[end][:v] < CS[:v_peak] - 1/10^approximationLevel * settings[:stepSize] # TODO: check if multiplying with stepSize is necessary
                     (CS, drivingCourse, brakingStartReached) = addAcceleratingSection!(CS, drivingCourse, settings, train, CSs, false)
-                    #s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
                     #    testFlag && println("in CS",CS[:id]," after accelerating s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
                 else
                     s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
@@ -117,8 +117,8 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
                     if s_cruising > 0.0  # TODO: define a minimum cruising length?
 
                             (CS, drivingCourse, brakingStartReached) = addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "cruising")
-                            s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
-                                testFlag && println("in CS",CS[:id]," after cruising s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
+                            #s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                            #    testFlag && println("in CS",CS[:id]," after cruising s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
 
             #            TODO: add downhillBraking as a special cruising Section:
             #                (CS, drivingCourse, brakingStartReached) = addCruisingSection!(CS, drivingCourse, s_cruising, settings, train, CSs, "downhillBraking")
@@ -127,8 +127,13 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
                 end #if
             else
                 (CS, drivingCourse, brakingStartReached) = addDiminishingSection!(CS, drivingCourse, settings, train, CSs)
-                s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                #s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
                 #    testFlag && println("in CS",CS[:id]," after diminishing s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
+            end
+
+            s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+            if drivingCourse[end][:s] +s_braking == CS[:s_exit]
+                brakingStartReached = true
             end
         end
 

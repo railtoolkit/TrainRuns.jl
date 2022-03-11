@@ -182,7 +182,7 @@ function calculateMinimumEnergyConsumption(movingSectionMinimumRunningTime::Dict
         # update all the data point references in the behaviour sections of the following characteristic sections and the other modified characteristic sections
         if difference!= 0
             # update the data point references in the behaviour sections of the following characteristic sections
-            allBs=[:breakFree, :clearing, :accelerating, :cruising, :diminishing, :coasting, :braking, :standstill]
+            allBs=[:breakFree, :clearing, :accelerating, :cruising, :downhillBraking, :diminishing, :coasting, :braking, :standstill]
             for csId in csIdMax+1:length(CSsOrig)
                 for bs in 1: length(allBs)
                     if haskey(CSsOrig[csId][:behaviorSections], allBs[bs])
@@ -263,7 +263,7 @@ function copyMovingSection(original::Dict)
 end #function copyMovingSection
 
 function copyCharacteristicSection(originalCS::Dict)
-    allBs=[:breakFree, :clearing, :accelerating, :cruising, :diminishing, :coasting, :braking, :standstill]
+    allBs=[:breakFree, :clearing, :accelerating, :cruising, :downhillBraking, :diminishing, :coasting, :braking, :standstill]
     copiedBSs = Dict()
     for bs in 1: length(allBs)
         if haskey(originalCS[:behaviorSections], allBs[bs])
@@ -320,7 +320,7 @@ function createEnergySavingModification()
 end #createEnergySavingModification
 
 function updateEnergySavingModifications!(energySavingModifications::Vector{Dict}, csIdMax::Integer, drivingCourseNew::Vector{Dict}, endOfModificationId::Integer, lastIdOfSelectedCsOriginal::Integer)
-    allBs=[:breakFree, :clearing, :accelerating, :cruising, :diminishing, :coasting, :braking, :standstill]
+    allBs=[:breakFree, :clearing, :accelerating, :cruising, :downhillBraking, :diminishing, :coasting, :braking, :standstill]
     difference = endOfModificationId-lastIdOfSelectedCsOriginal
     for modNr in csIdMax+1:length(energySavingModifications)
         if energySavingModifications[modNr][:ratio]>0

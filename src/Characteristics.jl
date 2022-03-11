@@ -140,8 +140,17 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
         acceleratingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
         if CS[:v_entry] < CS[:v_peak]
-            (CS, acceleratingCourse) = addBreakFreeSection!(CS, acceleratingCourse, settings, train, CSs, true)
-            (CS, acceleratingCourse) = addAcceleratingSection!(CS, acceleratingCourse, settings, train, CSs, true)        # this function changes the acceleratingCourse
+            # conditions for entering the accelerating phase
+            stateFlags = Dict(:endOfCSReached => false,
+                              :brakingStartReached => false,
+                              :tractionDeficit => false,
+                              :previousSpeedLimitReached => false,
+                              :speedLimitReached => false,
+                              :error => false,
+                              :usedForDefiningCharacteristics => true)      # because usedForDefiningCharacteristics == true the braking distance will be ignored during securing the accelerating phase
+
+            (CS, acceleratingCourse, stateFlags) = addBreakFreeSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)
+            (CS, acceleratingCourse, stateFlags) = addAcceleratingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function changes the acceleratingCourse
             CS[:v_peak] = max(CS[:v_entry], acceleratingCourse[end][:v])
             CS[:v_exit] = min(CS[:v_exit], CS[:v_peak], acceleratingCourse[end][:v])
         else #CS[:v_entry] == CS[:v_peak]

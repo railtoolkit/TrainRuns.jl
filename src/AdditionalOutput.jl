@@ -146,12 +146,12 @@ function printSectionInformation(movingSection::Dict)
     CSs::Vector{Dict} = movingSection[:characteristicSections]
 
     println("MS   with length=", movingSection[:length]," with t=", movingSection[:t])
-    allBs=[:breakFree, :clearing, :accelerating, :cruising, :diminishing, :coasting, :braking, :standstill]
+    allBs=[:breakFree, :clearing, :accelerating,  :clearing2, :accelerating2,  :clearing3, :accelerating3, :cruising, :downhillBraking, :diminishing, :coasting, :braking, :standstill]
     for csId in 1:length(CSs)
         println("CS ",csId,"  with length=", CSs[csId][:length]," with t=", CSs[csId][:t])
         for bs in 1: length(allBs)
             if haskey(CSs[csId][:behaviorSections], allBs[bs])
-                println("BS ",allBs[bs], "   with s_entry=", CSs[csId][:behaviorSections][allBs[bs]][:s_entry], "   and t=", CSs[csId][:behaviorSections][allBs[bs]][:t])
+                println("BS ",allBs[bs], "   with s_entry=", CSs[csId][:behaviorSections][allBs[bs]][:s_entry], "   and length=",CSs[csId][:behaviorSections][allBs[bs]][:length])  # and t=", CSs[csId][:behaviorSections][allBs[bs]][:t])
         #        for point in 1:length(CSs[csId][:behaviorSections][allBs[bs]][:dataPoints])
         #            println(CSs[csId][:behaviorSections][allBs[bs]][:dataPoints][point])
         #        end

@@ -10,17 +10,17 @@ module Characteristics
 include("./Behavior.jl")
 using .Behavior
 
-export preparateSections
+export determineCharacteristics
 
 ## create a moving section and its containing characteristic sections with secured braking, accelerating and cruising behavior
-function preparateSections(path::Dict, train::Dict, settings::Dict)
+function determineCharacteristics(path::Dict, train::Dict, settings::Dict)
     movingSection = createMovingSection(path, train[:v_limit])
     movingSection = secureBrakingBehavior!(movingSection, train[:a_braking])
     movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
     movingSection = secureCruisingBehavior!(movingSection, settings, train)
 
     return movingSection
-end #function preparateSections
+end #function determineCharacteristics
 
 ## create a moving section containing characteristic sections
 function createMovingSection(path::Dict, v_trainLimit::Real)
@@ -134,9 +134,9 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
     previousCSv_exit = CSs[1][:v_entry]
     for CS in CSs
         CS[:v_entry] = min(CS[:v_entry], previousCSv_exit)
-
         startingPoint[:s] = CS[:s_entry]
         startingPoint[:v] = CS[:v_entry]
+        calculateForces!(startingPoint, CSs, CS[:id], "accelerating", train, settings[:massModel]) # traction effort and resisting forces (in N)
         acceleratingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
         if CS[:v_entry] < CS[:v_peak]
@@ -144,13 +144,21 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
             stateFlags = Dict(:endOfCSReached => false,
                               :brakingStartReached => false,
                               :tractionDeficit => false,
+                              :resistingForceNegative => false,
                               :previousSpeedLimitReached => false,
                               :speedLimitReached => false,
                               :error => false,
                               :usedForDefiningCharacteristics => true)      # because usedForDefiningCharacteristics == true the braking distance will be ignored during securing the accelerating phase
-
             (CS, acceleratingCourse, stateFlags) = addBreakFreeSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)
-            (CS, acceleratingCourse, stateFlags) = addAcceleratingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function changes the acceleratingCourse
+            while !stateFlags[:speedLimitReached] && !stateFlags[:endOfCSReached] && !stateFlags[:tractionDeficit]
+                if !stateFlags[:previousSpeedLimitReached]
+                    (CS, acceleratingCourse, stateFlags) = addAcceleratingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function changes the acceleratingCourse
+
+                elseif stateFlags[:previousSpeedLimitReached]
+                    (CS, acceleratingCourse, stateFlags) = addClearingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)
+                end
+            end
+
             CS[:v_peak] = max(CS[:v_entry], acceleratingCourse[end][:v])
             CS[:v_exit] = min(CS[:v_exit], CS[:v_peak], acceleratingCourse[end][:v])
         else #CS[:v_entry] == CS[:v_peak]
@@ -163,6 +171,7 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
         CS[:behaviorSections] = Dict()
         CS[:E] = 0.0
         CS[:t] = 0.0
+
     end #for
 
     return movingSection
@@ -181,13 +190,23 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
     previousCSv_exit = CSs[1][:v_entry]
 
     for CS in CSs
+        # conditions for entering the cruising phase
+        stateFlags = Dict(:endOfCSReached => false,
+                          :brakingStartReached => false,
+                          :tractionDeficit => false,
+                          :resistingForceNegative => false,
+                          :previousSpeedLimitReached => false,
+                          :speedLimitReached => false,
+                          :error => false,
+                          :usedForDefiningCharacteristics => true)      # currently only used during the definition of the accelerating characteristics
+
         CS[:v_entry] = min(CS[:v_entry], previousCSv_exit)
 
         startingPoint[:s] = CS[:s_entry]
         startingPoint[:v] = CS[:v_peak]
         cruisingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
-        (CS, cruisingCourse) = addCruisingSection!(CS, cruisingCourse, CS[:length], settings, train, CSs, "cruising")        # this function changes the cruisingCourse
+        (CS, cruisingCourse, stateFlags) = addCruisingSection!(CS, cruisingCourse, stateFlags, CS[:length], settings, train, CSs, "cruising")        # this function changes the cruisingCourse
         CS[:v_exit] = min(CS[:v_exit], cruisingCourse[end][:v])
 
         previousCSv_exit = CS[:v_exit]

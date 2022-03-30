@@ -72,8 +72,8 @@ end # function calculateDrivingDynamics
 function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train::Dict)
    CSs::Vector{Dict} = movingSection[:characteristicSections]
 
-   if settings[:massModel] == "homogeneous strip"
-       println("WARNING: ! ! ! TrainRun.jl doesn't work reliably for the mass model homogeneous strip. This mass model should not be used ! ! !")
+   if settings[:massModel] == "homogeneous strip" && settings[:stepVariable] == "v in m/s"
+       println("WARNING: ! ! ! TrainRun.jl doesn't work reliably for the mass model homogeneous strip with step size v in m/s. The calculation time can be extremely high when calcutlating paths with steep gradients ! ! !")
    end
 
    startingPoint=createDataPoint()
@@ -115,20 +115,25 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train
                 elseif stateFlags[:previousSpeedLimitReached]
                     (CS, drivingCourse, stateFlags) = addClearingSection!(CS, drivingCourse, stateFlags, settings, train, CSs)
 
-                elseif drivingCourse[end][:F_T] > drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached] # v <  v_limit
+                elseif drivingCourse[end][:F_T] > drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached]
                     (CS, drivingCourse, stateFlags) = addAcceleratingSection!(CS, drivingCourse, stateFlags, settings, train, CSs)
 
-                elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached] # v <  v_limit
-                    if settings[:massModel] == "mass point"
-                        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
-                        s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
-                    elseif settings[:massModel] == "homogeneous strip"
-                        # TODO: Add downhillBraking for homogeneous strip
-                        error("Add downhillBraking for homogeneous strip !")
-                        # cruise until F_R >= 0.0
+                elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached]
+                    # cruise only one step
+                    if settings[:stepVariable] =="s in m"
+                        s_cruising = settings[:stepSize]
+                    elseif settings[:stepVariable] =="t in s"
+                        s_cruising = calc_Δs_with_Δt(settings[:stepSize], drivingCourse[end][:a], drivingCourse[end][:v])
+                    elseif settings[:stepVariable] =="v in m/s"
+                        s_cruising = train[:length]/(10.0) # TODO which step size should be used?
                     end
+                    (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")
 
-                    if s_cruising > 0.0  # TODO: define a minimum cruising length?
+                elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                    s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
+
+                    if s_cruising > 0.0
                         (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "downhillBraking")
                     else
                         stateFlags[:brakingStartReached] = true

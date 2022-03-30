@@ -17,7 +17,7 @@ function determineCharacteristics(path::Dict, train::Dict, settings::Dict)
     movingSection = createMovingSection(path, train[:v_limit])
     movingSection = secureBrakingBehavior!(movingSection, train[:a_braking])
     movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
-    movingSection = secureCruisingBehavior!(movingSection, settings, train)
+    #movingSection = secureCruisingBehavior!(movingSection, settings, train)
 
     return movingSection
 end #function determineCharacteristics
@@ -149,17 +149,28 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
                               :speedLimitReached => false,
                               :error => false,
                               :usedForDefiningCharacteristics => true)      # because usedForDefiningCharacteristics == true the braking distance will be ignored during securing the accelerating phase
+            v_peak = CS[:v_entry]
             (CS, acceleratingCourse, stateFlags) = addBreakFreeSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)
-            while !stateFlags[:speedLimitReached] && !stateFlags[:endOfCSReached] && !stateFlags[:tractionDeficit]
-                if !stateFlags[:previousSpeedLimitReached]
+            while !stateFlags[:speedLimitReached] && !stateFlags[:endOfCSReached]
+                if !stateFlags[:tractionDeficit]
+                    if !stateFlags[:previousSpeedLimitReached]
                     (CS, acceleratingCourse, stateFlags) = addAcceleratingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function changes the acceleratingCourse
 
-                elseif stateFlags[:previousSpeedLimitReached]
-                    (CS, acceleratingCourse, stateFlags) = addClearingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)
+                    elseif stateFlags[:previousSpeedLimitReached]
+                        (CS, acceleratingCourse, stateFlags) = addClearingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the train is not allowed to accelerate because of a previous speed limit
+                    end
+                else
+                    if settings[:massModel] == "mass point" || acceleratingCourse[end][:s] > CS[:s_entry] + train[:length]
+                        break
+                    else
+                        (CS, acceleratingCourse, stateFlags) = addDiminishingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the resisitng forces are higher than the maximum possible tractive effort
+                    end
                 end
+                v_peak = max(v_peak, acceleratingCourse[end][:v])
             end
 
-            CS[:v_peak] = max(CS[:v_entry], acceleratingCourse[end][:v])
+#            CS[:v_peak] = max(CS[:v_entry], acceleratingCourse[end][:v])
+            CS[:v_peak] = v_peak
             CS[:v_exit] = min(CS[:v_exit], CS[:v_peak], acceleratingCourse[end][:v])
         else #CS[:v_entry] == CS[:v_peak]
             # v_exit stays the same
@@ -171,14 +182,13 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
         CS[:behaviorSections] = Dict()
         CS[:E] = 0.0
         CS[:t] = 0.0
-
     end #for
 
     return movingSection
 end #function secureAcceleratingBehavior!
 
 
-
+#=
 ## define the intersection velocities between the characterisitc sections to secure cruising behavior
 function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dict)
     # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_peak
@@ -198,7 +208,7 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
                           :previousSpeedLimitReached => false,
                           :speedLimitReached => false,
                           :error => false,
-                          :usedForDefiningCharacteristics => true)      # currently only used during the definition of the accelerating characteristics
+                          :usedForDefiningCharacteristics => true)
 
         CS[:v_entry] = min(CS[:v_entry], previousCSv_exit)
 
@@ -206,7 +216,23 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
         startingPoint[:v] = CS[:v_peak]
         cruisingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
-        (CS, cruisingCourse, stateFlags) = addCruisingSection!(CS, cruisingCourse, stateFlags, CS[:length], settings, train, CSs, "cruising")        # this function changes the cruisingCourse
+        while !stateFlags[:endOfCSReached] #&& s_cruising > 0.0
+            if !stateFlags[:tractionDeficit]
+                s_cruising = CS[:s_exit] - cruisingCourse[end][:s]
+                if !stateFlags[:resistingForceNegative]# cruisingCourse[end][:F_R] >= 0
+                    (CS, cruisingCourse, stateFlags) = addCruisingSection!(CS, cruisingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")        # this function changes the cruisingCourse
+                else
+                    (CS, cruisingCourse, stateFlags) = addCruisingSection!(CS, cruisingCourse, stateFlags, s_cruising, settings, train, CSs, "downhillBraking")
+                end
+            else
+                if settings[:massModel] == "mass point" || cruisingCourse[end][:s] > CS[:s_entry] + train[:length]
+                    break
+                else
+                    (CS, cruisingCourse, stateFlags) = addDiminishingSection!(CS, cruisingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the resisitng forces are higher than the maximum possible tractive effort
+                end
+            end
+        end
+
         CS[:v_exit] = min(CS[:v_exit], cruisingCourse[end][:v])
 
         previousCSv_exit = CS[:v_exit]
@@ -219,5 +245,5 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
 
     return movingSection
 end #function secureCruisingBehavior!
-
+=#
 end #module Characteristics

@@ -1,3 +1,10 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.2
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2022"
+# __license__       = "ISC"
+
 # TODO: >>if train[:type] == freight::trainType<< does not work only in checkTrainType(train::Dict). because ::Main.TrainRun.Import.trainType != ::Main.TrainRun.Input.trainType    -> why? checkTrainType ist therefore deactivated.
 # TODO: adapt function informAboutUnusedKeys for Input.jl
 module Input
@@ -96,7 +103,8 @@ function checkAndSetSettings!(settings::Dict)
         # TODO: it could be checked if the path is existing on the pc
     end # if
 
-    checkString(settings, "settings", :detailOfOutput, ["minimal", "points of interest", "driving course"])    # should the output be "minimal" or are "points of interest" or the complete "driving course" required?
+    checkString(settings, "settings", :detailOfOutput, ["running time", "points of interest", "driving course", "everything"])   # should the output be only the value of the "running time", or an array of "points of interest" or the complete "driving course" as array or a dictionary with "everything"?
+    # 30/31 old: checkString(settings, "settings", :detailOfOutput, ["minimal", "points of interest", "driving course"])    # should the output be "minimal" or are "points of interest" or the complete "driving course" required or also all the information about the different sections?
 
 # TODO:    informAboutUnusedKeys(settings, "settings")         # inform the user, which Symbols of the input dictionary are not used in this tool
 

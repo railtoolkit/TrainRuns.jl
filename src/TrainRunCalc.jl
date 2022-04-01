@@ -48,21 +48,23 @@ function calculateDrivingDynamics(trainInput::Dict, pathInput::Dict, settingsInp
 
     # check the input data
     (train, path, settings) = checkAndSetInput!(train, path, settings)
-    println("The input has been checked.")
+    settings[:detailOfOutput] == "everything" && println("The input has been checked.")
 
     # prepare the input data
     movingSection = determineCharacteristics(path, train, settings)
-    println("The moving section has been prepared.")
+    settings[:detailOfOutput] == "everything" && println("The moving section has been prepared.")
 
     # calculate the train run for oparation mode "minimum running time"
     if settings[:operationModeMinimumRunningTime] || settings[:operationModeMinimumEnergyConsumption]
         (movingSection, drivingCourse) = calculateMinimumRunningTime!(movingSection, settings, train)
-        println("The driving course for the shortest running time has been calculated.")
+        settings[:detailOfOutput] == "everything" && println("The driving course for the shortest running time has been calculated.")
 
         # accumulate data and create an output dictionary
-        output = createOutputDict(train, settings, path, movingSection, drivingCourse)
+        output = createOutput(train, settings, path, movingSection, drivingCourse)
+        # 30/31 old: output = createOutputDict(train, settings, path, movingSection, drivingCourse)
     else
-        output = Dict()
+        output = nothing
+        # 30/31 old: output = Dict()
     end #if
 
     return output

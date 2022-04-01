@@ -14,7 +14,6 @@ push!(allPaths, importYamlFile(:path, "data/paths/path_2_10km_nVar_vConst.yaml")
 push!(allPaths, importYamlFile(:path, "data/paths/path_3_10km_nConst_vVar.yaml"))
 push!(allPaths, importYamlFile(:path, "data/paths/path_4_real_Germany_EastSaxony_DG-DN.yaml"))
 
-
 allSettings=[]
 push!(allSettings, importYamlFile(:settings, "data/settings/settings_distanceStep_massPoint.yaml"))
 
@@ -29,7 +28,7 @@ for path in allPaths
    for train in allTrains
        # println("train: ", train)
        for settings in allSettings
-           resultsDict=calculateDrivingDynamics(train, path, settings)
+           resultsDict = calculateDrivingDynamics(train, path, settings)
            exportToCsv(resultsDict)
            sleep(2)
            # println("")

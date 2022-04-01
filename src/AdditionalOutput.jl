@@ -25,10 +25,22 @@ function plotResults(output::Dict)
     elseif  opModeMinEnergy == true
         plotDrivingCourse(output[:drivingCourseMinimumEnergyConsumption])
     else
-        println("No Output was demanded. So no plot is created.")
+        output[:settings][:detailOfOutput] == "everything" && println("No Output was demanded. So no plot is created.")
     end
 
     return true
+end #function plotResults
+
+function plotResults(drivingCourse::Vector{Dict})
+    plotDrivingCourse(drivingCourse)
+
+    return true
+end #function plotResults
+
+function plotResults(singleValue::AbstractFloat)
+    println("Not able to plot the single value ",singleValue)
+
+    return false
 end #function plotResults
 
 function plotDrivingCourse(drivingCourse::Vector{Dict})
@@ -55,11 +67,19 @@ function plotDrivingCourse(drivingCourse::Vector{Dict})
 
  #   p4=plot([t], [s], title = "s in m", label = ["s"], xlabel = "t in s")
 
-    p5=plot([s], [E], title = "E in Ws", label = ["E"], xlabel = "s in m")
+    #p5=plot([s], [E], title = "E in Ws", label = ["E"], xlabel = "s in m")
+    p5=plot([s/1000], [E], title = "E in Ws", label = ["E"], xlabel = "s in km")
 
-    p6=plot([t], [E], title = "E in Ws", label = ["E"], xlabel = "t in s")
+    #p6=plot([t], [E], title = "E in Ws", label = ["E"], xlabel = "t in s")
+    p6=plot([t/60], [E], title = "E in Ws", label = ["E"], xlabel = "t in min")
 
     all=plot(p1, p2, p5, p6, layout = (2, 2), legend = false)
+#=
+ #   p5=plot([s], [E], title = "E in Ws", label = ["E"], xlabel = "s in m")
+
+ #   p6=plot([t], [E], title = "E in Ws", label = ["E"], xlabel = "t in s")
+
+    all=plot(p1, p2,  layout = (1, 2), legend = false)=#
  #   all=plot(p1, p2, p3, p4, p5, p6, layout = (3, 2), legend = false)
     display(all)
     println("Plots for different variables have been created.")
@@ -146,17 +166,44 @@ function printSectionInformation(movingSection::Dict)
     CSs::Vector{Dict} = movingSection[:characteristicSections]
 
     println("MS   with length=", movingSection[:length]," with t=", movingSection[:t])
-    allBs=[:breakFree, :clearing, :accelerating,  :clearing2, :accelerating2,  :clearing3, :accelerating3, :cruising, :downhillBraking, :diminishing, :coasting, :braking, :standstill]
+    #allBSs=[:breakFree, :clearing, :accelerating,  :clearing2, :accelerating2,  :clearing3, :accelerating3, :cruising, :downhillBraking, :diminishing, :coasting, :braking, :standstill]
     for csId in 1:length(CSs)
         println("CS ",csId,"  with length=", CSs[csId][:length]," with t=", CSs[csId][:t])
-        for bs in 1: length(allBs)
-            if haskey(CSs[csId][:behaviorSections], allBs[bs])
-                println("BS ",allBs[bs], "   with s_entry=", CSs[csId][:behaviorSections][allBs[bs]][:s_entry], "   and length=",CSs[csId][:behaviorSections][allBs[bs]][:length])  # and t=", CSs[csId][:behaviorSections][allBs[bs]][:t])
-        #        for point in 1:length(CSs[csId][:behaviorSections][allBs[bs]][:dataPoints])
-        #            println(CSs[csId][:behaviorSections][allBs[bs]][:dataPoints][point])
-        #        end
-            end #if
-        end #for
+    #    for bs in 1: length(allBSs)
+    #        if haskey(CSs[csId][:behaviorSections], allBSs[bs])
+    #            println("BS ",allBSs[bs], "   with s_entry=", CSs[csId][:behaviorSections][allBSs[bs]][:s_entry], "   and length=",CSs[csId][:behaviorSections][allBSs[bs]][:length])  # and t=", CSs[csId][:behaviorSections][allBSs[bs]][:t])
+    #    #        for point in 1:length(CSs[csId][:behaviorSections][allBSs[bs]][:dataPoints])
+    #    #            println(CSs[csId][:behaviorSections][allBSs[bs]][:dataPoints][point])
+    #    #        end
+    #        end #if
+    #    end #for
+
+        tempBSs = collect(keys(CSs[csId][:behaviorSections]))
+        while length(tempBSs) > 0
+            currentBS = :default
+            for bs in 1: length(tempBSs)
+                if currentBS == :default
+                    currentBS = tempBSs[bs]
+                else
+                    if CSs[csId][:behaviorSections][currentBS][:s_entry] > CSs[csId][:behaviorSections][tempBSs[bs]][:s_entry]
+                        currentBS = tempBSs[bs]
+                    end
+                end
+            end #for
+
+            println("BS ",currentBS, "   with s_entry=", CSs[csId][:behaviorSections][currentBS][:s_entry], "   and length=",CSs[csId][:behaviorSections][currentBS][:length])  # and t=", CSs[csId][:behaviorSections][currentBS][:t])
+    #        for point in 1:length(CSs[csId][:behaviorSections][currentBS][:dataPoints])
+    #            println(CSs[csId][:behaviorSections][currentBS][:dataPoints][point])
+    #        end
+
+            newTempBSs = []
+            for bs in 1: length(tempBSs)
+                if currentBS != tempBSs[bs]
+                    push!(newTempBSs, tempBSs[bs])
+                end #if
+            end #for
+            tempBSs = newTempBSs
+        end #while
     end #for
 end #function printSectionInformation
 

@@ -1,3 +1,10 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.2
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2020-2022"
+# __license__       = "ISC"
+
 module Import
 
 import YAML
@@ -157,7 +164,8 @@ function importSettingsFromYaml(settingsDirectory::String)
         # TODO: it could be checked if the path is existing on the pc
     end # if
 
-    settings[:detailOfOutput] = getString!(data, "settings", "detailOfOutput", ["minimal", "points of interest", "driving course"])    # should the output be "minimal" or are "points of interest" or the complete "driving course" required?
+    settings[:detailOfOutput] = getString!(data, "settings", "detailOfOutput", ["running time", "points of interest", "driving course", "everything"])   # should the output be only the value of the "running time", or an array of "points of interest" or the complete "driving course" as array or a dictionary with "everything"?
+    # 30/31 old:     settings[:detailOfOutput] = getString!(data, "settings", "detailOfOutput", ["minimal", "points of interest", "driving course"])    # should the output be "minimal" or are "points of interest" or the complete "driving course" required?
 
     informAboutUnusedKeys(data, "settings")         # inform the user, which keywords of the imported data are not used in this tool
 

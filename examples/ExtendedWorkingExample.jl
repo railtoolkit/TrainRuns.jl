@@ -9,28 +9,30 @@ include("../src/TrainRun.jl")
 using .TrainRun
 
 allPaths=[]
-push!(allPaths, importYamlFile(:path, "data/paths/path_1_10km_nConst_vConst.yaml"))
-push!(allPaths, importYamlFile(:path, "data/paths/path_2_10km_nVar_vConst.yaml"))
-push!(allPaths, importYamlFile(:path, "data/paths/path_3_10km_nConst_vVar.yaml"))
-push!(allPaths, importYamlFile(:path, "data/paths/path_4_real_Germany_EastSaxony_DG-DN.yaml"))
+push!(allPaths, importFromYaml(:path, "data/paths/path_1_10km_nConst_vConst.yaml"))
+push!(allPaths, importFromYaml(:path, "data/paths/path_2_10km_nVar_vConst.yaml"))
+push!(allPaths, importFromYaml(:path, "data/paths/path_3_10km_nConst_vVar.yaml"))
+push!(allPaths, importFromYaml(:path, "data/paths/path_4_real_Germany_EastSaxony_DG-DN.yaml"))
 
 allSettings=[]
-push!(allSettings, importYamlFile(:settings, "data/settings/settings_distanceStep_massPoint.yaml"))
+push!(allSettings, importFromYaml(:settings, "data/settings/settings_distanceStep_massPoint.yaml"))
 
 allTrains=[]
-push!(allTrains, importYamlFile(:train, "data/trains/train_freight_V90withOreConsist.yaml"))
-push!(allTrains, importYamlFile(:train, "data/trains/train_passenger_SiemensDesiroClassic.yaml"))
-push!(allTrains, importYamlFile(:train, "data/trains/train_passenger_IC2.yaml"))
+push!(allTrains, importFromYaml(:train, "data/trains/train_freight_V90withOreConsist.yaml"))
+push!(allTrains, importFromYaml(:train, "data/trains/train_passenger_SiemensDesiroClassic.yaml"))
+push!(allTrains, importFromYaml(:train, "data/trains/train_passenger_IC2.yaml"))
 
 for path in allPaths
     # println(" -    -    -     -     -     -      -     -    -")
-    # println("path: ", path)
+    # println("path: ", path[:name])
    for train in allTrains
-       # println("train: ", train)
+       # println("train: ", train[:name])
        for settings in allSettings
            resultsDict = calculateDrivingDynamics(train, path, settings)
-           exportToCsv(resultsDict)
-           sleep(2)
+           if haskey(settings, :typeOfOutput) && settings[:typeOfOutput] == "CSV"
+               exportToCsv(resultsDict, settings)
+               sleep(2)
+           end
            # println("")
        end
    end

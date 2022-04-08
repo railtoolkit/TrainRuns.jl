@@ -14,7 +14,7 @@
 # TODO from 2022/01/22: use always copyCharacteristicSection and don't do it manually like "csModified=Dict(:id => csOriginal[:id], ..." three times
 # TODO from 2022/03/18: stateFlags need to be added to functions that add behavior sections
 # TODO from 2022/03/21: consider previous speed limits during the coasting section in case F_R < 0.0 and the train is getting faster
-
+# TODO from 2002/04/07: the train type is only devided in passenger and freight and not motorCoachTrain anymore because this is only used for EnergySaving. If EnergySaving will be reactivated it the train type also has to change from enum to String or Symbol
 module EnergySaving
 
 # include modules of TrainRunCalc

@@ -1,3 +1,10 @@
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.7.2
+# __author__        = "Max Kannenberg"
+# __copyright__     = "2020-2022"
+# __license__       = "ISC"
+
 module TrainRun
 
 # include main module TrainRunCalc
@@ -26,7 +33,7 @@ using .EnergySaving
 export calculateDrivingDynamics,
 
 # import functions
-importYamlFiles, importYamlFile,
+importYamlFiles, importFromYaml,
 
 # functions for saving energy that are not recommended to use in this state
 addOperationModeEnergySaving!,

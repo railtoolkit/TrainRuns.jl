@@ -7,6 +7,6 @@ settings:
   stepSize: 10                                  # step size (unit depends on stepVariable s in m, t in s and v in m/s)
   operationModeMinimumRunningTime: true         # operation mode "minimum running time"
   operationModeMinimumEnergyConsumption: false  # operation mode "minimum energy consumption"
-  typeOfOutput: "CSV"                           # output as "julia dictionary" or as "CSV"
-  detailOfOutput: "everything"                  # should the output be only the value of the "running time" or an array of "points of interest" or the complete "driving course" as array or a dictionary with "everything"?
+  typeOfOutput: "julia dictionary"              # output as "julia dictionary" or as "CSV"
+  detailOfOutput: "driving course"              # should the output be only the value of the "running time" or an array of "points of interest" or the complete "driving course" as array or a dictionary with "everything"?
   csvDirectory: "~/Desktop/TrainRun"

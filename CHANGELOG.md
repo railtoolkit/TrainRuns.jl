@@ -9,7 +9,8 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
-## Version [0.8]
+
+## Version [0.8] 2022-01-20
 
 ### Changed
 
@@ -22,8 +23,7 @@ Refactor the modular structure:
 * Rename the module Preparation to Characteristics
 
 
-## Version [0.7]
-
+## Version [0.7] 2022-01-14
 
 ### Changed
 
@@ -36,7 +36,7 @@ Refactor all mutable structs as a Dictionaries:
 * Rename some variables
 
 
-## Version [0.6.2]
+## Version [0.6.2] 2021-12-17
 
 ### Added
 
@@ -74,21 +74,25 @@ Refactor some of the mutable structs from types.jl as Dictionaries
 * Create a Dictionary for the whole moving section in Preperation.jl and a function for copying the moving section in OperationModes.jl
 * Change the type of existing Dictionary keys from String to Symbol
 
+
 ## Version [0.5.3]
 
 ### Changed
 
 Rename variables in every .jl an .yaml file
 
+
 ## Version [0.5.2]
 
 Merge fixing branches
+
 
 ## Version [0.5.1]
 
 ### Changed
 
 Rename the real world path file
+
 
 ## Version [0.5]
 
@@ -110,7 +114,6 @@ Rename waypoints
 
 ## Version [0.4]
 
-
 ### Changed
 
 Refactor and fix modules EnergySaving, OperationModes and MovingPhases
@@ -119,7 +122,6 @@ Refactor and fix modules EnergySaving, OperationModes and MovingPhases
 
 
 ## Version [0.3]
-
 
 ### Changed
 
@@ -135,7 +137,7 @@ Refactor module MovingPhases
 Modules and variables were renamed.
 
 
-## Version [0.1]
+## Version [0.1] 2021-02-19
 
 Proof of concept and master thesis submission.
 

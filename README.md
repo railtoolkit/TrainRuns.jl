@@ -1,5 +1,13 @@
 # TrainRun
 
+[![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](https://opensource.org/licenses/ISC) 
+
+------------
+
+# About
+
+TrainRun.jl is a step towards open science and open data in railway engineering. Its modular design offers the possibility to serve as a basis for future optimization and development. TrainRun.jl is suitable for qualitative calculations to compare different trains, and it is publicly available, and we invite others to collaborate.
+
 ------------
 
 # Installation

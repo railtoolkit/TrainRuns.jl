@@ -14,7 +14,7 @@ module DrivingDynamics
 ##   author    = {Brünger, Olaf and Dahlhaus, Elias},
 ##   year      = {2014},
 ##   title     = {Running Time Estimation},
-##   pages     = {?--?},
+##   pages     = {65--90},
 ##   booktitle = {Railway Timetabling \& Operations.},
 ##   editora   = {Hansen, Ingo A.},
 ##   editorb   = {Pachl, Jörn},

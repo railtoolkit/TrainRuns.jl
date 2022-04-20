@@ -1,0 +1,40 @@
+# YAML 1.2
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+---
+cff-version: 1.2.0
+title: TrainRun.jl
+message: 'If you use this software, please cite it using these metadata.'
+type: software
+authors:
+  - given-names: Max
+    family-names: Kannenberg
+    affiliation: TU Braunschweig
+  - given-names: Martin
+    family-names: Scheidt
+    email: m.scheidt@tu-bs.de
+    orcid: 'https://orcid.org/0000-0002-9384-8945'
+    affiliation: TU Braunschweig
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.6448563
+    description: 'Collection of archived snapshots of all versions of the library'
+  - type: doi
+    value: 10.5281/zenodo.6448564
+    description: Current version
+url: 'https://www.railtoolkit.org/projects/TrainRun.jl/'
+repository: 'https://github.com/railtoolkit/TrainRun.jl'
+abstract: >-
+  TrainRun.jl is a step towards open science and open data in railway engineering.
+  Its modular design offers the possibility to serve as a basis for future
+  optimization and development. TrainRun.jl is suitable for qualitative
+  calculations to compare different trains, and it is publicly available, and we
+  invite others to collaborate.
+keywords:
+  - railway
+  - running time
+  - driving dynamics
+  - julia language
+license: ISC
+version: v0.8
+date-released: 2022-01-20

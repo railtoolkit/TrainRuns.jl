@@ -19,7 +19,7 @@ Refactor the modular structure:
 * Extract the modules Export and AdditionalOutput from TrainRunCalc
 * Divide the module Operationsmodes and add its functions to TrainRunCalc and EnergySaving
 * Add the remaining functions of the module types to EnergySaving
-* Divide the module MovingPhases into Behavior and DrivingDynamics
+* Divide the module MovingPhases into Behavior and Formulary
 * Rename the module Preparation to Characteristics
 
 

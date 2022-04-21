@@ -30,7 +30,7 @@ using .AdditionalOutput
 using .EnergySaving
 
 # main function
-export calculateDrivingDynamics,
+export trainRun,
 
 # import functions
 importYamlFiles, importFromYaml,

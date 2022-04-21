@@ -21,7 +21,7 @@ using .Behavior
 using .Output
 
 # export main function
-export calculateDrivingDynamics
+export trainRun
 
 approximationLevel = 6  # value for approximation to intersections and precisely calculated digits
     # TODO:  define it here and give it to each function? (Behavior, ...)
@@ -29,17 +29,17 @@ approximationLevel = 6  # value for approximation to intersections and precisely
 # Calculate the driving dynamics of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
 
 """
-    calculateDrivingDynamics(train::Dict, path::Dict, settings::Dict)
+    trainRun(train::Dict, path::Dict, settings::Dict)
 
 Calculate the driving dynamics of a train run on a path with special settings with information from the corresponding dictionaries `train`, `path`, `settings`.
 
 # Examples
 ```julia-repl
-julia> calculateDrivingDynamics(trainDict, pathDict, settingsDict)
+julia> trainRun(trainDict, pathDict, settingsDict)
 todo !!!
 ```
 """
-function calculateDrivingDynamics(trainInput::Dict, pathInput::Dict, settingsInput::Dict)
+function trainRun(trainInput::Dict, pathInput::Dict, settingsInput::Dict)
     # copy Input data for not changing them
     # TODO: or should they be changed? normally it would only make it "better" except for settings[:detailOfOutput] == "points of interest" && !haskey(path, :pointsOfInterest)
     train = copy(trainInput)
@@ -68,7 +68,7 @@ function calculateDrivingDynamics(trainInput::Dict, pathInput::Dict, settingsInp
     end #if
 
     return output
-end # function calculateDrivingDynamics
+end # function trainRun
 
 # calculate a train run focussing on using the minimum possible running time
 function calculateMinimumRunningTime!(movingSection::Dict, settings::Dict, train::Dict)

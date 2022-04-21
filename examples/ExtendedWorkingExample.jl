@@ -28,7 +28,7 @@ for path in allPaths
    for train in allTrains
        # println("train: ", train[:name])
        for settings in allSettings
-           resultsDict = calculateDrivingDynamics(train, path, settings)
+           resultsDict = trainRun(train, path, settings)
            if haskey(settings, :typeOfOutput) && settings[:typeOfOutput] == "CSV"
                exportToCsv(resultsDict, settings)
                sleep(2)

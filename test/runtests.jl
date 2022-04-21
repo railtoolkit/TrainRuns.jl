@@ -25,7 +25,7 @@ push!(allTrains, importYamlFile(:train, "data/trains/train_passenger_IC2.yaml"))
 for path in allPaths
   for train in allTrains
     for settings in allSettings
-      testDict=calculateDrivingDynamics(train, path, settings)
+      testDict=trainRun(train, path, settings)
       exportToCsv(testDict)
       sleep(2)
 

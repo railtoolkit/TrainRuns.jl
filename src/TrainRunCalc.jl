@@ -8,14 +8,14 @@
 module TrainRunCalc
 
 # include modules of TrainRunCalc
-include("./Input.jl")
+include("./Validate.jl")
 include("./Characteristics.jl")
 include("./Behavior.jl")
 include("./Output.jl")
 
 
 # use modules of TrainRunCalc
-using .Input
+using .Validate
 using .Characteristics
 using .Behavior
 using .Output

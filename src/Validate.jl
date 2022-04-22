@@ -6,7 +6,7 @@
 # __license__       = "ISC"
 
 # TODO: 2022-04-07: if EnergySaving should be used. The train type has do be defined and checked
-module Input
+module Validate
 
 export checkAndSetInput!
 
@@ -754,4 +754,4 @@ function informAboutUnusedKeys(allKeys::AbstractVector, usedKeys::Vector{Symbol}
     end
 end #function informAboutUnusedKeys
 
-end # module Input
+end # module Validate

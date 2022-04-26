@@ -7,14 +7,14 @@
 
 module Behavior
 
-include("./DrivingDynamics.jl")
-using .DrivingDynamics
+include("./Formulary.jl")
+using .Formulary
 
 export addBreakFreeSection!, addClearingSection!, addAcceleratingSection!, addCruisingSection!, addDiminishingSection!, addCoastingSection!, addBrakingSection!, addStandstill!,
 # addBrakingSectionInOneStep! is not used in the current version of the tool
 calculateForces!, createDataPoint,
 
-# export functions from DrivingDynamics
+# export functions from Formulary
 calcBrakingDistance, calcBrakingStartVelocity, calc_Δs_with_Δt
 
 

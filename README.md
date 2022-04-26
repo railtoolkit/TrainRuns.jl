@@ -34,7 +34,7 @@ running_path_directory = "data/paths/path_1_10km_nConst_vConst.yaml"
 settings_directory = "data/settings.yaml"
 (train, running_path, settings) = importYamlFiles(train_directory, running_path_directory, setting_directory)
 
-train_run = calculateDrivingDynamics(train, running_path, settings)
+train_run = trainRun(train, running_path, settings)
 ```
 
 ------------

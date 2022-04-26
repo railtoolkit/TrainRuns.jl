@@ -13,7 +13,7 @@ running_path_directory = "data/paths/path_1_10km_nConst_vConst.yaml"
 setting_directory = "data/settings/settings_distanceStep_massPoint_runningTime.yaml"
 (train, running_path, settings) = importYamlFiles(train_directory, running_path_directory, setting_directory)
 
-runtime = calculateDrivingDynamics(train, running_path, settings)
+runtime = trainRun(train, running_path, settings)
 
 exportToCsv(runtime, settings)
 println("The V 90 with 10 ore wagons needs $runtime seconds for 10 km with no gradient.")

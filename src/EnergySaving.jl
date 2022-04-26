@@ -10,7 +10,7 @@
 
 # TODO: calculation time for passenger trains on path1 is very long and should be reduced
 # TODO from 2022/01/18: Test if enum trainType is working correctly in function calculateRecoveryTime or if only the else-pathis taken
-# TODO from 2022/01/19: Are here calculations that should be transferred to DrivingDynamics.jl?
+# TODO from 2022/01/19: Are here calculations that should be transferred to Formulary.jl?
 # TODO from 2022/01/22: use always copyCharacteristicSection and don't do it manually like "csModified=Dict(:id => csOriginal[:id], ..." three times
 # TODO from 2022/03/18: stateFlags need to be added to functions that add behavior sections
 # TODO from 2022/03/21: consider previous speed limits during the coasting section in case F_R < 0.0 and the train is getting faster

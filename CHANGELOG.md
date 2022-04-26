@@ -19,7 +19,7 @@ Refactor the modular structure:
 * Extract the modules Export and AdditionalOutput from TrainRunCalc
 * Divide the module Operationsmodes and add its functions to TrainRunCalc and EnergySaving
 * Add the remaining functions of the module types to EnergySaving
-* Divide the module MovingPhases into Behavior and DrivingDynamics
+* Divide the module MovingPhases into Behavior and Formulary
 * Rename the module Preparation to Characteristics
 
 
@@ -70,7 +70,7 @@ Add an attribute to DataPoint to record the corresponding driving behavior
 
 Refactor some of the mutable structs from types.jl as Dictionaries
 * Remove the mutable structs Train, Path, PathSection, Settings and MovingSection
-* Create Dictionaries for train, path an settings in Input.jl
+* Create Dictionaries for train, path an settings in Validate.jl
 * Create a Dictionary for the whole moving section in Preperation.jl and a function for copying the moving section in OperationModes.jl
 * Change the type of existing Dictionary keys from String to Symbol
 

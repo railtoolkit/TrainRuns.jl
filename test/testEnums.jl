@@ -6,7 +6,7 @@
 # __license__       = "ISC"
 
 include("../src/types.jl")
-include("../src/Input.jl")
+include("../src/Validate.jl")
 
 using .Input
 using YAML, Test

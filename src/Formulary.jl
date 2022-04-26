@@ -5,7 +5,7 @@
 # __copyright__     = "2022"
 # __license__       = "ISC"
 
-module DrivingDynamics
+module Formulary
 
 #########################
 ## literature the driving dynamics equations are based on:
@@ -253,4 +253,4 @@ function calcBrakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)
     return a_braking
 end #function calcBrakingAcceleration
 
-end #module DrivingDynamics
+end #module Formulary

@@ -5,15 +5,8 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-module Characteristics
-
-include("./Behavior.jl")
-using .Behavior
-
-export determineCharacteristics
-
 ## create a moving section and its containing characteristic sections with secured braking, accelerating and cruising behavior
-function determineCharacteristics(path::Dict, train::Dict, settings::Dict)
+function determineCharacteristics(path::Dict, train::Dict, settings::Settings)
     movingSection = createMovingSection(path, train[:v_limit])
     movingSection = secureBrakingBehavior!(movingSection, train[:a_braking])
     movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
@@ -123,7 +116,7 @@ function secureBrakingBehavior!(movingSection::Dict, a_braking::Real)
 end #function secureBrakingBehavior!
 
 ## define the intersection velocities between the characterisitc sections to secure accelerating behavior
-function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train::Dict)
+function secureAcceleratingBehavior!(movingSection::Dict, settings::Settings, train::Dict)
     # this function limits the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises aterwards
     CSs = movingSection[:characteristicSections]
 
@@ -136,7 +129,7 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
         CS[:v_entry] = min(CS[:v_entry], previousCSv_exit)
         startingPoint[:s] = CS[:s_entry]
         startingPoint[:v] = CS[:v_entry]
-        calculateForces!(startingPoint, CSs, CS[:id], "accelerating", train, settings[:massModel]) # traction effort and resisting forces (in N)
+        calculateForces!(startingPoint, CSs, CS[:id], "accelerating", train, settings.massModel) # traction effort and resisting forces (in N)
         acceleratingCourse::Vector{Dict} = [startingPoint]    # List of data points
 
         if CS[:v_entry] < CS[:v_peak]
@@ -160,7 +153,7 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Dict, train:
                         (CS, acceleratingCourse, stateFlags) = addClearingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the train is not allowed to accelerate because of a previous speed limit
                     end
                 else
-                    if settings[:massModel] == "mass point" || acceleratingCourse[end][:s] > CS[:s_entry] + train[:length]
+                    if settings.massModel == :mass_point || acceleratingCourse[end][:s] > CS[:s_entry] + train[:length]
                         break
                     else
                         (CS, acceleratingCourse, stateFlags) = addDiminishingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the resisitng forces are higher than the maximum possible tractive effort
@@ -190,7 +183,7 @@ end #function secureAcceleratingBehavior!
 
 #=
 ## define the intersection velocities between the characterisitc sections to secure cruising behavior
-function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dict)
+function secureCruisingBehavior!(movingSection::Dict, settings::Settings, train::Dict)
     # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_peak
     CSs = movingSection[:characteristicSections]
 
@@ -225,7 +218,7 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
                     (CS, cruisingCourse, stateFlags) = addCruisingSection!(CS, cruisingCourse, stateFlags, s_cruising, settings, train, CSs, "downhillBraking")
                 end
             else
-                if settings[:massModel] == "mass point" || cruisingCourse[end][:s] > CS[:s_entry] + train[:length]
+                if settings.massModel == :mass_point || cruisingCourse[end][:s] > CS[:s_entry] + train[:length]
                     break
                 else
                     (CS, cruisingCourse, stateFlags) = addDiminishingSection!(CS, cruisingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the resisitng forces are higher than the maximum possible tractive effort
@@ -246,4 +239,3 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Dict, train::Dic
     return movingSection
 end #function secureCruisingBehavior!
 =#
-end #module Characteristics

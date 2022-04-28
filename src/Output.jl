@@ -5,15 +5,11 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-module Output
-
-export createOutput
-
-function createOutput(train::Dict, settings::Dict, path::Dict, movingSection::Dict, drivingCourse::Vector{Dict})
-    if settings[:detailOfOutput] == "running time"
+function createOutput(train::Dict, settings::Settings, path::Dict, movingSection::Dict, drivingCourse::Vector{Dict})
+    if settings.outputDetail == :running_time
         output = movingSection[:t]  # TODO: or use drivingCourse[end][:t]
 
-    elseif settings[:detailOfOutput] == "points of interest"
+    elseif settings.outputDetail == :points_of_interest
         # add points of interest
         if haskey(path, :pointsOfInterest)
             output = Vector{Dict}()
@@ -28,10 +24,10 @@ function createOutput(train::Dict, settings::Dict, path::Dict, movingSection::Di
             end
         end
 
-    elseif settings[:detailOfOutput] == "driving course"
+    elseif settings.outputDetail == :driving_course
             output = drivingCourse
 
-    elseif settings[:detailOfOutput] == "everything"
+    elseif settings.outputDetail == :everything
         output = Dict{Symbol,Any}()
         merge!(output, Dict(:train => train, :path => path, :settings => settings))
 
@@ -71,7 +67,7 @@ function createOutput(train::Dict, settings::Dict, path::Dict, movingSection::Di
 end
 
 #=
-function createOutputDict(train::Dict, settings::Dict, path::Dict, movingSection::Dict, drivingCourse::Vector{Dict})
+function createOutputDict(train::Dict, settings::Settings, path::Dict, movingSection::Dict, drivingCourse::Vector{Dict})
     outputDict = Dict{Symbol,Any}()
     merge!(outputDict, Dict(:train => train, :path => path, :settings => settings))
 
@@ -108,5 +104,3 @@ function createOutputDict(train::Dict, settings::Dict, path::Dict, movingSection
     return outputDict
 end # function createOutputDict
 =#
-
-end # module Output

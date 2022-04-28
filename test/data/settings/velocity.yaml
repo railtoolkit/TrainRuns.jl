@@ -1,0 +1,5 @@
+%YAML 1.2
+---
+settings:
+  stepVariable: "velocity"       # variable of the linear multistep method: "distance", "time" or "velocity"
+  stepSize: 0.1                  # step size, unit depends on stepVariable - position in meter, time in seconds and velocity in meter/second

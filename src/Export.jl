@@ -5,32 +5,26 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-module Export
-
-using CSV, DataFrames, Dates
-
-export exportToCsv
-
-function exportToCsv(runningTime::AbstractFloat, settings::Dict)
+function exportToCsv(runningTime::AbstractFloat, settings::Settings)
     createCsvFile(runningTime, settings)
 
     return true
 end
 
-function exportToCsv(dataPointsToExport::Vector{Dict}, settings::Dict)
+function exportToCsv(dataPointsToExport::Vector{Dict}, settings::Settings)
     createCsvFile(dataPointsToExport, settings)
 
     return true
 end
 
 function exportToCsv(output::Dict)
-    if output[:settings][:typeOfOutput] == "CSV"
+    if output[:settings][:outputFormat] == "CSV"
         pathName = output[:path][:name]
         trainName = output[:train][:name]
 
         if output[:settings][:operationModeMinimumRunningTime] == true
             operationMode = "minimum running time"
-            if output[:settings][:detailOfOutput] == "points of interest"
+            if output[:settings][:outputDetail] == "points of interest"
                 dataPointsToExport = output[:pointsOfInterestMinimumRunningTime]
             else
                 dataPointsToExport = output[:drivingCourseMinimumRunningTime]
@@ -39,7 +33,7 @@ function exportToCsv(output::Dict)
         end
         if output[:settings][:operationModeMinimumEnergyConsumption] == true
             operationMode = "minimum energy consumption"
-            if output[:settings][:detailOfOutput] == "points of interest"
+            if output[:settings][:outputDetail] == "points of interest"
                 dataPointsToExport = output[:pointsOfInterestMinimumEnergyConsumption]
             else
                 dataPointsToExport = output[:drivingCourseMinimumEnergyConsumption]
@@ -51,15 +45,15 @@ function exportToCsv(output::Dict)
     return false
 end #function exportToCsv
 
-function createCsvFile(runningTime::AbstractFloat, settings::Dict)
+function createCsvFile(runningTime::AbstractFloat, settings::Settings)
     # create DataFrame with running time information
     df = DataFrame(column1=["t (in s)", runningTime])
 
-    # save DataFrame as a CSV-file at csvDirectory
+    # save DataFrame as a CSV-file at outputDir
     date = Dates.now()
     dateString = Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
 
-    csvFilePath = settings[:csvDirectory]*"/"*dateString*"_RunningTime.csv"
+    csvFilePath = settings[:outputDir]*"/"*dateString*"_RunningTime.csv"
 
     CSV.write(csvFilePath, df, header=false)
     println("The output CSV file has been created at ",csvFilePath)
@@ -68,8 +62,8 @@ function createCsvFile(runningTime::AbstractFloat, settings::Dict)
 end #function createCsvFile
 
 
-function createCsvFile(dataPointsToExport::Vector{Dict}, settings::Dict)
-    detailOfOutput = settings[:detailOfOutput]
+function createCsvFile(dataPointsToExport::Vector{Dict}, settings::Settings)
+    outputDetail = settings[:outputDetail]
 
     header = ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]
     columnSymbols = [:i, :behavior, :Δs, :s, :Δt, :t, :Δv, :v, :F_T, :F_R, :R_path, :R_train, :R_traction, :R_wagons, :ΔW, :W, :ΔE, :E, :a]
@@ -85,8 +79,8 @@ function createCsvFile(dataPointsToExport::Vector{Dict}, settings::Dict)
     end # for
 
 
-    # combine the columns in a data frame and saving it as a CSV-file at csvDirectory
-    if detailOfOutput == "driving course" || detailOfOutput == "points of interest"
+    # combine the columns in a data frame and saving it as a CSV-file at outputDir
+    if outputDetail == "driving course" || outputDetail == "points of interest"
         df = DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16], c17=allColumns[17], c18=allColumns[18], c19=allColumns[19])
 
     else
@@ -95,7 +89,7 @@ function createCsvFile(dataPointsToExport::Vector{Dict}, settings::Dict)
 
     date = Dates.now()
     dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
-    csvFilePath=settings[:csvDirectory]*"/"*dateString*"_DataPoints.csv"
+    csvFilePath=settings[:outputDir]*"/"*dateString*"_DataPoints.csv"
     CSV.write(csvFilePath, df, header=false)
     println("The output CSV file has been created at ",csvFilePath)
 
@@ -103,12 +97,12 @@ function createCsvFile(dataPointsToExport::Vector{Dict}, settings::Dict)
 end #function createCsvFile
 
 
-function createCsvFile(dataPointsToExport::Vector{Dict}, operationMode::String, pathName::String, trainName::String, settings::Dict)
-    detailOfOutput = settings[:detailOfOutput]
+function createCsvFile(dataPointsToExport::Vector{Dict}, operationMode::String, pathName::String, trainName::String, settings::Settings)
+    outputDetail = settings[:outputDetail]
 
-    massModel = settings[:massModel]
-    stepVariable = settings[:stepVariable]
-    stepSize = string(settings[:stepSize])
+    massModel = settings.massModel
+    stepVariable = settings.stepVariable
+    stepSize = string(settings.stepSize)
 
     # create accumulated data block
     accumulatedData = Array{Any, 1}[]
@@ -135,15 +129,15 @@ function createCsvFile(dataPointsToExport::Vector{Dict}, operationMode::String, 
         end
     end # for
 
-    # combine the columns in a data frame and saving it as a CSV-file at csvDirectory
+    # combine the columns in a data frame and saving it as a CSV-file at outputDir
     df = DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16], c17=allColumns[17], c18=allColumns[18], c19=allColumns[19])
 
     date = Dates.now()
     dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
     if operationMode == "minimum running time"
-        csvFilePath=settings[:csvDirectory]*"/"*dateString*"_MinimumRunningTime.csv"
+        csvFilePath=settings[:outputDir]*"/"*dateString*"_MinimumRunningTime.csv"
     elseif operationMode == "minimum energy consumption"
-        csvFilePath=settings[:csvDirectory]*"/"*dateString*"_MinimumEnergyConsumption.csv"
+        csvFilePath=settings[:outputDir]*"/"*dateString*"_MinimumEnergyConsumption.csv"
     else
         # should not be possible
     end
@@ -156,20 +150,20 @@ end #function createCsvFile
 
 
 #=
-function createCsvFile(movingSection::Dict, dataPointsToExport::Vector{Dict}, operationMode::String, pathName::String, trainName::String, settings::Dict)
-    detailOfOutput = settings[:detailOfOutput]
+function createCsvFile(movingSection::Dict, dataPointsToExport::Vector{Dict}, operationMode::String, pathName::String, trainName::String, settings::Settings)
+    outputDetail = settings[:outputDetail]
 
-    massModel = settings[:massModel]
-    stepVariable = settings[:stepVariable]
-    stepSize = string(settings[:stepSize])
+    massModel = settings.massModel
+    stepVariable = settings.stepVariable
+    stepSize = string(settings.stepSize)
 
     # create accumulated data block
     accumulatedData = Array{Any, 1}[]
-    if detailOfOutput == "minimal"
+    if outputDetail == "minimal"
         push!(accumulatedData, ["s (in m)", "t (in s)","E (in Ws)"])                     # push header to accumulatedData
         row = [movingSection[:length], movingSection[:t], movingSection[:E]]
         push!(accumulatedData, row)                                                      # push row to accumulatedData
-    elseif detailOfOutput == "driving course" || detailOfOutput == "points of interest"
+    elseif outputDetail == "driving course" || outputDetail == "points of interest"
         push!(accumulatedData, ["i", "behavior", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)", "ΔW (in Ws)","W (in Ws)","ΔE (in  Ws)","E (in Ws)","a (in m/s^2)"]) # push header to accumulatedData
         for point in dataPointsToExport
             row = [point[:i], point[:behavior], point[:Δs], point[:s], point[:Δt], point[:t], point[:Δv], point[:v], point[:F_T], point[:F_R], point[:R_path], point[:R_train], point[:R_traction], point[:R_wagons], point[:ΔW], point[:W], point[:ΔE], point[:E], point[:a]]
@@ -194,19 +188,19 @@ function createCsvFile(movingSection::Dict, dataPointsToExport::Vector{Dict}, op
         end
     end # for
 
-    # combine the columns in a data frame and saving it as a CSV-file at csvDirectory
-    if detailOfOutput == "minimal"
+    # combine the columns in a data frame and saving it as a CSV-file at outputDir
+    if outputDetail == "minimal"
         df = DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3])
-    elseif detailOfOutput=="driving course" || detailOfOutput == "points of interest"
+    elseif outputDetail=="driving course" || outputDetail == "points of interest"
         df = DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16], c17=allColumns[17], c18=allColumns[18], c19=allColumns[19])
     end
 
     date = Dates.now()
     dateString=Dates.format(date, "yyyy-mm-dd_HH.MM.SS")
     if operationMode == "minimum running time"
-        csvFilePath=settings[:csvDirectory]*"/"*dateString*"_MinimumRunningTime.csv"
+        csvFilePath=settings[:outputDir]*"/"*dateString*"_MinimumRunningTime.csv"
     elseif operationMode == "minimum energy consumption"
-        csvFilePath=settings[:csvDirectory]*"/"*dateString*"_MinimumEnergyConsumption.csv"
+        csvFilePath=settings[:outputDir]*"/"*dateString*"_MinimumEnergyConsumption.csv"
     else
         # should not be possible
     end
@@ -216,5 +210,3 @@ function createCsvFile(movingSection::Dict, dataPointsToExport::Vector{Dict}, op
     return true
 end #function createCsvFile
 =#
-
-end #module Export

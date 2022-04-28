@@ -1,31 +1,120 @@
 #!/usr/bin/env julia
 # -*- coding: UTF-8 -*-
 # __julia-version__ = 1.7.2
-# __author__        = "Max Kannenberg"
+# __author__        = "Max Kannenberg, Martin Scheidt"
 # __copyright__     = "2022"
 # __license__       = "ISC"
 
-# TODO: 2022-04-07: if EnergySaving should be used. The train type has do be defined and checked
-module Validate
+"""
+    Settings(file)
 
-export checkAndSetInput!
+Settings is a datastruture for calculation context.
+The function Settings() will create a set of settings for the train run calculation.
+`file` is optinal may be used to load settings in the YAML format.
 
+# Example
+```jldoctest
+julia> my_settings = Settings() # will generate default settings
+Settings(mass_point, :distance, 20, 3, running_time, julia_dict, ".")
+```
+"""
+struct Settings
 
-approximationLevel = 6  # value for approximation to intersections TODO further explanation
+    massModel::Symbol    # model type of train mass ":mass_point" or ":homogeneous_strip".
+    stepVariable::Symbol # variable of the linear multistep method: ":distance", ":time" or ":velocity".
+    stepSize::Real       # step size, unit depends on stepVariable - :distance in meter, time in seconds and velocity in meter/second.
+    approxLevel::Int     # value for approximation; used when rounding or interating.
+    outputDetail::Symbol # single Float() ":running_time", Array() of ":points_of_interest",
+                         # complete Array() ":driving_course", or Dict() ":everything".
+    outputFormat::Symbol # output as ":julia_dict" or as ":csv".
+    outputDir::String    # if outputFormat is not ":julia_dict".
+
+    ## constructor
+    function Settings(file="DEFAULT")
+
+        ## default values
+        massModel    = :mass_point
+        stepVariable = :distance
+        stepSize     = 20
+        approxLevel  = 3
+        outputDetail = :running_time
+        outputFormat = :julia_dict
+        outputDir    = "."
+
+        if file != "DEFAULT"
+            ## JSON schema for YAML-file validation
+            schema = Schema("""{
+                "properties": {
+                    "massModel": {
+                        "description": "type of train model",
+                        "type": "string",
+                        "enum": [ "mass_point", "homogeneous_strip" ]
+                    },
+                    "stepVariable": {
+                        "description": "variable of the linear multistep method",
+                        "type": "string",
+                        "enum": [ "distance", "time", "velocity" ]
+                    },
+                    "stepSize": {
+                        "description": "step size acording to stepVariable",
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                    },
+                    "outputDetail": {
+                        "description": "Selecting the detail of the result",
+                        "type": "string",
+                        "enum": [ "running_time", "points_of_interest", "driving_course", "everything" ]
+                    },
+                    "outputFormat": {
+                        "description": "Output format",
+                        "type": "string",
+                        "enum": [ "julia_dict", "csv" ]
+                    },
+                    "outputDir": {
+                        "description": "Path for the CSV export",
+                        "type": "string"
+                    }
+                }
+            }""")
+
+            settings = YAML.load(open(file))["settings"]
+            
+            ## validate the loaded file
+            try
+                validate(schema, settings)
+            catch err
+                println("Could not load settings file $file.\n Format is not recognized - using default as fall back.")
+                settings = Dict()
+            end
+
+            ## set the variables if they exist in "settings"
+            haskey(settings, "massModel")    ? massModel    = Symbol(settings["massModel"])    : nothing
+            haskey(settings, "stepVariable") ? stepVariable = Symbol(settings["stepVariable"]) : nothing
+            haskey(settings, "stepSize")     ? stepSize     =        settings["stepSize"]      : nothing
+            haskey(settings, "approxLevel")  ? approxLevel  =        settings["approxLevel"]   : nothing
+            haskey(settings, "outputDetail") ? outputDetail = Symbol(settings["outputDetail"]) : nothing
+            haskey(settings, "outputFormat") ? outputFormat = Symbol(settings["outputFormat"]) : nothing
+            haskey(settings, "outputDir")    ? outputDir    =        settings["outputDir"]     : nothing
+        end
+
+        new(massModel, stepVariable, stepSize, approxLevel, outputDetail, outputFormat, outputDir)
+
+    end #function Settings() # constructor
+
+end #struct Settings
 
 """
 Read the input information from YAML files for train, path and settings, save it in different dictionaries and return them.
 """
-function checkAndSetInput!(train::Dict, path::Dict, settings::Dict)
-     checkAndSetTrain!(train)
-     checkAndSetPath!(path)
-     checkAndSetSettings!(settings)
+function checkAndSetInput!(train::Dict, path::Dict, settings::Settings)
+    checkAndSetTrain!(train)
+    checkAndSetPath!(path)
 
-     if settings[:detailOfOutput] == "points of interest" && !haskey(path, :pointsOfInterest)
-         settings[:detailOfOutput] = "driving course"
-         println("INFO at checking the input for settings and path: settings[:detailOfOutput] is 'points of interest' but the path does not have a list for pointsOfInterest. Therefore the detailOfOut is changed to 'driving course'.")
-     end
-     return (train, path, settings)
+    if settings.outputDetail == :points_of_interest && !haskey(path, :pointsOfInterest)
+        throw(DomainError(settings.outputDetail, "INFO at checking the input for settings and path:\n
+            settings[:outputDetail] is 'points of interest' but the path does not for pointsOfInterest."))
+    end
+    return (train, path)
 end #function checkAndSetInput!
 
 """
@@ -102,39 +191,6 @@ function checkAndSetPath!(path::Dict)
     return path
 end # function checkAndSetPath!
 
-
-## settings for the calculation
-function checkAndSetSettings!(settings::Dict)
- # check settings information from input dictionary
-
-    checkAndSetString!(settings, "settings", :massModel, "mass point", ["mass point", "homogeneous strip"])      # model type of the train's mass "mass point" or "homogeneous strip"
-    checkAndSetString!(settings, "settings", :stepVariable, "s in m", ["s in m", "t in s", "v in m/s"])      # step variable of the step method "s in m", "t in s" or "v in m/s"
-
-    checkAndSetPositiveNumber!(settings, "settings", :stepSize, "("*settings[:stepVariable]*")", getDefaultStepSize(settings[:stepVariable]))  # step size (unit depends on stepVariable: s in m, t in s and v in m/s)
-    checkAndSetBool!(settings, "settings", :operationModeMinimumRunningTime, true)                # operation mode "minimum running time"
-    checkAndSetBool!(settings, "settings", :operationModeMinimumEnergyConsumption, false)          # operation mode "minimum energy consumption"
-    checkAndSetString!(settings, "settings", :typeOfOutput, "julia dictionary", ["julia dictionary", "CSV"])           # output as "julia dictionary" or as "CSV"
-
-    if settings[:typeOfOutput] == "CSV"
-        checkAndSetString!(settings, "settings", :csvDirectory, "~/Desktop/TrainRun")
-        # TODO use correct default directory
-        # TODO: it could be checked if the path is existing on the pc
-    end # if
-
-    checkAndSetString!(settings, "settings", :detailOfOutput, "running time", ["running time", "points of interest", "driving course", "everything"])   # should the output be only the value of the "running time", or an array of "points of interest" or the complete "driving course" as array or a dictionary with "everything"?
-
-    # inform the user about keys of the input dictionary that are not used in this tool
-    usedKeys = [:massModel, :stepVariable, :stepSize,
-                :operationModeMinimumRunningTime, :operationModeMinimumEnergyConsumption,
-                :typeOfOutput, :detailOfOutput]
-    if settings[:typeOfOutput] == "CSV"
-        push!(usedKeys, :csvDirectory)
-    end
-    informAboutUnusedKeys(collect(keys(settings)), usedKeys::Vector{Symbol}, "settings")
-
-    return settings
-end # function checkAndSetSettings!
-
 function checkAndSetBool!(dictionary::Dict, dictionaryType::String, key::Symbol, defaultValue::Bool)
     if haskey(dictionary,key) && dictionary[key]!=nothing
         if typeof(dictionary[key]) != Bool
@@ -186,7 +242,7 @@ function checkAndSetPositiveNumberWithDifferentNames!(dictionary::Dict, dictiona
 
     if mainKey_temp >= 0.0 && alternativeKey_temp >= 0.0
         difference = abs(mainKey_temp - alternativeKey_temp)
-        if difference > 1/(10^approximationLevel)       # TODO or use difference > 0.0 ?
+        if difference > 1/(10^approxLevel)       # TODO or use difference > 0.0 ?
             delete!(dictionary, alternativeKey)
             println("WARNING at checking the input for the ",dictionaryType,": The values of ",mainKey," and ",alternativeKey," differ by ",difference," ",unit,". The value ",String(mainKey),"=",default," ",unit," is used." )
         end
@@ -226,7 +282,7 @@ function checkAndSetPositiveNumberWithDifferentNames!(dictionary::Dict, dictiona
 
     if mainKey_temp >= 0.0 && alternativeKey_temp >= 0.0
         difference = abs(mainKey_temp - alternativeKey_temp)
-        if difference > 1/(10^approximationLevel)       # TODO or use difference > 0.0 ?
+        if difference > 1/(10^approxLevel)       # TODO or use difference > 0.0 ?
             delete!(dictionary, alternativeKey)
             println("WARNING at checking the input for the ",dictionaryType,": The values of ",mainKey," and ",alternativeKey," differ by ",difference," ",unit,". The value ",String(mainKey),"=",default," ",unit," is used." )
         end
@@ -261,7 +317,7 @@ function checkAndSetSum!(dictionary::Dict, dictionaryType::String, sum::Symbol, 
     if haskey(dictionary,sum) && dictionary[sum]!=nothing
         if typeof(dictionary[sum]) <: Real && dictionary[sum] >= 0.0
             difference = abs(dictionary[sum] - (dictionary[summand1]+dictionary[summand2]))
-            if difference > 1/(10^approximationLevel)
+            if difference > 1/(10^approxLevel)
                 error("ERROR at checking the input for the ",dictionaryType,": The value of ",String(sum)," is not exactly the sum of ",String(summand1)," and ",String(summand2),". It differs by ",difference,".")
             end
         else
@@ -332,7 +388,7 @@ function checkAndSetSpeedLimit!(train::Dict)
 
     if v_limit_temp > 0.0 && v_limit_kmh_temp > 0.0
         difference = abs(v_limit_temp - v_limit_kmh_temp/3.6)
-        if difference > 1/(10^approximationLevel)       # TODO or use difference > 0.0 ?
+        if difference > 1/(10^approxLevel)       # TODO or use difference > 0.0 ?
             delete!(train, :v_limit_kmh)
             println("WARNING at checking the input for the train: The values of v_limit and v_limit_kmh differ by ",difference," m/s. The value v_limit=",v_limit_temp," m/s is used." )
         end
@@ -388,7 +444,7 @@ function checkAndSetRotationMassFactors!(train::Dict)
             if haskey(train, :ξ_t) && train[:ξ_t]!=nothing && train[:ξ_t]>0.0 && (train[:m_w]==0.0 || (haskey(train, :ξ_w) && train[:ξ_w]!=nothing))
                 # TODO: is && train[:ξ_t]>0.0 necessary here?
                 difference = abs(train[:ξ_train] - (train[:ξ_t]*train[:m_t] + train[:ξ_w]*train[:m_w])/train[:m_train])
-                if difference > 1/(10^approximationLevel)
+                if difference > 1/(10^approxLevel)
                     error("ERROR at checking the input for the train: The value of ξ_train is not exactly ξ_train=(ξ_t*m_t + ξ_w*m_w)/m_train. It differs by ",difference,".")
                 end
             end
@@ -717,18 +773,6 @@ function checkAndSetPOIs!(path::Dict)
     return path
 end #function checkAndSetPOIs!
 
-function getDefaultStepSize(stepVariable::String)
-    if stepVariable == "s in m"
-        return 10.0
-    elseif stepVariable == "t in s"
-        return 3.0
-    elseif stepVariable == "v in m/s"
-        return 0.1
-    #else
-    #    error("ERROR at getting a default step size. The step variable ",stepVariable," can not be used.")
-    end
-end #function getDefaultStepSize
-
 #function informAboutUnusedKeys(dictionary::Dict, dictionaryType::String)         # inform the user which Symbols of the input dictionary are not used in this tool
 function informAboutUnusedKeys(allKeys::AbstractVector, usedKeys::Vector{Symbol}, dictionaryType::String)         # inform the user which Symbols of the input dictionary are not used in this tool
     unusedKeys = []
@@ -753,5 +797,3 @@ function informAboutUnusedKeys(allKeys::AbstractVector, usedKeys::Vector{Symbol}
         end
     end
 end #function informAboutUnusedKeys
-
-end # module Validate

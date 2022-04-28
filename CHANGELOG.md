@@ -9,6 +9,24 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+### Added
+* dependency JSONSchema
+* validation of YAML input via JSON schema
+
+### Changed
+* replaced settings::Dict with type Settings as struct
+* restructured examples/ and data/ in docs/ and test/
+* modified test to work with Julia Testsets and with simplier naming of input files
+* renamed Validate.jl into types.jl
+* renamed TrainRunCalc.jl into calc.jl
+* changed capital letter of include files to lower letter
+* changed seperation of submodules into a single module with file include
+
+### Removed
+* dependency Plots
+* AdditionalOutput.jl
+* EnergySaving.jl
+* test/testEnums.jl
 
 ## Version [0.8] 2022-01-20
 

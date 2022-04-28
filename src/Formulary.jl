@@ -5,8 +5,6 @@
 # __copyright__     = "2022"
 # __license__       = "ISC"
 
-module Formulary
-
 #########################
 ## literature the driving dynamics equations are based on:
 ##
@@ -21,17 +19,6 @@ module Formulary
 ##   isbn      = {978-3-777-10462-1},
 ##   publisher = {Eurailpress DVV Media Group},
 ## }
-## @article{Jaekel:2014,
-##   author    = {Jaekel, Birgit and Albrecht, Thomas},
-##   year      = {2014},
-##   title     = {Comparative analysis of algorithms and models for train running simulation},
-##   journal   = {Journal of Rail Transport Planning \& Management},
-##   doi       = {10.1016/j.jrtpm.2014.06.002},
-##   volume    = {4},
-##   number    = {1-2},
-##   pages     = {14--27},
-##   publisher = {Elsevier},
-## }
 ## @Book{Wende:2003,
 ##   author    = {Wende, Dietrich},
 ##   date      = {2003},
@@ -41,24 +28,9 @@ module Formulary
 ## }
 #########################
 
-# export resisting forces and acceleration
-export calcTractionUnitResistance, calcWagonsResistance, calcForceFromCoefficient, calcAcceleration,
-
-# export step sizes in different units
-calc_Δs_with_Δt, calc_Δs_with_Δv,
-calc_Δt_with_Δs, calc_Δt_with_Δv, calc_Δt_with_constant_v,
-calc_Δv_with_Δs, calc_Δv_with_Δt,
-calc_ΔW, calc_ΔE,
-
-# export braking information
-calcBrakingDistance, calcBrakingStartVelocity, calcBrakingAcceleration
-
+approxLevel = 6
 v00 = 100/3.6     # velocity factor (in m/s)
 g = 9.81          # acceleration due to gravity (in m/s^2)            # TODO: should more digits of g be used?  g=9,80665 m/s^2
-
-approximationLevel = 6  # value for approximation to intersections TODO further explanation (e.g. approximationLevel = 3 -> with stepSize 10 m the approximation will be calculated accurate on 10 mm ; 1s -> 1 ms; 1 km/h -> 3.6 mm/s)
-# TODO: necessary here?
-
 
 ## calculate forces
 
@@ -213,8 +185,8 @@ function calc_ΔW(F_T_prev::Real, Δs::Real)
 end #function calc_ΔW
 
 function calc_ΔE(ΔW::Real)
-    # simplified equation is based on [Jaekel:2014, page 6]
-
+    # simplified equation
+    # TODO!
     # ΔW: mechanical work in this step (in Ws)
     ΔE = ΔW                 # energy consumption in this step (in Ws)
     return ΔE
@@ -228,8 +200,8 @@ function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real)
     # a_braking: constant braking acceleration (in m/s^2)
     s_braking = (v_end^2 - v_start^2) /2 /a_braking             # braking distance (in m)
     # TODO: also possible: calc_Δs_with_Δv(v_end-v_start, a_braking, v_start)
-#    return max(0.0, ceil(s_braking, digits=approximationLevel))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
-    return max(0.0, ceil(s_braking, digits=approximationLevel +1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
+#    return max(0.0, ceil(s_braking, digits=approxLevel))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
+    return max(0.0, ceil(s_braking, digits=approxLevel +1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
 end #function calcBrakingDistance
 
 function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real)
@@ -239,8 +211,8 @@ function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real)
     # a_braking: constant braking acceleration (in m/s^2)
     # s_braking: braking distance (in Ws)
     v_start = sqrt(v_end^2 - 2*a_braking *s_braking)          # braking start velocity (in m/s)
-#    return floor(v_start, digits=approximationLevel)
-    return floor(v_start, digits=approximationLevel +1)
+#    return floor(v_start, digits=approxLevel)
+    return floor(v_start, digits=approxLevel +1)
 end #function calcBrakingStartVelocity
 
 function calcBrakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)
@@ -252,5 +224,3 @@ function calcBrakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)
     a_braking = (v_end^2 - v_start^2) /2 /s_braking       # constant braking acceleration (in m/s^2)
     return a_braking
 end #function calcBrakingAcceleration
-
-end #module Formulary

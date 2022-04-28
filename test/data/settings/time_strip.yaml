@@ -1,0 +1,5 @@
+%YAML 1.2
+---
+settings:
+  stepVariable: "time"           # variable of the linear multistep method: "distance", "time" or "velocity"
+  massModel: "homogeneous_strip" # type of train model used: "mass_point" or "homogeneous_strip"

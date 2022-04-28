@@ -19,7 +19,7 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 * modified test to work with Julia Testsets and with simplier naming of input files
 * renamed Validate.jl into types.jl
 * renamed TrainRunCalc.jl into calc.jl
-* changed capital letter of include files to lower letter
+* changed tilte of include files from upper case to lower case
 * changed seperation of submodules into a single module with file include
 
 ### Removed

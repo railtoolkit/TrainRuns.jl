@@ -44,7 +44,7 @@ TODO!
   or related issues for context, before opening a new issue
 * Including minimal examples is greatly appreciated
 * If it's a bug, or unexpected behaviour, reproducing on the latest development version
-  (`Pkg.add(name="TrainRun", rev="master")`) is a good gut check and can streamline the process,
+  (`Pkg.add(name="TrainRun", rev="main")`) is a good gut check and can streamline the process,
   along with including the first two lines of output from `versioninfo()`
 
 ## Style Guidelines
@@ -53,13 +53,13 @@ TODO
 
 ## Git Recommendations For Pull Requests
 
-* Avoid working from the `master` branch of your fork, creating a new branch will make it
-  easier if TrainRun.jl `master` branch changes and you need to update your pull request;
-* All PRs and issues should be opened against the `master` branch not against the current release;
+* Avoid working from the `main` branch of your fork, creating a new branch will make it
+  easier if TrainRun.jl `main` branch changes and you need to update your pull request;
+* All PRs and issues should be opened against the `main` branch not against the current release;
 * Run tests of your code before sending any commit to GitHub. Only push changes when 
   the tests of the change are passing locally. In particular note that it is not a problem
   if you send several commits in one push command to GitHub as CI will be run only once then;
-* If any conflicts arise due to changes in TrainRun.jl `master` branch, prefer updating your pull
+* If any conflicts arise due to changes in TrainRun.jl `main` branch, prefer updating your pull
   request branch with `git rebase` (rather than `git merge`), since the latter will introduce a merge 
   commit that might confuse GitHub when displaying the diff of your PR, which makes your changes more 
   difficult to review. Alternatively use conflict resolution tool available at GitHub;

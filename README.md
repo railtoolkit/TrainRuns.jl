@@ -1,7 +1,7 @@
 # TrainRun
 
 [![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](https://opensource.org/licenses/ISC) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6448563.svg)](https://doi.org/10.5281/zenodo.6448563) 
-[![Build Status](https://github.com/railtoolkit/TrainRun.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/railtoolkit/TrainRun.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Build Status](https://github.com/railtoolkit/TrainRun.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/railtoolkit/TrainRun.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 ------------
 

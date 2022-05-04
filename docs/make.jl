@@ -20,5 +20,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/railtoolkit/TrainRun.jl",
-    devbranch="master",
+    devbranch="development",
 )

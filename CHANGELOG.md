@@ -167,7 +167,7 @@ Modules and variables were renamed.
 Proof of concept and master thesis submission.
 
 
-[Unreleased]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.8...master
+[Unreleased]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.8...main
 [0.8]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.7...v0.8
 [0.7]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.6.2...v0.7
 [0.6.2]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.6.1...v0.6.2

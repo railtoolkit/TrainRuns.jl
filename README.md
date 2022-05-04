@@ -1,13 +1,13 @@
-# TrainRun
+# TrainRuns
 
 [![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](https://opensource.org/licenses/ISC) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6448563.svg)](https://doi.org/10.5281/zenodo.6448563) 
-[![Build Status](https://github.com/railtoolkit/TrainRun.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/railtoolkit/TrainRun.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Build Status](https://github.com/railtoolkit/TrainRuns.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/railtoolkit/TrainRuns.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 ------------
 
 # About
 
-TrainRun.jl is a step towards open science and open data in railway engineering. Its modular design offers the possibility to serve as a basis for future optimization and development. TrainRun.jl is suitable for qualitative calculations to compare different trains, and it is publicly available, and we invite others to collaborate.
+TrainRuns.jl is a step towards open science and open data in railway engineering. Its modular design offers the possibility to serve as a basis for future optimization and development. TrainRuns.jl is suitable for qualitative calculations to compare different trains, and it is publicly available, and we invite others to collaborate.
 
 ------------
 
@@ -25,7 +25,7 @@ The required julia packages are
 # Minimal working example
 
 ```julia
-import TrainRun
+import TrainRuns
 
 train = Train("test/data/trains/freight.yaml")
 path  = Path("test/data/paths/const.yaml")

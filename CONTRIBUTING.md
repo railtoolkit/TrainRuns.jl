@@ -9,7 +9,7 @@ Please note we have a code of conduct, please follow it in all your interactions
 
 Link your local git repository to Julia:
 ```console
-$ ln -s ~/path/to/TrainRun.jl ~/.julia/dev/TrainRun 
+$ ln -s ~/path/to/TrainRuns.jl ~/.julia/dev/TrainRuns 
 ```
 
 Have a look how to develop Julia packages: https://github.com/ShozenD/julia-pkg-dev
@@ -19,22 +19,22 @@ Pkg.add("Revise")
 ```
 and then just load with `using Revise` (preferably by putting it in the `~/.julia/config/startup.jl` file).
 
-You can overide the standard TrainRun package with the local development branch (see linking above) with:
+You can overide the standard TrainRuns package with the local development branch (see linking above) with:
 ```julia
 julia> # use the ] key
-(@v1.x) pkg> develop TrainRun
+(@v1.x) pkg> develop TrainRuns
 (@v1.x) pkg> # use backspace
-julia> using TrainRun # local development branch will be loaded
+julia> using TrainRuns # local development branch will be loaded
 ```
 
 If you want to add a dependency use:
 ```julia
 julia> # use the ] key
-(@v1.x) pkg> activate TrainRun
-(TrainRun) pkg>
+(@v1.x) pkg> activate TrainRuns
+(TrainRuns) pkg>
 ```
 
-## TrainRun files
+## TrainRuns files
 
 TODO!
 
@@ -44,7 +44,7 @@ TODO!
   or related issues for context, before opening a new issue
 * Including minimal examples is greatly appreciated
 * If it's a bug, or unexpected behaviour, reproducing on the latest development version
-  (`Pkg.add(name="TrainRun", rev="main")`) is a good gut check and can streamline the process,
+  (`Pkg.add(name="TrainRuns", rev="main")`) is a good gut check and can streamline the process,
   along with including the first two lines of output from `versioninfo()`
 
 ## Style Guidelines
@@ -54,12 +54,12 @@ TODO
 ## Git Recommendations For Pull Requests
 
 * Avoid working from the `main` branch of your fork, creating a new branch will make it
-  easier if TrainRun.jl `main` branch changes and you need to update your pull request;
+  easier if TrainRuns.jl `main` branch changes and you need to update your pull request;
 * All PRs and issues should be opened against the `main` branch not against the current release;
 * Run tests of your code before sending any commit to GitHub. Only push changes when 
   the tests of the change are passing locally. In particular note that it is not a problem
   if you send several commits in one push command to GitHub as CI will be run only once then;
-* If any conflicts arise due to changes in TrainRun.jl `main` branch, prefer updating your pull
+* If any conflicts arise due to changes in TrainRuns.jl `main` branch, prefer updating your pull
   request branch with `git rebase` (rather than `git merge`), since the latter will introduce a merge 
   commit that might confuse GitHub when displaying the diff of your PR, which makes your changes more 
   difficult to review. Alternatively use conflict resolution tool available at GitHub;

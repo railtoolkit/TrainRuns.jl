@@ -14,6 +14,7 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 * validation of YAML input via JSON schema
 
 ### Changed
+* renamed TrainRun into TrainRuns
 * replaced settings::Dict with type Settings as struct
 * replaced path::Dict with type Path as struct
 * restructured examples/ and data/ in docs/ and test/
@@ -167,18 +168,18 @@ Modules and variables were renamed.
 Proof of concept and master thesis submission.
 
 
-[Unreleased]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.8...main
-[0.8]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.7...v0.8
-[0.7]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.6.2...v0.7
-[0.6.2]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.6.1...v0.6.2
-[0.6.1]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.6...v0.6.1
-[0.6]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.5.3...v0.6
-[0.5.3]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.5.2...v0.5.3
-[0.5.2]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.5.1...v0.5.2
-[0.5.1]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.5...v0.5.1
-[0.5]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.4.1...v0.5
-[0.4.1]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.4...v0.4.1
-[0.4]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.3...v0.4
-[0.3]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.2...v0.3
-[0.2]: https://github.com/railtoolkit/TrainRun.jl/compare/v0.1...v0.2
-[0.1]: https://github.com/railtoolkit/TrainRun.jl/releases/tag/v0.1
+[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.8...main
+[0.8]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.7...v0.8
+[0.7]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.6.2...v0.7
+[0.6.2]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.6.1...v0.6.2
+[0.6.1]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.6...v0.6.1
+[0.6]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.5.3...v0.6
+[0.5.3]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.5.1...v0.5.2
+[0.5.1]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.5...v0.5.1
+[0.5]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.4.1...v0.5
+[0.4.1]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.4...v0.4.1
+[0.4]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.3...v0.4
+[0.3]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.2...v0.3
+[0.2]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.1...v0.2
+[0.1]: https://github.com/railtoolkit/TrainRuns.jl/releases/tag/v0.1

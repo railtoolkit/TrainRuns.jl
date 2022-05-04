@@ -54,6 +54,6 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
-            using TrainRun
-            DocMeta.setdocmeta!(TrainRun, :DocTestSetup, :(using TrainRun); recursive=true)
-            doctest(TrainRun)'
+            using TrainRuns
+            DocMeta.setdocmeta!(TrainRuns, :DocTestSetup, :(using TrainRuns); recursive=true)
+            doctest(TrainRuns)'

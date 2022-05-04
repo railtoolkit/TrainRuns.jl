@@ -6,7 +6,7 @@
 # __license__       = "ISC"
 __precompile__(true)
 
-module TrainRun
+module TrainRuns
 
 ## loading standard library packages
 using UUIDs, Dates
@@ -65,4 +65,4 @@ function trainrun(trainInput::Dict, path::Path, settings=Settings()::Settings)
     return output
 end # function trainrun
 
-end # module TrainRun
+end # module TrainRuns

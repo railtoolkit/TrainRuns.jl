@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = TrainRun
+CurrentModule = TrainRuns
 ```
 
-# TrainRun
+# TrainRuns
 
-Documentation for [TrainRun](https://github.com/railtoolkit/TrainRun.jl).
+Documentation for [TrainRuns](https://github.com/railtoolkit/TrainRuns.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [TrainRun]
+Modules = [TrainRuns]
 ```

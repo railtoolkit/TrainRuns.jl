@@ -1,6 +1,6 @@
 #!/usr/bin/env julia
 
-import TrainRun
+import TrainRuns
 
 paths=[]
 push!(paths, importFromYaml(:path, "data/paths/path_1_10km_nConst_vConst.yaml"))

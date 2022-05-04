@@ -1,10 +1,10 @@
 #!/usr/bin/env julia
 
-import TrainRun
+using TrainRun
 
-train = Train("data/trains/train_freight_V90withOreConsist.yaml")
-path  = Path("data/paths/path_1_10km_nConst_vConst.yaml")
+train = Train("test/data/trains/freight.yaml")
+path  = Path("test/data/paths/const.yaml")
 
-runtime = trainRun(train, path)
+runtime = trainrun(train, path)
 
 println("The train needs $runtime seconds for the running path.")

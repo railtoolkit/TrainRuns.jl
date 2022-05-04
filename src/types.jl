@@ -41,7 +41,9 @@ struct Settings
         outputFormat = :julia_dict
         outputDir    = "."
 
+        ## load from file
         if file != "DEFAULT"
+
             ## JSON schema for YAML-file validation
             schema = Schema("""{
                 "properties": {
@@ -83,7 +85,7 @@ struct Settings
             try
                 validate(schema, settings)
             catch err
-                println("Could not load settings file $file.\n Format is not recognized - using default as fall back.")
+                println("Could not load settings file '$file'.\n Format is not recognized - using default as fall back.")
                 settings = Dict()
             end
 
@@ -104,18 +106,283 @@ struct Settings
 end #struct Settings
 
 """
-Read the input information from YAML files for train, path and settings, save it in different dictionaries and return them.
-"""
-function checkAndSetInput!(train::Dict, path::Dict, settings::Settings)
-    checkAndSetTrain!(train)
-    checkAndSetPath!(path)
+    Path(file, type = :YAML)
 
-    if settings.outputDetail == :points_of_interest && !haskey(path, :pointsOfInterest)
-        throw(DomainError(settings.outputDetail, "INFO at checking the input for settings and path:\n
-            settings[:outputDetail] is 'points of interest' but the path does not for pointsOfInterest."))
+Path is a datastruture for calculation context.
+The function Path() will create a running path for the train.
+
+# Example
+```jldoctest
+julia> my_path = Path("file.yaml") # will generate a path from a YAML file.
+Path(variables)
+```
+"""
+struct Path
+
+    name::String     # a name or description of the path
+    id::String       # a short string as identifier
+    uuid::UUID       # a unique identifier
+    poi::Vector      # a vector of triples with points along the path
+    sections::Vector # a vector of the characteristic sections
+
+    ## constructor
+    function Path(file, type = :YAML)
+
+        ## default values
+        name      = ""
+        id        = ""
+        uuid      = UUIDs.uuid4()
+        poi       = []
+        sections  = []
+
+        ## process flags
+        POI_PRESENT = false
+
+        ## load from file
+        if type == :YAML
+
+            path = YAML.load(open(file))["path"]
+
+            ## JSON schema for YAML-file validation
+            railtoolkit_schema = Schema("""{
+                "required": [ "name", "id", "characteristic_sections" ],
+                "properties": {
+                    "characteristic_sections": {
+                    "description": "",
+                    "type": "array",
+                    "minItems": 2,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "description": "",
+                        "prefixItems": [
+                        { "type": "number" },
+                        { "type": "number" },
+                        { "type": "number" }
+                        ]
+                    }
+                    },
+                    "id": {
+                    "description": "Identifier of the path",
+                    "type": "string"
+                    },
+                    "name": {
+                    "description": "Name of the path",
+                    "type": "string"
+                    },
+                    "points_of_interest": {
+                    "description": "",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "description": "",
+                        "prefixItems": [
+                        { "type": "number" },
+                        { "type": "string" },
+                        { "enum": [ "front", "rear" ] }
+                        ]
+                    }
+                    },
+                    "UUID": {
+                    "description": "The unique identifier for a path",
+                    "type": "string",
+                    "format": "uuid"
+                    }
+                }
+            }""")
+
+            try
+                validate(railtoolkit_schema, path)
+            catch err
+                error("Could not load path file '$file'.\n
+                       YAML format is not recognized. 
+                       Currently supported: railtoolkit/schema (2022.04)")
+            end
+
+            ## set the variables if they exist in "settings"
+            # required
+            name    = path["name"]
+            id      = path["id"]
+            tmp_sec = path["characteristic_sections"]
+            # optional
+            haskey(path, "UUID")               ? uuid        = parse(UUID, path["UUID"] ) : nothing
+            haskey(path, "points_of_interest") ? POI_PRESENT = true                       : nothing
+            haskey(path, "points_of_interest") ? tmp_points  = path["points_of_interest"] : nothing
+
+        else
+            error("Unknown file type '$type'")
+        end #if type
+
+        ## process characteristic sections
+        sort!(tmp_sec, by = x -> x[1])
+        for row in 2:length(tmp_sec)
+            s_start = tmp_sec[row-1][1]     # first point of the section (in m)
+            s_end   = tmp_sec[row][1]       # first point of the next section (in m)
+            v_limit = tmp_sec[row-1][2]/3.6 # paths speed limt (in m/s)
+            f_Rp    = tmp_sec[row-1][3]     # specific path resistance of the section (in ‰)
+    
+            section = Dict(:s_start => s_start,
+                           :s_end   => s_end,
+                           :v_limit => v_limit,
+                           :f_Rp    => f_Rp)
+            push!(sections, section)
+        end #for row
+        # s_start in first entry defines the path's beginning
+        # s_end in last entry defines the path's ending
+
+        ## process points of interest
+        if POI_PRESENT
+            sort!(tmp_points, by = x -> x[1])
+            for elem in tmp_points
+                station = elem[1]     # first point of the section (in m)
+                label   = elem[2] # paths speed limt (in m/s)
+                measure = elem[3]     # specific path resistance of the section (in ‰)
+        
+                point = Dict(:station => station,
+                             :label   => label,
+                             :measure => measure)
+                push!(poi, point)
+            end #for elem
+        end #if !isempty(points)
+
+        new(name, id, uuid, poi, sections)
+
+    end #function Path
+
+end #struct Path
+
+"""
+a DataPoint is the smallest element of the driving course. One step of the step approach is between two data points
+"""
+function createDataPoint()
+    dataPoint = Dict(
+        :i => 0,            # identifier and counter variable of the driving course
+        :behavior => "",    # type of behavior section the data point is part of - see createBehaviorSection()
+                            # a data point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
+        :s => 0.0,          # position (in m)
+        :Δs => 0.0,         # step size (in m)
+        :t => 0.0,          # point in time (in s)
+        :Δt => 0.0,         # step size (in s)
+        :v => 0.0,          # velocity (in m/s)
+        :Δv => 0.0,         # step size (in m/s)
+        :a => 0.0,          # acceleration (in m/s^2)
+        :W => 0.0,          # mechanical work (in Ws)
+        :ΔW => 0.0,         # mechanical work in this step (in Ws)
+        :E => 0.0,          # energy consumption (in Ws)
+        :ΔE => 0.0,         # energy consumption in this step (in Ws)
+        :F_T => 0.0,        # tractive effort (in N)
+        :F_R => 0.0,        # resisting force (in N)
+        :R_path => 0.0,     # path resistance (in N)
+        :R_train => 0.0,    # train resistance (in N)
+        :R_traction => 0.0, # traction unit resistance (in N)
+        :R_wagons => 0.0,   # set of wagons resistance (in N)
+        :label => ""        # a label for importend points
+    )
+    return dataPoint
+end #function createDataPoint
+
+"""
+BehaviorSection() TODO!
+"""
+function createBehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
+    BS= Dict(
+        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "standstill"
+        :length => 0.0,                # total length  (in m)
+        :s_entry => s_entry,           # first position (in m)
+        :s_exit => 0.0,                # last position  (in m)
+        :t => 0.0,                     # total running time (in s)
+        :E => 0.0,                     # total energy consumption (in Ws)
+        :v_entry => v_entry,           # entry speed (in m/s)
+        :v_exit => 0.0,                # exit speed (in m/s)
+        :dataPoints => [startingPoint] # list of identifiers of the containing data points starting with the initial point
+    )
+    return BS
+end #function createBehaviorSection
+
+## create a moving section containing characteristic sections
+function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real)
+    # this function creates and returns a moving section dependent on the paths attributes
+
+    s_entry = path.sections[1][:s_start]          # first position (in m)
+    s_exit = path.sections[end][:s_end]           # last position (in m)
+    pathLength = s_exit - s_entry                   # total length (in m)
+
+    CSs=Vector{Dict}()
+    s_csStart=s_entry
+    csId=1
+    for row in 2:length(path.sections)
+        previousSection = path.sections[row-1]
+        currentSection = path.sections[row]
+        speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
+        pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
+        if speedLimitIsDifferent || pathResistanceIsDifferent
+        # 03/09 old: if min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit) || previousSection[:f_Rp] != currentSection[:f_Rp]
+            push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, path))
+            s_csStart = currentSection[:s_start]
+            csId = csId+1
+        end #if
+    end #for
+    push!(CSs, createCharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, path))
+
+    movingSection= Dict(:id => 1,                       # identifier    # if there is more than one moving section in a later version of this tool the id should not be constant anymore
+                        :length => pathLength,          # total length (in m)
+                        :s_entry => s_entry,            # first position (in m)
+                        :s_exit => s_exit,              # last position (in m)
+                        :t => 0.0,                      # total running time (in s)
+                        :E => 0.0,                      # total energy consumption (in Ws)
+                        :characteristicSections => CSs) # list of containing characteristic sections
+
+    return movingSection
+end #function createMovingSection
+
+
+## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
+function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, path::Path)
+    # Create and return a characteristic section dependent on the paths attributes
+    characteristicSection= Dict(:id => id,                            # identifier
+                                :s_entry => s_entry,                    # first position (in m)
+                                :s_exit => section[:s_end],             # last position  (in m)
+                                :length => section[:s_end] -s_entry,    # total length  (in m)
+                                :r_path => section[:f_Rp],              # path resistance (in ‰)
+                                :behaviorSections => Dict(),            # list of containing behavior sections
+                                :t => 0.0,                              # total running time (in s)
+                                :E => 0.0,                              # total energy consumption (in Ws)
+                                :v_limit => v_limit,                    # speed limit (in m/s)
+                                # initializing :v_entry, :v_peak and :v_exit with :v_limit
+                                :v_peak => v_limit,                     # maximum reachable speed (in m/s)
+                                :v_entry => v_limit,                    # maximum entry speed (in m/s)
+                                :v_exit => v_limit)                     # maximum exit speed (in m/s)
+
+    # list of positions of every point of interest (POI) in this charateristic section for which data points should be calculated
+    s_exit = characteristicSection[:s_exit]
+
+    ##TODO: use a tuple with naming
+    pointsOfInterest = Tuple[]
+    # pointsOfInterest = Real[]
+    if !isempty(path.poi)
+        for POI in path.poi
+            s_poi = POI[:station]
+            if POI[:measure] == "rear"
+                s_poi -= s_trainLength
+            end
+            if s_entry < s_poi && s_poi < s_exit
+                push!(pointsOfInterest, (s_poi, POI[:label]) )
+                # push!(pointsOfInterest, s_poi )
+            end
+        end
     end
-    return (train, path)
-end #function checkAndSetInput!
+    push!(pointsOfInterest, (s_exit,""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
+    # push!(pointsOfInterest, s_exit)     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
+
+    merge!(characteristicSection, Dict(:pointsOfInterest => pointsOfInterest))
+
+    return characteristicSection
+end #function createCharacteristicSection
 
 """
 Read the train information from a YAML file, save it in a train Dict and return it.
@@ -174,7 +441,7 @@ function checkAndSetTrain!(train::Dict)
     return train
 end #function checkAndSetTrain!
 
-function checkAndSetPath!(path::Dict)
+function checkAndSetPath!(path::Path)
  # check path information from input dictionary
 
     checkAndSetString!(path, "path", :name, "")
@@ -561,217 +828,220 @@ function getDefault_Δv_w(type::String)     # coefficient for velocitiy differen
     return Δv_w
 end #function getDefault_Δv_w!
 
-function checkAndSetSections!(path::Dict)
-    # check the section information
-    if haskey(path,:sections) && path[:sections]!=nothing
-        # TODO: check typeof(path[:sections]) == Dict
-        if (haskey(path, :sectionStarts) && path[:sectionStarts]!=nothing) && (haskey(path,:sectionStarts_kmh) && path[:sectionStarts_kmh]!=nothing)
-            println("WARNING at checking the input for the path: There are values for sections, sectionStarts and sectionStarts_kmh. The dictionary sections is used." )
+# function checkAndSetSections!(path::Path)
+#     # check the section information
+#     if haskey(path,:sections) && path.sections!=nothing
+#         # TODO: check typeof(path.sections) == Dict
+#         if (haskey(path, :sectionStarts) && path[:sectionStarts]!=nothing) && (haskey(path,:sectionStarts_kmh) && path[:sectionStarts_kmh]!=nothing)
+#             println("WARNING at checking the input for the path: There are values for sections, sectionStarts and sectionStarts_kmh. The dictionary sections is used." )
 
-        elseif haskey(path,:sectionStarts) && path[:sectionStarts]!=nothing
-            println("WARNING at checking the input for the path: There are values for sections and sectionStarts. The dictionary sections is used." )
+#         elseif haskey(path,:sectionStarts) && path[:sectionStarts]!=nothing
+#             println("WARNING at checking the input for the path: There are values for sections and sectionStarts. The dictionary sections is used." )
 
-        elseif haskey(path,:sectionStarts_kmh) && path[:sectionStarts_kmh]!=nothing
-            println("WARNING at checking the input for the path: There are values for sections and sectionStarts_kmh. The dictionary sections is used." )
-        end
-    elseif haskey(path,:sectionStarts) && path[:sectionStarts]!=nothing
-        # TODO: check typeof(path[:sections]) == Array
-        createSections!(path, :sectionStarts)
+#         elseif haskey(path,:sectionStarts_kmh) && path[:sectionStarts_kmh]!=nothing
+#             println("WARNING at checking the input for the path: There are values for sections and sectionStarts_kmh. The dictionary sections is used." )
+#         end
+#     elseif haskey(path,:sectionStarts) && path[:sectionStarts]!=nothing
+#         # TODO: check typeof(path.sections) == Array
+#         createSections!(path, :sectionStarts)
 
-        if haskey(path,:sectionStarts_kmh) && path[:sectionStarts_kmh]!=nothing
-            println("WARNING at checking the input for the path: There are values for sectionStarts and sectionStarts_kmh. The array sectionStarts is used." )
-        end
-    elseif haskey(path,:sectionStarts_kmh) && path[:sectionStarts_kmh]!=nothing
-        # TODO: check typeof(path[:sections]) == Array
-        createSections!(path, :sectionStarts_kmh)
-    else
-        error("ERROR at checking the input for the path: The Symbol :sections is missing. It has to be added with a list of sections. Each has to be a dictionary with the keys :s_tart, :s_end, :v_limit and :f_Rp.")
-        section = Dict(:s_start => 0.0,
-                        :s_end => 15.0,
-                        :v_limit => 1000.0/3.6,
-                        :f_Rp => 0.0)
-        merge!(path, Dict(:sections => [section]))
-        return path
-    end
+#         if haskey(path,:sectionStarts_kmh) && path[:sectionStarts_kmh]!=nothing
+#             println("WARNING at checking the input for the path: There are values for sectionStarts and sectionStarts_kmh. The array sectionStarts is used." )
+#         end
+#     elseif haskey(path,:sectionStarts_kmh) && path[:sectionStarts_kmh]!=nothing
+#         # TODO: check typeof(path.sections) == Array
+#         createSections!(path, :sectionStarts_kmh)
+#     else
+#         error("ERROR at checking the input for the path: The Symbol :sections is missing. It has to be added with a list of sections. Each has to be a dictionary with the keys :s_tart, :s_end, :v_limit and :f_Rp.")
+#         section = Dict(:s_start => 0.0,
+#                         :s_end => 15.0,
+#                         :v_limit => 1000.0/3.6,
+#                         :f_Rp => 0.0)
+#         merge!(path, Dict(:sections => [section]))
+#         return path
+#     end
 
-    sections = path[:sections]
+#     sections = path.sections
 
-    checkedSections = []
-    increasing = false
-    decreasing = false
+#     checkedSections = []
+#     increasing = false
+#     decreasing = false
 
-    #TODO: throw error for each issue or collect the issues and use the Bool errorDetected like in createSections?
+#     #TODO: throw error for each issue or collect the issues and use the Bool errorDetected like in createSections?
 
-    # check values for section==1
-    checkAndSetRealNumber!(sections[1], "path[:sections][1]", :s_start, "m", 0.0)                      # first point of the section (in m)
-    checkAndSetRealNumber!(sections[1], "path[:sections][1]", :s_end, "m", 0.0)                        # first point of the next section (in m)
-    checkAndSetPositiveNumber!(sections[1], "path[:sections][1]", :v_limit, "m/s", 1000.0/3.6)    # paths speed limt (in m/s)
-    checkAndSetRealNumber!(sections[1], "path[:sections][1]", :f_Rp, "‰", 0.0)                # specific path resistance of the section (in ‰)
+#     # check values for section==1
+#     checkAndSetRealNumber!(sections[1], "path.sections[1]", :s_start, "m", 0.0)                      # first point of the section (in m)
+#     checkAndSetRealNumber!(sections[1], "path.sections[1]", :s_end, "m", 0.0)                        # first point of the next section (in m)
+#     checkAndSetPositiveNumber!(sections[1], "path.sections[1]", :v_limit, "m/s", 1000.0/3.6)    # paths speed limt (in m/s)
+#     checkAndSetRealNumber!(sections[1], "path.sections[1]", :f_Rp, "‰", 0.0)                # specific path resistance of the section (in ‰)
 
-    push!(checkedSections, sections[1])
+#     push!(checkedSections, sections[1])
 
-    if sections[1][:s_start] < sections[1][:s_end]
-        increasing = true
-    elseif sections[1][:s_start] > sections[1][:s_end]
-        decreasing = true
-    else
-        pop!(checkedSections)
-        println("WARNING at checking the input for the path: The first section of :sections has the same position for starting and end point. The section will be deleted and not used in the tool.")
-    end
-
-
-    for sectionNr in 2:length(sections)
-        checkAndSetRealNumber!(sections[sectionNr], "path[:sections]["*string(sectionNr)*"]", :s_start, "m", sections[sectionNr-1][:s_end])                      # first point of the section (in m)
-        # TODO how to define default values? which has to be checked and defined fist? s_end-1 and s_start need each other as default values
-        #if sectionNr < length(sections) && haskey(sections[sectionNr], :s_start) && sections[sectionNr][:s_start]!=nothing && typeof(sections[sectionNr][:s_start]) <: Real
-        #    defaultEnd = sections[sectionNr+1][:s_start]
-        #end
-        defaultEnd = sections[sectionNr][:s_start]  # so the default value for s_end creates a sections of lenght=0.0   #TODO should be changed!
-        checkAndSetRealNumber!(sections[sectionNr], "path[:sections]["*string(sectionNr)*"]", :s_end, "m", defaultEnd)                        # first point of the next section (in m)
-        checkAndSetPositiveNumber!(sections[sectionNr], "path[:sections]["*string(sectionNr)*"]", :v_limit, "m/s", 1000.0/3.6)    # paths speed limt (in m/s)
-        checkAndSetRealNumber!(sections[sectionNr], "path[:sections]["*string(sectionNr)*"]", :f_Rp, "‰", 0.0)                # specific path resistance of the section (in ‰)
-
-        push!(checkedSections, sections[sectionNr])
-
-        # compare the section's start and end position
-        if sections[sectionNr][:s_start] < sections[sectionNr][:s_end]
-            increasing = true
-        elseif sections[sectionNr][:s_start] > sections[sectionNr][:s_end]
-            decreasing = true
-        else
-            pop!(checkedSections)
-            println("INFO at checking the input for the path: The ",sectionNr,". section of :sections has the same position for starting and end point. The section will be deleted and not used in the tool.")
-        end
-        if increasing && decreasing
-            error("ERROR at checking the input for the path: The positions of the :sections are not increasing/decreasing consistently. The direction in the ",sectionNr,". section differs from the previous.")
-        end
+#     if sections[1][:s_start] < sections[1][:s_end]
+#         increasing = true
+#     elseif sections[1][:s_start] > sections[1][:s_end]
+#         decreasing = true
+#     else
+#         pop!(checkedSections)
+#         println("WARNING at checking the input for the path: The first section of :sections has the same position for starting and end point. The section will be deleted and not used in the tool.")
+#     end
 
 
-        if length(checkedSections)>1 && sections[sectionNr][:s_start] != checkedSections[end-1][:s_end]
-            error("ERROR at checking the input for the path[:sections]: The starting position of the ",section,". section (s=",sections[sectionNr][:s_start]," m) does not euqal the last position of the previous section(s=",checkedSections[end-1][:s_end]," m). The sections have to be sequential.")
-            # TODO: maybe if there is a gab create a new section and only if there a jumps in the wrong direction throw an error?
-        end
-    end #for
+#     for sectionNr in 2:length(sections)
+#         checkAndSetRealNumber!(sections[sectionNr], "path.sections["*string(sectionNr)*"]", :s_start, "m", sections[sectionNr-1][:s_end])                      # first point of the section (in m)
+#         # TODO how to define default values? which has to be checked and defined fist? s_end-1 and s_start need each other as default values
+#         #if sectionNr < length(sections) && haskey(sections[sectionNr], :s_start) && sections[sectionNr][:s_start]!=nothing && typeof(sections[sectionNr][:s_start]) <: Real
+#         #    defaultEnd = sections[sectionNr+1][:s_start]
+#         #end
+#         defaultEnd = sections[sectionNr][:s_start]  # so the default value for s_end creates a sections of lenght=0.0   #TODO should be changed!
+#         checkAndSetRealNumber!(sections[sectionNr], "path.sections["*string(sectionNr)*"]", :s_end, "m", defaultEnd)                        # first point of the next section (in m)
+#         checkAndSetPositiveNumber!(sections[sectionNr], "path.sections["*string(sectionNr)*"]", :v_limit, "m/s", 1000.0/3.6)    # paths speed limt (in m/s)
+#         checkAndSetRealNumber!(sections[sectionNr], "path.sections["*string(sectionNr)*"]", :f_Rp, "‰", 0.0)                # specific path resistance of the section (in ‰)
 
-    return path
-end #function checkAndSetSections!
+#         push!(checkedSections, sections[sectionNr])
 
-function createSections!(path::Dict, key::Symbol)
-    # read the section starting positions and corresponding information
-    if key == :sectionStarts
-        sectionStartsArray = path[:sectionStarts]
-        conversionFactor = 1.0                                # conversion factor between the units m/s and m/s
-
-        if haskey(path,:sectionStarts) && path[:sectionStarts_kmh]!=nothing
-            println("WARNING at checking the input for the path: There are values for sectionStarts and sectionStarts_kmh. The values for sectionStarts are used." )
-        end
-    elseif key == :sectionStarts_kmh
-        sectionStartsArray = path[:sectionStarts_kmh]
-        conversionFactor = 1/3.6                              # conversion factor between the units km/h and m/s
-    else
-        error("ERROR at checking the input for the path: The keyword sectionStarts or sectionStarts_kmh is missing. The sections can not be created without them.")
-    end # if
-
-    # check if the array is correct and if elements of the array have the correct type and valid values
-    errorDetected = false
-    if length(sectionStartsArray)<2
-        error("ERROR at checking the input for the path: The keyword ",key," needs at least two rows for two points each with the three columns [s, v_limit, f_Rp].")
-    end
-
-    for row in 1:length(sectionStartsArray)
-        if length(sectionStartsArray[row])>=3
-            if length(sectionStartsArray[row])>3
-                println("INFO at checking the input for the path: Only the first three columns of sectionStartsArray are used in this tool.")
-            end
-        else
-            error("ERROR at checking the input for the path: The keyword ",key," needs to be filled with the three columns [s, v_limit, f_Rp].")
-        end
-
-        if !(typeof(sectionStartsArray[row][1]) <: Real)
-            errorDetected=true
-            println("ERROR at checking the input for the path: The position value (column 1) of ",key," in row ", row ," is no real floating point number.")
-        end
-        if !(typeof(sectionStartsArray[row][2]) <: Real && sectionStartsArray[row][2] >= 0.0)
-            errorDetected=true
-            println("ERROR at checking the input for the path: The speed limit (column 2) of ",key," in row ", row ," is no real floating point number >=0.0.")
-        end
-        if !(typeof(sectionStartsArray[row][3]) <: Real)
-            errorDetected=true
-            println("ERROR at checking the input for the path: The tractive effort value (column 3) of ",key," in row ", row ," is no real floating point number.")
-        end
-    end # for
-    if errorDetected
-        error("ERROR at checking the input for the path: The values of ",key," have to be corrected.")
-    end
+#         # compare the section's start and end position
+#         if sections[sectionNr][:s_start] < sections[sectionNr][:s_end]
+#             increasing = true
+#         elseif sections[sectionNr][:s_start] > sections[sectionNr][:s_end]
+#             decreasing = true
+#         else
+#             pop!(checkedSections)
+#             println("INFO at checking the input for the path: The ",sectionNr,". section of :sections has the same position for starting and end point. The section will be deleted and not used in the tool.")
+#         end
+#         if increasing && decreasing
+#             error("ERROR at checking the input for the path: The positions of the :sections are not increasing/decreasing consistently. The direction in the ",sectionNr,". section differs from the previous.")
+#         end
 
 
-    sections = []
-    for row in 2:length(sectionStartsArray)
-        s_start = sectionStartsArray[row-1][1]                    # first point of the section (in m)
-        s_end = sectionStartsArray[row][1]                        # first point of the next section (in m)
-        v_limit = sectionStartsArray[row-1][2]*conversionFactor   # paths speed limt (in m/s)
-        f_Rp = sectionStartsArray[row-1][3]                       # specific path resistance of the section (in ‰)
+#         if length(checkedSections)>1 && sections[sectionNr][:s_start] != checkedSections[end-1][:s_end]
+#             error("ERROR at checking the input for the path.sections: The starting position of the ",section,". section (s=",sections[sectionNr][:s_start]," m) does not euqal the last position of the previous section(s=",checkedSections[end-1][:s_end]," m). The sections have to be sequential.")
+#             # TODO: maybe if there is a gab create a new section and only if there a jumps in the wrong direction throw an error?
+#         end
+#     end #for
 
-        section = Dict(:s_start => s_start,
-                        :s_end => s_end,
-                        :v_limit => v_limit,
-                        :f_Rp => f_Rp)
-        push!(sections, section)
-    end # for
-    # s_start in first entry defines the path's beginning
-    # s_end in last entry defines the path's ending
+#     return path
+# end #function checkAndSetSections!
 
-    merge!(path, Dict(:sections => sections))
-    return path
-end #function createSections!
+# function createSections!(path::Path, key::Symbol)
+#     # read the section starting positions and corresponding information
+#     if key == :sectionStarts
+#         sectionStartsArray = path[:sectionStarts]
+#         conversionFactor = 1.0                                # conversion factor between the units m/s and m/s
 
-function checkAndSetPOIs!(path::Dict)
-    # read the section starting positions and corresponding information
-    if haskey(path, :pointsOfInterest)
-        if path[:pointsOfInterest] != nothing
-            pointsOfInterest = path[:pointsOfInterest]
+#         if haskey(path,:sectionStarts) && path[:sectionStarts_kmh]!=nothing
+#             println("WARNING at checking the input for the path: There are values for sectionStarts and sectionStarts_kmh. The values for sectionStarts are used." )
+#         end
+#     elseif key == :sectionStarts_kmh
+#         sectionStartsArray = path[:sectionStarts_kmh]
+#         conversionFactor = 1/3.6                              # conversion factor between the units km/h and m/s
+#     elseif key == :characteristic_sections
+#         sectionStartsArray = path[:characteristic_sections]
+#         conversionFactor = 1/3.6                              # conversion factor between the units km/h and m/s
+#     else
+#         error("ERROR at checking the input for the path: The keyword sectionStarts or sectionStarts_kmh is missing. The sections can not be created without them.")
+#     end # if
 
-            sortingNeeded = false
-            errorDetected = false
-            for element in 1:length(pointsOfInterest)
-                if typeof(pointsOfInterest[element]) <: Real
-                    if element > 1
-                        if pointsOfInterest[element] < pointsOfInterest[element-1]
-                            sortingNeeded = true
-                            println("INFO at checking the input for the path: The point of interest in element ", element ," (",pointsOfInterest[element]," m) has to be higher than the value of the previous element (",pointsOfInterest[element-1]," m). The points of interest will be sorted.")
-                        end
-                    end
-                else
-                    errorDetected = true
-                    println("ERROR at checking the input for the path: The point of interest in element ", element ," is no real floating point number.")
-                end
-            end # for
+#     # check if the array is correct and if elements of the array have the correct type and valid values
+#     errorDetected = false
+#     if length(sectionStartsArray)<2
+#         error("ERROR at checking the input for the path: The keyword ",key," needs at least two rows for two points each with the three columns [s, v_limit, f_Rp].")
+#     end
 
-            if errorDetected
-                error("ERROR at checking the input for the path: The values of pointsOfInterest have to be corrected.")
-            end
-            if sortingNeeded == true
-                sort!(pointsOfInterest)
-            end
+#     for row in 1:length(sectionStartsArray)
+#         if length(sectionStartsArray[row])>=3
+#             if length(sectionStartsArray[row])>3
+#                 println("INFO at checking the input for the path: Only the first three columns of sectionStartsArray are used in this tool.")
+#             end
+#         else
+#             error("ERROR at checking the input for the path: The keyword ",key," needs to be filled with the three columns [s, v_limit, f_Rp].")
+#         end
 
-            copiedPOIs = []
-            for element in 1:length(pointsOfInterest)
-                if element == 1
-                    push!(copiedPOIs, pointsOfInterest[element])
-                elseif element > 1 && pointsOfInterest[element] > pointsOfInterest[element-1]
-                    push!(copiedPOIs, pointsOfInterest[element])
-                end
-            end # for
-            path[:pointsOfInterest] = copiedPOIs
+#         if !(typeof(sectionStartsArray[row][1]) <: Real)
+#             errorDetected=true
+#             println("ERROR at checking the input for the path: The position value (column 1) of ",key," in row ", row ," is no real floating point number.")
+#         end
+#         if !(typeof(sectionStartsArray[row][2]) <: Real && sectionStartsArray[row][2] >= 0.0)
+#             errorDetected=true
+#             println("ERROR at checking the input for the path: The speed limit (column 2) of ",key," in row ", row ," is no real floating point number >=0.0.")
+#         end
+#         if !(typeof(sectionStartsArray[row][3]) <: Real)
+#             errorDetected=true
+#             println("ERROR at checking the input for the path: The tractive effort value (column 3) of ",key," in row ", row ," is no real floating point number.")
+#         end
+#     end # for
+#     if errorDetected
+#         error("ERROR at checking the input for the path: The values of ",key," have to be corrected.")
+#     end
 
-        else
-            println("INFO at checking the input for the path: The key pointsOfInterest exists but without values.")
-            delete!(path, :pointsOfInterest)
-        end
-    end
 
-    return path
-end #function checkAndSetPOIs!
+#     sections = []
+#     for row in 2:length(sectionStartsArray)
+#         s_start = sectionStartsArray[row-1][1]                    # first point of the section (in m)
+#         s_end = sectionStartsArray[row][1]                        # first point of the next section (in m)
+#         v_limit = sectionStartsArray[row-1][2]*conversionFactor   # paths speed limt (in m/s)
+#         f_Rp = sectionStartsArray[row-1][3]                       # specific path resistance of the section (in ‰)
+
+#         section = Dict(:s_start => s_start,
+#                         :s_end => s_end,
+#                         :v_limit => v_limit,
+#                         :f_Rp => f_Rp)
+#         push!(sections, section)
+#     end # for
+#     # s_start in first entry defines the path's beginning
+#     # s_end in last entry defines the path's ending
+
+#     merge!(path, Dict(:sections => sections))
+#     return path
+# end #function createSections!
+
+# function checkAndSetPOIs!(path::Path)
+#     # read the section starting positions and corresponding information
+#     if haskey(path, :pointsOfInterest)
+#         # if path.poi != nothing
+#             pointsOfInterest = path[:points_of_interest]
+
+#             sortingNeeded = false
+#             errorDetected = false
+#             for element in 1:length(pointsOfInterest)
+#                 if typeof(pointsOfInterest[element]) <: Real
+#                     if element > 1
+#                         if pointsOfInterest[element] < pointsOfInterest[element-1]
+#                             sortingNeeded = true
+#                             println("INFO at checking the input for the path: The point of interest in element ", element ," (",pointsOfInterest[element]," m) has to be higher than the value of the previous element (",pointsOfInterest[element-1]," m). The points of interest will be sorted.")
+#                         end
+#                     end
+#                 else
+#                     errorDetected = true
+#                     println("ERROR at checking the input for the path: The point of interest in element ", element ," is no real floating point number.")
+#                 end
+#             end # for
+
+#             if errorDetected
+#                 error("ERROR at checking the input for the path: The values of pointsOfInterest have to be corrected.")
+#             end
+#             if sortingNeeded == true
+#                 sort!(pointsOfInterest)
+#             end
+
+#             copiedPOIs = []
+#             for element in 1:length(pointsOfInterest)
+#                 if element == 1
+#                     push!(copiedPOIs, pointsOfInterest[element])
+#                 elseif element > 1 && pointsOfInterest[element] > pointsOfInterest[element-1]
+#                     push!(copiedPOIs, pointsOfInterest[element])
+#                 end
+#             end # for
+#             path[:points_of_interest ] = copiedPOIs
+
+#         # else
+#         #     println("INFO at checking the input for the path: The key pointsOfInterest exists but without values.")
+#         #     delete!(path, :points_of_interest)
+#         # end
+#     end
+
+#     return path
+# end #function checkAndSetPOIs!
 
 #function informAboutUnusedKeys(dictionary::Dict, dictionaryType::String)         # inform the user which Symbols of the input dictionary are not used in this tool
 function informAboutUnusedKeys(allKeys::AbstractVector, usedKeys::Vector{Symbol}, dictionaryType::String)         # inform the user which Symbols of the input dictionary are not used in this tool

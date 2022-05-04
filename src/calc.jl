@@ -5,42 +5,7 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-# Calculate the driving dynamics of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
-
-"""
-    trainRun(train::Dict, path::Dict, settings::Settings)
-
-Calculate the driving dynamics of a train run on a path with special settings with information from the corresponding dictionaries `train`, `path`, `settings`.
-
-# Examples
-```julia-repl
-julia> trainRun(trainDict, pathDict)
-todo !!!
-```
-"""
-function trainRun(trainInput::Dict, pathInput::Dict, settings=Settings()::Settings)
-    # copy Input data for not changing them
-    # TODO: or should they be changed? normally it would only make it "better" except for settings.outputDetail == :points_of_interest && !haskey(path, :pointsOfInterest)
-    train = copy(trainInput)
-    path = copy(pathInput)
-
-    # check the input data
-    (train, path) = checkAndSetInput!(train, path, settings)
-    settings.outputDetail == :everything && println("The input has been checked.")
-
-    # prepare the input data
-    movingSection = determineCharacteristics(path, train, settings)
-    settings.outputDetail == :everything && println("The moving section has been prepared.")
-
-    # calculate the train run for oparation mode "minimum running time"
-    (movingSection, drivingCourse) = calculateMinimumRunningTime!(movingSection, settings, train)
-    settings.outputDetail == :everything && println("The driving course for the shortest running time has been calculated.")
-
-    # accumulate data and create an output dictionary
-    output = createOutput(train, settings, path, movingSection, drivingCourse)
-
-    return output
-end # function trainRun
+# Calculate the running time of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
 
 # calculate a train run focussing on using the minimum possible running time
 function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, train::Dict)

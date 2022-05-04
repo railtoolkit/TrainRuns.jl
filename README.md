@@ -14,28 +14,25 @@ TrainRun.jl is a step towards open science and open data in railway engineering.
 # Installation
 
 The required julia packages are
-   - YAML.jl
-   - Dates.jl
-   - DataFrames.jl
-   - CSV.jl
-   - Plots.jl
-
-Review the settings.yaml file for your appropriate settings.
+  - YAML.jl
+  - JSONSchema.jl
+  - Dates.jl
+  - DataFrames.jl
+  - CSV.jl
 
 ------------
 
 # Minimal working example
 
 ```julia
-include("../src/TrainRun.jl")
-using .TrainRun
+import TrainRun
 
-train_directory =  "data/trains/train_freight_V90withOreConsist.yaml"
-running_path_directory = "data/paths/path_1_10km_nConst_vConst.yaml"
-settings_directory = "data/settings.yaml"
-(train, running_path, settings) = importYamlFiles(train_directory, running_path_directory, setting_directory)
+train = Train("test/data/trains/freight.yaml")
+path  = Path("test/data/paths/const.yaml")
 
-train_run = trainRun(train, running_path, settings)
+runtime = trainrun(train, path)
+
+println("The train needs $runtime seconds for the running path.")
 ```
 
 ------------

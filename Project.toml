@@ -1,6 +1,6 @@
 name = "TrainRun"
 uuid = "e4541106-d44c-4e00-b50b-ecdf479fcf92"
-authors = ["Max Kannenberg, Martin Scheidt, and contributors"]
+authors = ["Max Kannenberg", "Martin Scheidt", "contributors"]
 version = "0.8.0"
 
 [deps]
@@ -8,10 +8,15 @@ CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 JSONSchema = "7d188eb4-7ad8-530c-ae41-71a32a6d4692"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
-julia = "1.7"
+CSV = "^0"
+DataFrames = "^1"
+JSONSchema = "^1"
+YAML = "^0"
+julia = "^1.6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

@@ -1,9 +1,0 @@
-%YAML 1.2
----
-settings:
-# default settings for the calculation
-  stepSize: 5                  # step size, unit depends on stepVariable - distance in meter, time in seconds and velocity in meter/second.
-  approxLevel: 6               # value for approximation; used when rounding or interating
-  outputDetail: "running_time" # single value "running_time", array of "points_of_interest",complete array "driving_course", or dict() "everything"
-  outputFormat: "julia_dict"   # output as "julia_dict" or as "csv"
-  outputDir: "."               # used if other outputFormat than "julia dict"

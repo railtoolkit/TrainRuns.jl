@@ -22,7 +22,7 @@ for path in paths
    for train in trains
        # println("train: ", train[:name])
        for settings in settings
-           resultsDict = trainRun(train, path, settings)
+           resultsDict = trainrun(train, path, settings)
            if haskey(settings, :outputFormat) && settings[:outputFormat] == "CSV"
                exportToCsv(resultsDict, settings)
                sleep(2)

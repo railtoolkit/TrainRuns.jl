@@ -2,16 +2,26 @@
 ---
 path:
   name: "10 km, no gradient, different speed limits"
-  pointsOfInterest: [999, 2000, 3333.3, 5000, 7777, 9000, 9500.95]  # points of interest: positions in m
-  sectionStarts:       # with path speed limt (in m/s)    # [s in m, v_limit in m/s, f_Rp in ‰]
-  sectionStarts_kmh:   # with path speed limt (in km/h)   # [s in m, v_limit in km/h, f_Rp in ‰]
-   - [0, 160, 0.0]
-   - [3000, 60, 0.0]
-   - [4000, 160, 0.0]
-   - [5000, 60, 0.0]
-   - [6000, 160, 0.0]
-   - [6500, 60, 0.0]
-   - [6700, 65, 0.0]
-   - [6800, 70, 0.0]
-   - [7000, 120.00, 0]
-   - [10000, 160.00, 0.0]
+  id: speed
+  UUID: 401b8ce7-fa75-4576-8a4a-43be2eb55e50
+  points_of_interest:
+    # [ station in m,                name,   front or rear ]
+    - [       999.00,             point_1,           front ]
+    - [      2000.00,             point_2,           front ]
+    - [      3333.30,             point_3,            rear ]
+    - [      5000.00,             point_4,           front ]
+    - [      7777.00,             point_5,           front ]
+    - [      9000.00,             point_6,           front ]
+    - [      9500.95,             point_7,           front ]
+  characteristic_sections:
+    # [ station in m, speed limit in km/h, resistance in ‰ ]
+    - [          0.0,                 160,            0.00 ]
+    - [       3000.0,                  60,            0.00 ]
+    - [       4000.0,                 160,            0.00 ]
+    - [       5000.0,                  60,            0.00 ]
+    - [       6000.0,                 160,            0.00 ]
+    - [       6500.0,                  60,            0.00 ]
+    - [       6700.0,                  65,            0.00 ]
+    - [       6800.0,                  70,            0.00 ]
+    - [       7000.0,                 120,            0.00 ]
+    - [      10000.0,                 160,            0.00 ]

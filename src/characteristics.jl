@@ -6,85 +6,14 @@
 # __license__       = "ISC"
 
 ## create a moving section and its containing characteristic sections with secured braking, accelerating and cruising behavior
-function determineCharacteristics(path::Dict, train::Dict, settings::Settings)
-    movingSection = createMovingSection(path, train[:v_limit])
+function determineCharacteristics(path::Path, train::Dict, settings::Settings)
+    movingSection = createMovingSection(path, train[:v_limit], train[:length])
     movingSection = secureBrakingBehavior!(movingSection, train[:a_braking])
     movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
     #movingSection = secureCruisingBehavior!(movingSection, settings, train)
 
     return movingSection
 end #function determineCharacteristics
-
-## create a moving section containing characteristic sections
-function createMovingSection(path::Dict, v_trainLimit::Real)
-    # this function creates and returns a moving section dependent on the paths attributes
-
-    s_entry = path[:sections][1][:s_start]          # first position (in m)
-    s_exit = path[:sections][end][:s_end]           # last position (in m)
-    pathLength = s_exit - s_entry                   # total length (in m)
-
-    CSs=Vector{Dict}()
-    s_csStart=s_entry
-    csId=1
-    for row in 2:length(path[:sections])
-        previousSection = path[:sections][row-1]
-        currentSection = path[:sections][row]
-        speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
-        pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
-        if speedLimitIsDifferent || pathResistanceIsDifferent
-        # 03/09 old: if min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit) || previousSection[:f_Rp] != currentSection[:f_Rp]
-            push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), path))
-            s_csStart = currentSection[:s_start]
-            csId = csId+1
-        end #if
-    end #for
-    push!(CSs, createCharacteristicSection(csId, s_csStart, path[:sections][end], min(path[:sections][end][:v_limit], v_trainLimit), path))
-
-    movingSection= Dict(:id => 1,                       # identifier    # if there is more than one moving section in a later version of this tool the id should not be constant anymore
-                        :length => pathLength,          # total length (in m)
-                        :s_entry => s_entry,            # first position (in m)
-                        :s_exit => s_exit,              # last position (in m)
-                        :t => 0.0,                      # total running time (in s)
-                        :E => 0.0,                      # total energy consumption (in Ws)
-                        :characteristicSections => CSs) # list of containing characteristic sections
-
-    return movingSection
-end #function createMovingSection
-
-
-## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
-function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, path::Dict)
-    # Create and return a characteristic section dependent on the paths attributes
-    characteristicSection= Dict(:id => id,                            # identifier
-                                :s_entry => s_entry,                    # first position (in m)
-                                :s_exit => section[:s_end],             # last position  (in m)
-                                :length => section[:s_end] -s_entry,    # total length  (in m)
-                                :r_path => section[:f_Rp],              # path resistance (in ‰)
-                                :behaviorSections => Dict(),            # list of containing behavior sections
-                                :t => 0.0,                              # total running time (in s)
-                                :E => 0.0,                              # total energy consumption (in Ws)
-                                :v_limit => v_limit,                    # speed limit (in m/s)
-                                # initializing :v_entry, :v_peak and :v_exit with :v_limit
-                                :v_peak => v_limit,                     # maximum reachable speed (in m/s)
-                                :v_entry => v_limit,                    # maximum entry speed (in m/s)
-                                :v_exit => v_limit)                     # maximum exit speed (in m/s)
-
-    # list of positions of every point of interest (POI) in this charateristic section for which data points should be calculated
-    s_exit = characteristicSection[:s_exit]
-    pointsOfInterest = Vector{Real}()
-    if haskey(path, :pointsOfInterest)
-        for POI in path[:pointsOfInterest]
-            if s_entry < POI && POI < s_exit
-                push!(pointsOfInterest, POI)
-            end
-        end
-    end
-    push!(pointsOfInterest, s_exit)     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
-
-    merge!(characteristicSection, Dict(:pointsOfInterest => pointsOfInterest))
-
-    return characteristicSection
-end #function createCharacteristicSection
 
 ## define the intersection velocities between the characterisitc sections to secure braking behavior
 function secureBrakingBehavior!(movingSection::Dict, a_braking::Real)

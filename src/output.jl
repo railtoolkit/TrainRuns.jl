@@ -5,18 +5,22 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-function createOutput(train::Dict, settings::Settings, path::Dict, movingSection::Dict, drivingCourse::Vector{Dict})
+function createOutput(train::Dict, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
     if settings.outputDetail == :running_time
         output = movingSection[:t]  # TODO: or use drivingCourse[end][:t]
 
     elseif settings.outputDetail == :points_of_interest
         # add points of interest
-        if haskey(path, :pointsOfInterest)
-            output = Vector{Dict}()
+        if !isempty(path.poi)
+
+            # for elem in 1:length(driving_course)
+            # end
+
+            output = Dict[]
             POI = 1
             i = 1
-            while POI <= length(path[:pointsOfInterest]) && i <= drivingCourse[end][:i]
-                if path[:pointsOfInterest][POI] == drivingCourse[i][:s]
+            while POI <= length(path.poi) && i <= drivingCourse[end][:i]
+                if path.poi[POI][:station] == drivingCourse[i][:s]
                     push!(output, drivingCourse[i])
                     POI = POI+1
                 end
@@ -42,12 +46,12 @@ function createOutput(train::Dict, settings::Settings, path::Dict, movingSection
         end
 
         # add points of interest
-        if haskey(path, :pointsOfInterest)
+        if !isempty(path.poi)
             pointsOfInterest = Vector{Dict}()
             POI = 1
             i = 1
-            while POI <= length(path[:pointsOfInterest]) && i <= drivingCourse[end][:i]
-                if path[:pointsOfInterest][POI] == drivingCourse[i][:s]
+            while POI <= length(path.poi) && i <= drivingCourse[end][:i]
+                if path.poi[POI] == drivingCourse[i][:s]
                     push!(pointsOfInterest, drivingCourse[i])
                     POI = POI+1
                 end
@@ -67,7 +71,7 @@ function createOutput(train::Dict, settings::Settings, path::Dict, movingSection
 end
 
 #=
-function createOutputDict(train::Dict, settings::Settings, path::Dict, movingSection::Dict, drivingCourse::Vector{Dict})
+function createOutputDict(train::Dict, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
     outputDict = Dict{Symbol,Any}()
     merge!(outputDict, Dict(:train => train, :path => path, :settings => settings))
 
@@ -82,12 +86,12 @@ function createOutputDict(train::Dict, settings::Settings, path::Dict, movingSec
     end
 
     # add points of interest
-    if haskey(path, :pointsOfInterest)
+    if !isempty(path.poi)
         pointsOfInterest = Vector{Dict}()
         POI = 1
         i = 1
-        while POI <= length(path[:pointsOfInterest]) && i <= drivingCourse[end][:i]
-            if path[:pointsOfInterest][POI] == drivingCourse[i][:s]
+        while POI <= length(path.poi) && i <= drivingCourse[end][:i]
+            if path.poi[POI] == drivingCourse[i][:s]
                 push!(pointsOfInterest, drivingCourse[i])
                 POI = POI+1
             end

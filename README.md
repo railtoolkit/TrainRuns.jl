@@ -1,7 +1,6 @@
 # TrainRuns
 
-[![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](https://opensource.org/licenses/ISC) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6448563.svg)](https://doi.org/10.5281/zenodo.6448563) 
-[![Build Status](https://github.com/railtoolkit/TrainRuns.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/railtoolkit/TrainRuns.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](https://opensource.org/licenses/ISC) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6448563.svg)](https://doi.org/10.5281/zenodo.6448563) [![Build Status](https://github.com/railtoolkit/TrainRuns.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/railtoolkit/TrainRuns.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 ------------
 
@@ -13,10 +12,17 @@ TrainRuns.jl is a step towards open science and open data in railway engineering
 
 # Installation
 
+Use the package manager provided by julia:
+```julia
+julia> # use the ] key
+(@v1.x) pkg> add TrainRuns
+(@v1.x) pkg> # use backspace
+julia> using TrainRuns
+```
+
 The required julia packages are
   - YAML.jl
   - JSONSchema.jl
-  - Dates.jl
   - DataFrames.jl
   - CSV.jl
 
@@ -25,7 +31,7 @@ The required julia packages are
 # Minimal working example
 
 ```julia
-import TrainRuns
+using TrainRuns
 
 train = Train("test/data/trains/freight.yaml")
 path  = Path("test/data/paths/const.yaml")
@@ -45,11 +51,11 @@ This work was supervised by South Westphalia University of Applied Sciences and 
 
 # License
 
-  [![Open Source Initiative Approved License logo](https://opensource.org/files/OSIApproved_100X125.png "Open Source Initiative Approved License logo")](https://opensource.org)
+[![Open Source Initiative Approved License logo](https://opensource.org/files/OSIApproved_100X125.png "Open Source Initiative Approved License logo")](https://opensource.org)
 
 ISC License (ISC)
 
-Copyright 2021 Max Kannenberg
+Copyright 2022 Max Kannenberg, Martin Scheidt
 
 Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
 

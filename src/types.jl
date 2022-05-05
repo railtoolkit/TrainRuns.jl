@@ -110,6 +110,7 @@ end #struct Settings
 
 Path is a datastruture for calculation context.
 The function Path() will create a running path for the train.
+Supported formats are: railtoolkit/schema (2022.05)
 
 # Example
 ```jldoctest
@@ -141,68 +142,112 @@ struct Path
         ## load from file
         if type == :YAML
 
-            path = YAML.load(open(file))["path"]
+            data = YAML.load(open(file))
+            if data["schema"] != "https://railtoolkit.org/schema/running-path.json"
+                error("Could not load path file '$file'.\n
+                       YAML format is not recognized. 
+                       Currently supported: railtoolkit/schema/running-path (2022.05)")
+            end
+            if data["schema_schema"] != "2022.05"
+                error("Could not load path file '$file'.\n
+                       YAML format is not recognized. 
+                       Currently supported: railtoolkit/schema/running-path (2022.05)")
+            end
 
             ## JSON schema for YAML-file validation
             railtoolkit_schema = Schema("""{
-                "required": [ "name", "id", "characteristic_sections" ],
+                "required": [ "schema", "schema_version", "paths" ],
                 "properties": {
-                    "characteristic_sections": {
-                    "description": "",
-                    "type": "array",
-                    "minItems": 2,
-                    "uniqueItems": true,
-                    "items": {
-                        "type": "array",
-                        "minItems": 3,
-                        "maxItems": 3,
-                        "description": "",
-                        "prefixItems": [
-                        { "type": "number" },
-                        { "type": "number" },
-                        { "type": "number" }
-                        ]
-                    }
-                    },
-                    "id": {
-                    "description": "Identifier of the path",
-                    "type": "string"
-                    },
-                    "name": {
-                    "description": "Name of the path",
-                    "type": "string"
-                    },
-                    "points_of_interest": {
-                    "description": "",
-                    "type": "array",
-                    "uniqueItems": true,
-                    "items": {
-                        "type": "array",
-                        "minItems": 3,
-                        "maxItems": 3,
-                        "description": "",
-                        "prefixItems": [
-                        { "type": "number" },
-                        { "type": "string" },
-                        { "enum": [ "front", "rear" ] }
-                        ]
-                    }
-                    },
-                    "UUID": {
-                    "description": "The unique identifier for a path",
+                  "schema": {
+                    "description": "Identifier of the schema",
+                    "enum": [ "https://railtoolkit.org/schema/running-path.json" ]
+                  },
+                  "schema_version": {
+                    "description": "Version of the schema",
                     "type": "string",
-                    "format": "uuid"
+                    "pattern": "[2-9][0-9][0-9][0-9].[0-1][0-9]"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "required": [ "name", "id", "characteristic_sections" ],
+                      "type": "object",
+                      "properties": {
+                        "characteristic_sections": {
+                          "description": "",
+                          "type": "array",
+                          "minItems": 2,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "array",
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "description": "",
+                            "prefixItems": [
+                              {
+                                "description": "milage in meter",
+                                "type": "number"
+                              },
+                              {
+                                "description": "speed in kilometers per hour",
+                                "type": "number",
+                                "exclusiveMinimum": 0
+                              },
+                              {
+                                "description": "resistance in permil",
+                                "type": "number"
+                              }
+                            ]
+                          }
+                        },
+                        "id": {
+                          "description": "Identifier of the path",
+                          "type": "string"
+                        },
+                        "name": {
+                          "description": "Name of the path",
+                          "type": "string"
+                        },
+                        "points_of_interest": {
+                          "description": "",
+                          "type": "array",
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "array",
+                            "minItems": 3,
+                            "maxItems": 3,
+                            "description": "",
+                            "prefixItems": [
+                              { "type": "number" },
+                              { "type": "string" },
+                              { "enum": [ "front", "rear" ] }
+                            ]
+                          }
+                        },
+                        "UUID": {
+                          "description": "The unique identifier for a path",
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
                     }
+                  }
                 }
             }""")
 
+            paths = data["paths"]
             try
-                validate(railtoolkit_schema, path)
+                validate(railtoolkit_schema, paths)
             catch err
                 error("Could not load path file '$file'.\n
                        YAML format is not recognized. 
-                       Currently supported: railtoolkit/schema (2022.04)")
+                       Currently supported: railtoolkit/schema/running-path (2022.05)")
             end
+            if length(paths) > 1
+                println("WARNING: the loaded file contains more than one path. Using only the first!")
+            end
+            path = paths[1]
 
             ## set the variables if they exist in "settings"
             # required

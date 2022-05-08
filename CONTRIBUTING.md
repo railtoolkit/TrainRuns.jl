@@ -34,9 +34,15 @@ julia> # use the ] key
 (TrainRuns) pkg>
 ```
 
-## TrainRuns files
+## Files in TrainRuns
 
-TODO!
+| file            | concern                        |
+| --------------- | ------------------------------ |
+| TrainRuns.jl    | main file and function         |
+| types.jl        | special TrainRuns types        |
+| constructors.jl | type constructors              |
+| formulary.jl    | formulars from literature      |
+| output.jl       | transformation into DataFrames |
 
 ## Reporting Issues
 

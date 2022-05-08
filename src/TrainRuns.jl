@@ -19,6 +19,7 @@ trainrun, Path, Settings, exportToCsv
 
 ## include package files
 include("types.jl")
+include("constructors.jl")
 include("formulary.jl")
 include("characteristics.jl")
 include("behavior.jl")

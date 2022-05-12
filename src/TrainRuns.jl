@@ -11,11 +11,11 @@ module TrainRuns
 ## loading standard library packages
 using UUIDs, Dates, Statistics
 ## loading external packages
-using YAML, JSONSchema, CSV, DataFrames
+using YAML, JSONSchema, DataFrames
 
 export 
 ## Interface
-trainrun, Train, Path, Settings, exportToCsv
+trainrun, Train, Path, Settings
 
 ## global variables
 global g      = 9.80665  # acceleration due to gravity (in m/s^2)
@@ -30,7 +30,6 @@ include("calc.jl")
 include("characteristics.jl")
 include("behavior.jl")
 include("output.jl")
-include("export.jl")
 
 ## main function
 """

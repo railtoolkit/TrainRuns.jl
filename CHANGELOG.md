@@ -32,11 +32,13 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 * updated test files to railtoolkit/schema (2022.05)
 
 ### Removed
-* dependency Plots
+* dependency Plots and CSV
 * AdditionalOutput.jl
 * EnergySaving.jl
 * test/testEnums.jl
 * import.jl
+* export.jl
+* settings for CSV export
 
 ## Version [0.8] 2022-01-20
 

@@ -13,8 +13,7 @@ struct Settings
     approxLevel::Int     # value for approximation; used when rounding or interating.
     outputDetail::Symbol # single Float() ":running_time", Array() of ":points_of_interest",
                          # complete Array() ":driving_course", or Dict() ":everything".
-    outputFormat::Symbol # output as ":julia_dict" or as ":csv".
-    outputDir::String    # if outputFormat is not ":julia_dict".
+    outputFormat::Symbol # output as ":dataframe" or as ":dict".
 
 end #struct Settings
 

@@ -33,7 +33,6 @@ settings = Dict()
   push!(settings, "time"          => @time Settings("test/data/settings/time.yaml"))
   push!(settings, "timestrip"     => @time Settings("test/data/settings/time_strip.yaml"))
   push!(settings, "velocity"      => @time Settings("test/data/settings/velocity.yaml"))
-  push!(settings, "csvexport"     => @time Settings("test/data/settings/csv_export.yaml"))
 
   @test typeof(first(paths)[2]) == Path
   @test typeof(first(settings)[2]) == Settings

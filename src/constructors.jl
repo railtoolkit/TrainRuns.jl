@@ -26,8 +26,7 @@ function Settings(file="DEFAULT")
     stepSize     = 20
     approxLevel  = 3
     outputDetail = :running_time
-    outputFormat = :julia_dict
-    outputDir    = "."
+    outputFormat = :dataframe
 
     ## load from file
     if file != "DEFAULT"
@@ -58,11 +57,7 @@ function Settings(file="DEFAULT")
                 "outputFormat": {
                     "description": "Output format",
                     "type": "string",
-                    "enum": [ "julia_dict", "csv" ]
-                },
-                "outputDir": {
-                    "description": "Path for the CSV export",
-                    "type": "string"
+                    "enum": [ "dataframe", "dict" ]
                 }
             }
         }""")
@@ -84,10 +79,9 @@ function Settings(file="DEFAULT")
         haskey(settings, "approxLevel")  ? approxLevel  =        settings["approxLevel"]   : nothing
         haskey(settings, "outputDetail") ? outputDetail = Symbol(settings["outputDetail"]) : nothing
         haskey(settings, "outputFormat") ? outputFormat = Symbol(settings["outputFormat"]) : nothing
-        haskey(settings, "outputDir")    ? outputDir    =        settings["outputDir"]     : nothing
     end
 
-    Settings(massModel, stepVariable, stepSize, approxLevel, outputDetail, outputFormat, outputDir)
+    Settings(massModel, stepVariable, stepSize, approxLevel, outputDetail, outputFormat)
 
 end #function Settings() # outer constructor
 

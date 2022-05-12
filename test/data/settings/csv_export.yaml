@@ -1,5 +1,0 @@
-%YAML 1.2
----
-settings:
-  outputFormat: "csv"   # output as "julia_dict" or as "csv"
-  outputDir: "."        # used if other outputFormat than "julia dict"

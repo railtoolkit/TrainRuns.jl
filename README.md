@@ -24,7 +24,6 @@ The required julia packages are
   - YAML.jl
   - JSONSchema.jl
   - DataFrames.jl
-  - CSV.jl
 
 ------------
 

@@ -78,7 +78,7 @@ anticipated = Dict(
       @time result = trainrun(test[1][2],test[2][2])
       expected = anticipated[:default][Symbol(test_name)]
       # compare result to test data set
-      @test isapprox(result, expected, rtol=0.1)
+      @test isapprox(result, expected, rtol=0.01)
       println("--------------------")
     end
 

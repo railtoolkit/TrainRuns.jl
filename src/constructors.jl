@@ -295,7 +295,8 @@ function Train(file, type = :YAML)
     m_loco        = 0             # in kilogram
     m_td          = 0             # in kilogram
     m_tc          = 0             # in kilogram
-    m_w           = 0             # in kilogram
+    m_car_full    = 0             # in kilogram
+    m_car_empty   = 0             # in kilogram
     ξ_train       = 1.08          # rotation mass factor, source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 13 for "Zug, überschlägliche Berechnung"
     ξ_loco        = 1.09          # rotation mass factor
     ξ_cars        = 1.06          # rotation mass factor
@@ -580,7 +581,11 @@ function Train(file, type = :YAML)
             haskey(car.data, "rotation_mass") ?
                 append!(rotMassFac,repeat([(car.data["rotation_mass"],car.data["mass"])],car.n)) : 
                 append!(rotMassFac,repeat([(ξ_cars ,car.data["mass"])],car.n))
-            m_w += car.data["mass"] * car.n * 1000 # in kg
+            m_car_empty += car.data["mass"] * car.n * 1000 # in kg
+            m_car_full  += car.data["mass"] * car.n * 1000 # in kg
+            haskey(car.data, "load_limit")    ?
+                m_car_full += car.data["load_limit"] * car.n * 1000 :  # in kg
+                nothing
         end
         f_Rw0   = Statistics.mean(resis_base)
         f_Rw1   = Statistics.mean(resis_roll)
@@ -589,7 +594,7 @@ function Train(file, type = :YAML)
         for elem in rotMassFac
             carRotMass += elem[1]*elem[2] * 1000 # in kg
         end
-        ξ_cars  = carRotMass/m_w
+        ξ_cars  = carRotMass/m_car_empty
         ξ_train = (ξ_loco * m_loco+ carRotMass)/m_train_empty
     else
         ξ_cars  = 0
@@ -598,7 +603,7 @@ function Train(file, type = :YAML)
 
     Train(
         name, id, uuid, length,
-        m_train_full, m_td, m_tc, m_w,
+        m_train_full, m_td, m_tc, m_car_full,
         ξ_train, ξ_loco, ξ_cars,
         transportType, v_limit,
         a_braking,

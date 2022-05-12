@@ -15,7 +15,7 @@ The function Settings() will create a set of settings for the train run calculat
 # Example
 ```jldoctest
 julia> my_settings = Settings() # will generate default settings
-Settings(mass_point, :distance, 20, 3, running_time, julia_dict, ".")
+Settings(mass_point, :distance, 20, 3, running_time, :dataframe)
 ```
 """
 function Settings(file="DEFAULT")

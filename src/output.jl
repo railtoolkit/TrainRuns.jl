@@ -5,7 +5,7 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-function createOutput(train::Dict, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
+function createOutput(train::Train, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
     if settings.outputDetail == :running_time
         output = movingSection[:t]  # TODO: or use drivingCourse[end][:t]
 
@@ -71,7 +71,7 @@ function createOutput(train::Dict, settings::Settings, path::Path, movingSection
 end
 
 #=
-function createOutputDict(train::Dict, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
+function createOutputDict(train::Train, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
     outputDict = Dict{Symbol,Any}()
     merge!(outputDict, Dict(:train => train, :path => path, :settings => settings))
 

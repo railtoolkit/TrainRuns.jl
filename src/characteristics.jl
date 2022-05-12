@@ -6,9 +6,9 @@
 # __license__       = "ISC"
 
 ## create a moving section and its containing characteristic sections with secured braking, accelerating and cruising behavior
-function determineCharacteristics(path::Path, train::Dict, settings::Settings)
-    movingSection = createMovingSection(path, train[:v_limit], train[:length])
-    movingSection = secureBrakingBehavior!(movingSection, train[:a_braking])
+function determineCharacteristics(path::Path, train::Train, settings::Settings)
+    movingSection = createMovingSection(path, train.v_limit, train.length)
+    movingSection = secureBrakingBehavior!(movingSection, train.a_braking)
     movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
     #movingSection = secureCruisingBehavior!(movingSection, settings, train)
 
@@ -45,7 +45,7 @@ function secureBrakingBehavior!(movingSection::Dict, a_braking::Real)
 end #function secureBrakingBehavior!
 
 ## define the intersection velocities between the characterisitc sections to secure accelerating behavior
-function secureAcceleratingBehavior!(movingSection::Dict, settings::Settings, train::Dict)
+function secureAcceleratingBehavior!(movingSection::Dict, settings::Settings, train::Train)
     # this function limits the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises aterwards
     CSs = movingSection[:characteristicSections]
 
@@ -82,7 +82,7 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Settings, tr
                         (CS, acceleratingCourse, stateFlags) = addClearingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the train is not allowed to accelerate because of a previous speed limit
                     end
                 else
-                    if settings.massModel == :mass_point || acceleratingCourse[end][:s] > CS[:s_entry] + train[:length]
+                    if settings.massModel == :mass_point || acceleratingCourse[end][:s] > CS[:s_entry] + train.length
                         break
                     else
                         (CS, acceleratingCourse, stateFlags) = addDiminishingSection!(CS, acceleratingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the resisitng forces are higher than the maximum possible tractive effort
@@ -112,7 +112,7 @@ end #function secureAcceleratingBehavior!
 
 #=
 ## define the intersection velocities between the characterisitc sections to secure cruising behavior
-function secureCruisingBehavior!(movingSection::Dict, settings::Settings, train::Dict)
+function secureCruisingBehavior!(movingSection::Dict, settings::Settings, train::Train)
     # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_peak
     CSs = movingSection[:characteristicSections]
 
@@ -147,7 +147,7 @@ function secureCruisingBehavior!(movingSection::Dict, settings::Settings, train:
                     (CS, cruisingCourse, stateFlags) = addCruisingSection!(CS, cruisingCourse, stateFlags, s_cruising, settings, train, CSs, "downhillBraking")
                 end
             else
-                if settings.massModel == :mass_point || cruisingCourse[end][:s] > CS[:s_entry] + train[:length]
+                if settings.massModel == :mass_point || cruisingCourse[end][:s] > CS[:s_entry] + train.length
                     break
                 else
                     (CS, cruisingCourse, stateFlags) = addDiminishingSection!(CS, cruisingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the resisitng forces are higher than the maximum possible tractive effort

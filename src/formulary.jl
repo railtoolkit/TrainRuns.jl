@@ -30,7 +30,6 @@
 
 approxLevel = 6
 v00 = 100/3.6     # velocity factor (in m/s)
-g = 9.81          # acceleration due to gravity (in m/s^2)            # TODO: should more digits of g be used?  g=9,80665 m/s^2
 
 ## calculate forces
 
@@ -43,7 +42,7 @@ Calculate the vehicle resistance for the traction unit of the `train` dependend 
 ...
 # Arguments
 - `v::AbstractFloat`: the current velocity in m/s.
-- `train::Dict`: ? ? ?
+- `train::Train`: ? ? ?
 ...
 
 # Examples
@@ -52,36 +51,34 @@ julia> calcTractionUnitResistance(30.0, ? ? ?)
 ? ? ?
 ```
 """
-function calcTractionUnitResistance(v::AbstractFloat, train::Dict)
+function calcTractionUnitResistance(v::AbstractFloat, train::Train)
     # equation is based on [Wende:2003, page 151]
-    f_Rtd0 = train[:f_Rtd0]         # coefficient for basic resistance due to the traction units driving axles (in ‰)
-    f_Rtc0 = train[:f_Rtc0]         # coefficient for basic resistance due to the traction units carring axles (in ‰)
-    F_Rt2 = train[:F_Rt2]           # coefficient for air resistance of the traction units (in N)
-    m_td = train[:m_td]             # mass on the traction unit's driving axles (in kg)
-    m_tc = train[:m_tc]             # mass on the traction unit's carrying axles (in kg)
-    Δv_t = train[:Δv_t]             # coefficient for velocitiy difference between traction unit and outdoor air (in m/s)
+    f_Rtd0 = train.f_Rtd0 # coefficient for basic resistance due to the traction units driving axles (in ‰)
+    f_Rtc0 = train.f_Rtc0 # coefficient for basic resistance due to the traction units carring axles (in ‰)
+    F_Rt2  = train.F_Rt2  # coefficient for air resistance of the traction units (in N)
+    m_td   = train.m_td   # mass on the traction unit's driving axles (in kg)
+    m_tc   = train.m_tc   # mass on the traction unit's carrying axles (in kg)
 
-    F_R_tractionUnit = f_Rtd0/1000 * m_td * g + f_Rtc0/1000 * m_tc * g + F_Rt2 * ((v + Δv_t) /v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
-    # TODO: use calcForceFromCoefficient? F_R_tractionUnit = calcForceFromCoefficient(f_Rtd0, m_td) + calcForceFromCoefficient(f_Rtc0, m_tc) + F_Rt2 * ((v + Δv_t) /v00)^2       # vehicle resistance of the traction unit (in N)
+    F_R_tractionUnit = f_Rtd0/1000 * m_td * g + f_Rtc0/1000 * m_tc * g + F_Rt2 * ((v + Δv_air) /v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
+    # TODO: use calcForceFromCoefficient? F_R_tractionUnit = calcForceFromCoefficient(f_Rtd0, m_td) + calcForceFromCoefficient(f_Rtc0, m_tc) + F_Rt2 * ((v + Δv_air) /v00)^2       # vehicle resistance of the traction unit (in N)
     return F_R_tractionUnit
     #TODO: same variable name like in the rest of the tool? return R_traction
-    #TODO: just one line? return train[:f_Rtd0]/1000*train[:m_td]*g+train[:f_Rtc0]/1000*train[:m_tc]*g+train[:F_Rt2]*((v+train[:Δv_t])/v00)^2    # /1000 because of the unit ‰
+    #TODO: just one line? return train.f_Rtd0/1000*train.m_td*g+train.f_Rtc0/1000*train.m_tc*g+train.F_Rt2*((v+train.Δv_air)/v00)^2    # /1000 because of the unit ‰
 end #function calcTractionUnitResistance
 
 """
 TODO
 calculate and return the wagons vehicle resistance dependend on the velocity
 """
-function calcWagonsResistance(v::AbstractFloat, train::Dict)
+function calcWagonsResistance(v::AbstractFloat, train::Train)
     # equation is based on a combination of the equations of Strahl and Sauthoff [Wende:2003, page 153] with more detailled factors (Lehmann, page 135)
-    f_Rw0 = train[:f_Rw0]       # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
-    f_Rw1 = train[:f_Rw1]       # coefficient for the consists resistance to rolling (in ‰)
-    f_Rw2 = train[:f_Rw2]       # coefficient fo the consistsr air resistance (in ‰)
-    m_w = train[:m_w]           # mass of the set of wagons (consist)  (in kg)
-    Δv_w = train[:Δv_w]         # coefficient for velocitiy difference between set of wagons (consist) and outdoor air (in m/s)
+    f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
+    f_Rw1  = train.f_Rw1  # coefficient for the consists resistance to rolling (in ‰)
+    f_Rw2  = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
+    m_w    = train.m_w    # mass of the set of wagons (consist)  (in kg)
 
-    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw1/1000 *v /v00 + f_Rw2/1000 * ((v + Δv_w) /v00)^2)     # vehicle resistance of the wagons (in N)      # /1000 because of the unit ‰
-# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + calcForceFromCoefficient(f_Rw1, m_w) *v /v00 + calcForceFromCoefficient(f_Rw2, m_w) * ((v + Δv_w) /v00)^2     # vehicle resistance of the wagons (in N)
+    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw1/1000 *v /v00 + f_Rw2/1000 * ((v + Δv_air) /v00)^2)     # vehicle resistance of the wagons (in N)      # /1000 because of the unit ‰
+# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + calcForceFromCoefficient(f_Rw1, m_w) *v /v00 + calcForceFromCoefficient(f_Rw2, m_w) * ((v + Δv_air) /v00)^2     # vehicle resistance of the wagons (in N)
     return F_R_wagons
 end #function calcWagonsResistance
 

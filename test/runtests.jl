@@ -14,9 +14,9 @@ settings = Dict()
 @testset "load data" begin
 
   println("testing load train data")
-  push!(trains, :freight      => @time TrainRuns.importFromYaml(:train, "test/data/trains/freight.yaml"))
-  push!(trains, :local        => @time TrainRuns.importFromYaml(:train, "test/data/trains/local.yaml"))
-  push!(trains, :longdistance => @time TrainRuns.importFromYaml(:train, "test/data/trains/longdistance.yaml"))
+  push!(trains, :freight      => @time Train("test/data/trains/freight.yaml"))
+  push!(trains, :local        => @time Train("test/data/trains/local.yaml"))
+  push!(trains, :longdistance => @time Train("test/data/trains/longdistance.yaml"))
 
   println("testing load path data")
   push!(paths, :const     => @time Path("test/data/paths/const.yaml"))
@@ -79,7 +79,7 @@ anticipated = Dict(
       @time result = trainrun(test[1][2],test[2][2])
       expected = anticipated[:default][Symbol(test_name)]
       # compare result to test data set
-      @test isapprox(result, expected, atol=0.01)
+      @test isapprox(result, expected, rtol=0.1)
       println("--------------------")
     end
 

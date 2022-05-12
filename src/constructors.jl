@@ -1,7 +1,7 @@
 #!/usr/bin/env julia
 # -*- coding: UTF-8 -*-
 # __julia-version__ = 1.7.2
-# __author__        = "Martin Scheidt"
+# __author__        = "Martin Scheidt, Max Kannenberg"
 # __copyright__     = "2022"
 # __license__       = "ISC"
 
@@ -77,7 +77,7 @@ function Settings(file="DEFAULT")
             settings = Dict()
         end
 
-        ## set the variables if they exist in "settings"
+        ## set the variables in "settings"
         haskey(settings, "massModel")    ? massModel    = Symbol(settings["massModel"])    : nothing
         haskey(settings, "stepVariable") ? stepVariable = Symbol(settings["stepVariable"]) : nothing
         haskey(settings, "stepSize")     ? stepSize     =        settings["stepSize"]      : nothing
@@ -89,8 +89,7 @@ function Settings(file="DEFAULT")
 
     Settings(massModel, stepVariable, stepSize, approxLevel, outputDetail, outputFormat, outputDir)
 
-end #function Settings() # constructor
-
+end #function Settings() # outer constructor
 
 """
     Path(file, type = :YAML)
@@ -227,7 +226,7 @@ function Path(file, type = :YAML)
         end
         path = paths[1]
 
-        ## set the variables if they exist in "settings"
+        ## set the variables in "path"
         # required
         name    = path["name"]
         id      = path["id"]
@@ -275,7 +274,345 @@ function Path(file, type = :YAML)
 
     Path(name, id, uuid, poi, sections)
 
-end #function Path() # constructor
+end #function Path() # outer constructor
+
+"""
+    Train(file, type = :YAML)
+
+Train is a datastruture for calculation context.
+The function Train() will create a train to use in calculations.
+Supported formats for the YAML files are: railtoolkit/schema (2022.05)
+
+# Example
+```jldoctest
+julia> my_train = Train("file.yaml") # will generate a train from a YAML file.
+Train(variables)
+```
+"""
+function Train(file, type = :YAML)
+
+    ## default values
+    name          = ""            #
+    id            = ""            #
+    uuid          = UUIDs.uuid4() #
+    length        = 0             # in meter
+    m_train_full  = 0             # in kilogram
+    m_train_empty = 0             # in kilogram
+    m_loco        = 0             # in kilogram
+    m_td          = 0             # in kilogram
+    m_tc          = 0             # in kilogram
+    m_w           = 0             # in kilogram
+    ξ_train       = 1.08          # rotation mass factor, source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 13 for "Zug, überschlägliche Berechnung"
+    ξ_loco        = 1.09          # rotation mass factor
+    ξ_cars        = 1.06          # rotation mass factor
+    transportType = :freight      # "freight" or "passenger" for resistance calculation
+    v_limit       = 140           # in m/s (default 504 km/h)
+    a_braking     = 0             # in m/s^2, todo: implement as function
+    f_Rtd0        = 0             # coefficient for basic resistance due to the traction units driving axles (in ‰)
+    f_Rtc0        = 0             # coefficient for basic resistance due to the traction units carring axles (in ‰)
+    F_Rt2         = 3000          # coefficient for air resistance of the traction units (in N)
+    f_Rw0         = 0             # coefficient for the consists basic resistance (in ‰)
+    f_Rw1         = 0             # coefficient for the consists resistance to rolling (in ‰)
+    f_Rw2         = 0             # coefficient fo the consistsr air resistance (in ‰)
+    F_v_pairs     = []            # [v in m/s, F_T in N]
+
+    ## load from file
+    if type == :YAML
+
+        data = YAML.load(open(file))
+        if data["schema"] != "https://railtoolkit.org/schema/rolling-stock.json" 
+            error("Could not load path file '$file'.\n
+                    YAML format is not recognized. 
+                    Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
+        end
+        if data["schema_version"] != "2022.05"
+            error("Could not load path file '$file'.\n
+                    YAML format is not recognized. 
+                    Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
+        end
+
+        ## JSON schema for YAML-file validation
+        railtoolkit_schema = Schema("""{
+            "required": [ "schema", "schema_version" ],
+            "anyOf": [
+            {"required": [ "trains" ] },
+            {"required": [ "vehicles" ] }
+            ],
+            "properties": {
+            "schema": {
+                "description": "Identifier of the schema",
+                "enum": [ "https://railtoolkit.org/schema/rolling-stock.json" ]
+            },
+            "schema_version": {
+                "description": "Version of the schema",
+                "type": "string",
+                "pattern": "[2-9][0-9][0-9][0-9].[0-1][0-9]"
+            },
+            "trains": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                "required": [ "name", "id", "formation" ],
+                "type": "object",
+                "properties": {
+                    "id": {
+                    "description": "Identifier of the train",
+                    "type": "string"
+                    },
+                    "name": {
+                    "description": "Name of the train",
+                    "type": "string"
+                    },
+                    "UUID": {
+                    "description": "The unique identifier for a train",
+                    "type": "string",
+                    "format": "uuid"
+                    },
+                    "formation": {
+                    "description": "Collection of vehicles that form the train",
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": false,
+                    "items": {
+                        "type": "string"
+                    }
+                    }
+                }
+                }
+            },
+            "vehicles": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                "required": [ "name", "id", "vehicle_type", "length", "mass" ],
+                "type": "object",
+                "properties": {
+                    "air_resistance": {
+                    "description": "coefficient for air resistance in permil",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                    },
+                    "base_resistance": {
+                    "description": "coefficient for basic resistance in permil",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                    },
+                    "id": {
+                    "description": "Identifier of the vehicle",
+                    "type": "string"
+                    },
+                    "length": {
+                    "description": "The length of the vehicle in meter",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                    },
+                    "load_limit": {
+                    "description": "The maximum permitted load of the vehicle in metric ton",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                    },
+                    "mass_traction": {
+                    "description": "The mass on the powered axles of the vehicle in metric ton",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                    },
+                    "mass": {
+                    "description": "The empty mass of the vehicle in metric ton",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                    },
+                    "name": {
+                    "description": "Name of the vehicle",
+                    "type": "string"
+                    },
+                    "picture": {
+                    "description": "A URI with a picture for humans",
+                    "type": "string",
+                    "format": "uri"
+                    },
+                    "power_type": {
+                    "description": "Type of propulsion",
+                    "enum": [ "diesel", "electric", "steam" ]
+                    },
+                    "rolling_resistance": {
+                    "description": "coefficient for resistance of rolling axles in permil",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                    },
+                    "rotation_mass": {
+                    "description": "Factor for rotating mass; >= 1",
+                    "type": "number",
+                    "minimum": 1
+                    },
+                    "speed_limit": {
+                    "description": "Maximum permitted speed in kilometers per hour",
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                    },
+                    "tractive_effort": {
+                    "description": "Tractive effort as pairs of speed in kilometers per hour and tractive force in newton",
+                    "type": "array",
+                    "minItems": 3,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "uniqueItems": true,
+                        "items": {
+                        "type": "number",
+                        "minimum": 0
+                        }
+                    }
+                    },
+                    "UUID": {
+                    "description": "The unique identifier for a vehicle",
+                    "type": "string",
+                    "format": "uuid"
+                    },
+                    "vehicle_type": {
+                    "description": "Type of vehicle",
+                    "enum": [ "traction unit", "freight", "passenger", "multiple unit" ]
+                    }
+                }
+                }
+            }
+            }      
+        }""")
+
+        try
+            validate(railtoolkit_schema, data)
+        catch err
+            error("Could not load path file '$file'.\n
+                    YAML format is not recognized. 
+                    Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
+        end
+
+    else
+        error("Unknown file type '$type'")
+    end #if type
+
+    trains = data["trains"]
+    Base.length(trains) > 1 ? println("WARNING: the loaded file contains more than one train. Using only the first!") : nothing
+    Base.length(trains) == 0 ? error("No train present in file '$file'") : nothing
+    train = trains[1]
+    used_vehicles = unique(train["formation"])
+
+    included_vehicles = []
+    for vehicle in data["vehicles"]
+        push!(included_vehicles,vehicle["id"])
+    end
+
+    ## test if all vehicles of the formation are avilable
+    for vehicle in used_vehicles
+        vehicle ∉ included_vehicles ? error("'$vehicle' is not present in '$file'") : nothing
+    end
+
+    ## gather the count of vehicles and usage in the formation
+    vehicles = NamedTuple[]
+    for vehicle in data["vehicles"]
+        if vehicle["id"] in used_vehicles
+            n = count(==(vehicle["id"]),train["formation"])
+            type = vehicle["vehicle_type"]
+            type == "traction unit" || type == "multiple unit" ? propulsion    = true       : propulsion = false
+            type == "passenger"     || type == "multiple unit" ? transportType = :passenger : nothing
+            push!(vehicles, (data=vehicle, n=n, propulsion=propulsion) )
+        end
+    end
+    
+    ## set the variables in "train"
+    name = train["name"]
+    id   = train["id"]
+    haskey(train, "UUID") ? uuid = parse(UUID, train["UUID"] ) : nothing
+    transportType == :freight ? a_braking = -0.225 : a_braking = -0.375  # set a default a_braking value depending on the train type
+
+    ## set the variables for all vehicles
+    for vehicle in vehicles
+        length           += vehicle.data["length"] * vehicle.n
+        m_train_full     += vehicle.data["mass"]   * vehicle.n * 1000 # in kg
+        m_train_empty    += vehicle.data["mass"]   * vehicle.n * 1000 # in kg
+        haskey(vehicle.data, "load_limit")    ?
+            m_train_full += vehicle.data["load_limit"] * vehicle.n * 1000 :  # in kg
+            nothing
+        haskey(vehicle.data, "speed_limit")   ? 
+            v_limit > vehicle.data["speed_limit"]/3.6 ? v_limit = vehicle.data["speed_limit"]/3.6 : nothing : 
+            nothing
+    end
+
+    ## divide vehicles in propulsion and non-propulsion
+    loco = []
+    for i in 1:Base.length(vehicles)
+        if vehicles[i].propulsion
+            push!(loco, vehicles[i])
+            deleteat!(vehicles, i)
+        end
+    end
+    Base.length(loco)  > 1 ? println("WARNING: the loaded file contains more than one traction unit or multiple unit. Using only the first!") : nothing
+    loco[1].n     > 1 ? println("WARNING: the loaded file contains more than one traction unit or multiple unit. Using only one!") : nothing
+    Base.length(loco) == 0 ? error("No traction unit or multiple unit present in file '$file'") : nothing
+    loco = loco[1].data
+    cars = vehicles
+
+    ## set the variables for locos
+    m_loco= loco["mass"] * 1000
+    haskey(loco, "a_braking")          ? a_braking = loco["a_braking"]                : nothing
+    haskey(loco, "base_resistance")    ? f_Rtd0 = loco["base_resistance"]             : nothing
+    haskey(loco, "rolling_resistance") ? f_Rtc0 = loco["rolling_resistance"]          : nothing
+    haskey(loco, "air_resistance")     ? F_Rt2  = loco["air_resistance"] * g * m_loco : nothing
+    haskey(loco, "mass_traction")      ? m_td   = loco["mass_traction"] * 1000        : m_td = m_t
+    haskey(loco, "rotation_mass")      ? ξ_loco = loco["rotation_mass"]               : nothing
+    m_tc = m_loco- m_td
+    haskey(loco, "tractive_effort")    ? F_v_pairs = loco["tractive_effort"] : F_v_pairs = [ [0.0, m_td * g * μ],[v_limit*3.6, m_td * g * μ] ]
+    F_v_pairs = reduce(hcat,F_v_pairs)'       # convert to matrix
+    F_v_pairs[:,1] ./= 3.6                    # convert km/h to m/s
+    F_v_pairs = tuple.(eachcol(F_v_pairs)...) # convert each row to tuples
+
+    ## set the variables for cars
+    if !isempty(cars)
+        resis_base = []
+        resis_roll = []
+        resis_air  = []
+        rotMassFac = []
+        for car in cars
+            haskey(car.data, "base_resistance")    ? 
+                append!(resis_base,repeat([car.data["base_resistance"]],car.n))    : 
+                append!(resis_base,repeat([f_Rw0],car.n))
+            haskey(car.data, "rolling_resistance") ? 
+                append!(resis_roll,repeat([car.data["rolling_resistance"]],car.n)) : 
+                append!(resis_roll,repeat([f_Rw1],car.n))
+            haskey(car.data, "air_resistance")     ? 
+                append!(resis_air,repeat([car.data["air_resistance"]],car.n))      : 
+                append!(resis_air, repeat([f_Rw2],car.n))
+            haskey(car.data, "rotation_mass") ?
+                append!(rotMassFac,repeat([(car.data["rotation_mass"],car.data["mass"])],car.n)) : 
+                append!(rotMassFac,repeat([(ξ_cars ,car.data["mass"])],car.n))
+            m_w += car.data["mass"] * car.n * 1000 # in kg
+        end
+        f_Rw0   = Statistics.mean(resis_base)
+        f_Rw1   = Statistics.mean(resis_roll)
+        f_Rw2   = Statistics.mean(resis_air)
+        carRotMass = 0
+        for elem in rotMassFac
+            carRotMass += elem[1]*elem[2] * 1000 # in kg
+        end
+        ξ_cars  = carRotMass/m_w
+        ξ_train = (ξ_loco * m_loco+ carRotMass)/m_train_empty
+    else
+        ξ_cars  = 0
+        ξ_train = ξ_loco
+    end
+
+    Train(
+        name, id, uuid, length,
+        m_train_full, m_td, m_tc, m_w,
+        ξ_train, ξ_loco, ξ_cars,
+        transportType, v_limit,
+        a_braking,
+        f_Rtd0, f_Rtc0, F_Rt2, f_Rw0, f_Rw1, f_Rw2,
+        F_v_pairs
+    )
+
+end #function Train() # outer constructor
 
 ## create a moving section containing characteristic sections
 function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real)

@@ -17,6 +17,7 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 * renamed TrainRun into TrainRuns
 * replaced settings::Dict with type Settings as struct
 * replaced path::Dict with type Path as struct
+* replaced train::Dict with type Train as struct
 * restructured examples/ and data/ in docs/ and test/
 * modified test to work with Julia Testsets and with simplier naming of input files
 * renamed Validate.jl into types.jl
@@ -28,13 +29,14 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 * moved createCharacteristicSection() from characteristics.jl to types.jl
 * changed title of include files from upper case to lower case
 * changed seperation of submodules into a single module with file include
-* updated test files to railtoolkit/schema (2022.04)
+* updated test files to railtoolkit/schema (2022.05)
 
 ### Removed
 * dependency Plots
 * AdditionalOutput.jl
 * EnergySaving.jl
 * test/testEnums.jl
+* import.jl
 
 ## Version [0.8] 2022-01-20
 

@@ -8,7 +8,7 @@
 # Calculate the running time of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
 
 # calculate a train run focussing on using the minimum possible running time
-function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, train::Dict)
+function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, train::Train)
    CSs::Vector{Dict} = movingSection[:characteristicSections]
 
    if settings.massModel == :homogeneous_strip && settings.stepVariable == speed
@@ -32,7 +32,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
            end
 
        # determine the different flags for switching between the states for creatinge moving phases
-       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
        calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings.massModel)     # tractive effort and resisting forces (in N)
 
        previousSpeedLimitReached = false
@@ -64,12 +64,12 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                     elseif settings.stepVariable == time
                         s_cruising = calc_Δs_with_Δt(settings.stepSize, drivingCourse[end][:a], drivingCourse[end][:v])
                     elseif settings.stepVariable == velocity
-                        s_cruising = train[:length]/(10.0) # TODO which step size should be used?
+                        s_cruising = train.length/(10.0) # TODO which step size should be used?
                     end
                     (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")
 
                 elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                     if s_cruising > 0.0
@@ -79,7 +79,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                     end
 
                 elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] || stateFlags[:speedLimitReached]
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train[:a_braking])
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                     if s_cruising > 0.0  # TODO: define a minimum cruising length?

@@ -9,28 +9,32 @@ __precompile__(true)
 module TrainRuns
 
 ## loading standard library packages
-using UUIDs, Dates
+using UUIDs, Dates, Statistics
 ## loading external packages
 using YAML, JSONSchema, CSV, DataFrames
 
 export 
 ## Interface
-trainrun, Path, Settings, exportToCsv
+trainrun, Train, Path, Settings, exportToCsv
+
+## global variables
+global g      = 9.80665  # acceleration due to gravity (in m/s^2)
+global μ      = 0.2      # friction as constant, todo: implement as function
+global Δv_air = 15.0/3.6 # coefficient for velocitiy difference between train and outdoor air (in m/s)
 
 ## include package files
 include("types.jl")
 include("constructors.jl")
 include("formulary.jl")
+include("calc.jl")
 include("characteristics.jl")
 include("behavior.jl")
 include("output.jl")
-include("import.jl")
 include("export.jl")
-include("calc.jl")
 
 ## main function
 """
-    trainrun(train::Dict, path::Path, settings::Settings)
+    trainrun(train::Train, path::Path, settings::Settings)
 
 Calculate the running time of a `train` on a `path`.
 The `settings` provides the choice of models for the calculation.
@@ -43,15 +47,7 @@ julia> trainrun(train, path)
 xxx.xx # in seconds
 ```
 """
-function trainrun(trainInput::Dict, path::Path, settings=Settings()::Settings)
-    # copy Input data for not changing them
-    # TODO: or should they be changed? normally it would only make it "better" except for settings.outputDetail == :points_of_interest && isempty(path.poi)
-    train = copy(trainInput)
-
-    # check the input data
-    train = checkAndSetTrain!(train)
-    settings.outputDetail == :everything && println("The input has been checked.")
-
+function trainrun(train::Train, path::Path, settings=Settings()::Settings)
     # prepare the input data
     movingSection = determineCharacteristics(path, train, settings)
     settings.outputDetail == :everything && println("The moving section has been prepared.")

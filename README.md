@@ -1,40 +1,43 @@
-# TrainRun
+# TrainRuns
 
-[![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](https://opensource.org/licenses/ISC) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6448563.svg)](https://doi.org/10.5281/zenodo.6448563)
+[![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](https://opensource.org/licenses/ISC) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6448563.svg)](https://doi.org/10.5281/zenodo.6448563) [![Build Status](https://github.com/railtoolkit/TrainRuns.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/railtoolkit/TrainRuns.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
 ------------
 
 # About
 
-TrainRun.jl is a step towards open science and open data in railway engineering. Its modular design offers the possibility to serve as a basis for future optimization and development. TrainRun.jl is suitable for qualitative calculations to compare different trains, and it is publicly available, and we invite others to collaborate.
+TrainRuns.jl is a step towards open science and open data in railway engineering. Its modular design offers the possibility to serve as a basis for future optimization and development. TrainRuns.jl is suitable for qualitative calculations to compare different trains, and it is publicly available, and we invite others to collaborate.
 
 ------------
 
 # Installation
 
-The required julia packages are
-   - YAML.jl
-   - Dates.jl
-   - DataFrames.jl
-   - CSV.jl
-   - Plots.jl
+Use the package manager provided by julia:
+```julia
+julia> # use the ] key
+(@v1.x) pkg> add TrainRuns
+(@v1.x) pkg> # use backspace
+julia> using TrainRuns
+```
 
-Review the settings.yaml file for your appropriate settings.
+The required julia packages are
+  - YAML.jl
+  - JSONSchema.jl
+  - DataFrames.jl
 
 ------------
 
 # Minimal working example
 
 ```julia
-include("../src/TrainRun.jl")
-using .TrainRun
+using TrainRuns
 
-train_directory =  "data/trains/train_freight_V90withOreConsist.yaml"
-running_path_directory = "data/paths/path_1_10km_nConst_vConst.yaml"
-settings_directory = "data/settings.yaml"
-(train, running_path, settings) = importYamlFiles(train_directory, running_path_directory, setting_directory)
+train = Train("test/data/trains/freight.yaml")
+path  = Path("test/data/paths/const.yaml")
 
-train_run = trainRun(train, running_path, settings)
+runtime = trainrun(train, path)
+
+println("The train needs $runtime seconds for the running path.")
 ```
 
 ------------
@@ -47,11 +50,11 @@ This work was supervised by South Westphalia University of Applied Sciences and 
 
 # License
 
-  [![Open Source Initiative Approved License logo](https://opensource.org/files/OSIApproved_100X125.png "Open Source Initiative Approved License logo")](https://opensource.org)
+[![Open Source Initiative Approved License logo](https://opensource.org/files/OSIApproved_100X125.png "Open Source Initiative Approved License logo")](https://opensource.org)
 
 ISC License (ISC)
 
-Copyright 2021 Max Kannenberg
+Copyright 2022 Max Kannenberg, Martin Scheidt
 
 Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
 

@@ -1,9 +1,0 @@
-%YAML 1.2
----
-path:
-  name: "10 km, no gradient, 160 km/h"
-  pointsOfInterest: [999, 2000, 3333.3, 5000, 7777, 9000, 9500.95]  # points of interest: positions in m
-  sectionStarts:       # with path speed limt (in m/s)    # [s in m, v_limit in m/s, f_Rp in ‰]
-  sectionStarts_kmh:   # with path speed limt (in km/h)   # [s in m, v_limit in km/h, f_Rp in ‰]
-   - [0, 160, 0]
-   - [10000, 160, 0]

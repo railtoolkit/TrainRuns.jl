@@ -3,7 +3,7 @@
 # Visit https://bit.ly/cffinit to generate yours today!
 ---
 cff-version: 1.2.0
-title: TrainRun.jl
+title: TrainRuns.jl
 message: 'If you use this software, please cite it using these metadata.'
 type: software
 authors:
@@ -22,12 +22,12 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.6448564
     description: Current version
-url: 'https://www.railtoolkit.org/projects/TrainRun.jl/'
-repository: 'https://github.com/railtoolkit/TrainRun.jl'
+url: 'https://www.railtoolkit.org/projects/TrainRuns.jl/'
+repository: 'https://github.com/railtoolkit/TrainRuns.jl'
 abstract: >-
-  TrainRun.jl is a step towards open science and open data in railway engineering.
+  TrainRuns.jl is a step towards open science and open data in railway engineering.
   Its modular design offers the possibility to serve as a basis for future
-  optimization and development. TrainRun.jl is suitable for qualitative
+  optimization and development. TrainRuns.jl is suitable for qualitative
   calculations to compare different trains, and it is publicly available, and we
   invite others to collaborate.
 keywords:

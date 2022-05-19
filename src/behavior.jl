@@ -246,7 +246,7 @@ function addBreakFreeSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags:
     if haskey(stateFlags, :usedForDefiningCharacteristics) && stateFlags[:usedForDefiningCharacteristics]
         s_braking = 0.0
     else
-        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
     end
 
     # reset state flags
@@ -272,7 +272,7 @@ function addClearingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
             s_braking = 0.0
         else
             ignoreBraking = false
-            s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+            s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
         end
 
         s_clearing = min(CS[:s_exit]-drivingCourse[end][:s]-s_braking, currentSpeedLimit[:s_end] - drivingCourse[end][:s])
@@ -310,7 +310,7 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFla
         s_braking = 0.0
     else
         ignoreBraking = false
-        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
     end
 
     # conditions for the accelerating section
@@ -337,7 +337,7 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFla
 
             for cycle in 1:settings.approxLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 if !ignoreBraking
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                 end
 
                 while !targetSpeedReached && !speedLimitReached && !brakingStartReached && !pointOfInterestReached && tractionSurplus && !previousSpeedLimitReached
@@ -359,7 +359,7 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFla
 
                     # conditions for the next while cycle
                     if !ignoreBraking
-                        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+                        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     end
                     brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
                     speedLimitReached = drivingCourse[end][:v] > CS[:v_limit]
@@ -558,11 +558,11 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
         s_braking = 0.0
     else
         ignoreBraking = false
-        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
     end
 
     # conditions for cruising section
-    #s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+    #s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit] || stateFlags[:brakingStartReached]
     speedIsValid = drivingCourse[end][:v]>0.0 && drivingCourse[end][:v]<=CS[:v_peak]
     tractionDeficit = drivingCourse[end][:F_T] < drivingCourse[end][:F_R]
@@ -785,7 +785,7 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
     # set state flags
     stateFlags[:endOfCSReached] = drivingCourse[end][:s] == CS[:s_exit]
     if !ignoreBraking
-        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
     end
     stateFlags[:brakingStartReached] = brakingStartReached || drivingCourse[end][:s] + s_braking >= CS[:s_exit]
     stateFlags[:tractionDeficit] = tractionDeficit
@@ -807,14 +807,14 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlag
         s_braking = 0.0
     else
         ignoreBraking = false
-        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
     end
 
     # conditions for diminishing section
     targetSpeedReached = drivingCourse[end][:v] <= 0.0
     endOfCSReached = drivingCourse[end][:s] >= CS[:s_exit] || stateFlags[:endOfCSReached]
     tractionDeficit = drivingCourse[end][:F_T] < drivingCourse[end][:F_R] #|| stateFlags[:tractionDeficit]
-    #s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+    #s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit] || stateFlags[:brakingStartReached]
 
     # use the conditions for the diminishing section
@@ -842,7 +842,7 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlag
 
                     # conditions for the next while cycle
                     if !ignoreBraking
-                        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+                        s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     end
                     brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
                     pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
@@ -994,7 +994,7 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
     targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit]
     endOfCSReached = drivingCourse[end][:s] >= CS[:s_exit] || stateFlags[:endOfCSReached]
 
-    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit] || stateFlags[:brakingStartReached]
 
     # use the conditions for the coasting section
@@ -1022,7 +1022,7 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
                    push!(BS[:dataPoints], drivingCourse[end][:i])
 
                    # conditions for the next while cycle
-                   s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+                   s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                    brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
                    pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
                    targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit] || drivingCourse[end][:v] > CS[:v_peak]

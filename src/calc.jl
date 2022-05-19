@@ -32,7 +32,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
            end
 
        # determine the different flags for switching between the states for creatinge moving phases
-       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
        calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings.massModel)     # tractive effort and resisting forces (in N)
 
        previousSpeedLimitReached = false
@@ -69,7 +69,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                     (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")
 
                 elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                     if s_cruising > 0.0
@@ -79,7 +79,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                     end
 
                 elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] || stateFlags[:speedLimitReached]
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                     if s_cruising > 0.0  # TODO: define a minimum cruising length?

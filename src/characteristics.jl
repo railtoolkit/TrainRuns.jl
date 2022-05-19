@@ -8,7 +8,7 @@
 ## create a moving section and its containing characteristic sections with secured braking, accelerating and cruising behavior
 function determineCharacteristics(path::Path, train::Train, settings::Settings)
     movingSection = createMovingSection(path, train.v_limit, train.length)
-    movingSection = secureBrakingBehavior!(movingSection, train.a_braking)
+    movingSection = secureBrakingBehavior!(movingSection, train.a_braking, settings.approxLevel)
     movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
     #movingSection = secureCruisingBehavior!(movingSection, settings, train)
 
@@ -16,7 +16,7 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
 end #function determineCharacteristics
 
 ## define the intersection velocities between the characterisitc sections to secure braking behavior
-function secureBrakingBehavior!(movingSection::Dict, a_braking::Real)
+function secureBrakingBehavior!(movingSection::Dict, a_braking::Real, approxLevel::Integer)
     # this function limits the entry and exit velocity of the characteristic sections to secure that the train stops at the moving sections end
         CSs = movingSection[:characteristicSections]
 
@@ -27,7 +27,7 @@ function secureBrakingBehavior!(movingSection::Dict, a_braking::Real)
 
             CS[:v_exit] = min(CS[:v_limit], followingCSv_entry)
 
-            v_entryMax = calcBrakingStartVelocity(CS[:v_exit], a_braking, CS[:length])
+            v_entryMax = calcBrakingStartVelocity(CS[:v_exit], a_braking, CS[:length], approxLevel)
 
             CS[:v_entry] = min(CS[:v_limit], v_entryMax)
             CS[:v_peak] = CS[:v_entry]

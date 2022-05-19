@@ -28,7 +28,7 @@
 ## }
 #########################
 
-approxLevel = 6
+#approxLevel = 6
 v00 = 100/3.6     # velocity factor (in m/s)
 
 ## calculate forces
@@ -206,7 +206,7 @@ function calc_ΔE(ΔW::Real)
     return ΔE
 end #function calc_ΔW
 
-function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real)
+function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real, approxLevel::Integer)
     # equation is based on [Wende:2003, page 37]
 
     # v_start: velocity at the start of braking (in m/s)
@@ -215,18 +215,18 @@ function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real)
     s_braking = (v_end^2 - v_start^2) /2 /a_braking             # braking distance (in m)
     # TODO: also possible: calc_Δs_with_Δv(v_end-v_start, a_braking, v_start)
 #    return max(0.0, ceil(s_braking, digits=approxLevel))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
-    return max(0.0, ceil(s_braking, digits=approxLevel +1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
+    return max(0.0, ceil(s_braking, digits= approxLevel +1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
 end #function calcBrakingDistance
 
-function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real)
+function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real, approxLevel::Integer)
     # equation is based on [Wende:2003, page 37]
 
     # v_end: target velocity at the end of braking (in m/s)
     # a_braking: constant braking acceleration (in m/s^2)
     # s_braking: braking distance (in Ws)
     v_start = sqrt(v_end^2 - 2*a_braking *s_braking)          # braking start velocity (in m/s)
-#    return floor(v_start, digits=approxLevel)
-    return floor(v_start, digits=approxLevel +1)
+#    return floor(v_start, digits= approxLevel)
+    return floor(v_start, digits= approxLevel +1)
 end #function calcBrakingStartVelocity
 
 function calcBrakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)

@@ -10,7 +10,7 @@ struct Settings
     massModel::Symbol    # model type of train mass ":mass_point" or ":homogeneous_strip".
     stepVariable::Symbol # variable of the linear multistep method: ":distance", ":time" or ":velocity".
     stepSize::Real       # step size, unit depends on stepVariable - :distance in meter, time in seconds and velocity in meter/second.
-    approxLevel::Int     # value for approximation; used when rounding or interating.
+    approxLevel::Int     # value for approximation; used when rounding or iterating.
     outputDetail::Symbol # single Float() ":running_time", Array() of ":points_of_interest",
                          # complete Array() ":driving_course", or Dict() ":everything".
     outputFormat::Symbol # output as ":dataframe" or as ":dict".

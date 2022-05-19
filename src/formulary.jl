@@ -68,17 +68,34 @@ end #function calcTractionUnitResistance
 
 """
 TODO
-calculate and return the wagons vehicle resistance dependend on the velocity
+calculate and return the freight wagons' vehicle resistance dependend on the velocity
 """
-function calcWagonsResistance(v::AbstractFloat, train::Train)
-    # equation is based on a combination of the equations of Strahl and Sauthoff [Wende:2003, page 153] with more detailled factors (Lehmann, page 135)
+function calcFreightWagonsResistance(v::AbstractFloat, train::Train)
+    # equation is based on a combination of the equations of Strahl and Sauthoff [Wende:2003, page 153]
+    f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
+    f_Rw2  = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
+    m_w    = train.m_w    # mass of the set of wagons (consist)  (in kg)
+
+    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw2/1000 * (v /v00)^2)     # vehicle resistance of freight wagons (in N) with Strahl      # /1000 because of the unit ‰
+
+# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + ...
+    return F_R_wagons
+end #function calcWagonsResistance
+
+"""
+TODO
+calculate and return the passenger wagons' vehicle resistance dependend on the velocity
+"""
+function calcPassengerWagonsResistance(v::AbstractFloat, train::Train)
+    # equation is based on the equations of Sauthoff [Wende:2003, page 153]
     f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
     f_Rw1  = train.f_Rw1  # coefficient for the consists resistance to rolling (in ‰)
     f_Rw2  = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
     m_w    = train.m_w    # mass of the set of wagons (consist)  (in kg)
 
-    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw1/1000 *v /v00 + f_Rw2/1000 * ((v + Δv_air) /v00)^2)     # vehicle resistance of the wagons (in N)      # /1000 because of the unit ‰
-# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + calcForceFromCoefficient(f_Rw1, m_w) *v /v00 + calcForceFromCoefficient(f_Rw2, m_w) * ((v + Δv_air) /v00)^2     # vehicle resistance of the wagons (in N)
+    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw1/1000 *v /v00 + f_Rw2/1000 * ((v + Δv_air) /v00)^2)     # vehicle resistance of passenger wagons (in N) with Sauthoff      # /1000 because of the unit ‰
+
+# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + ...
     return F_R_wagons
 end #function calcWagonsResistance
 

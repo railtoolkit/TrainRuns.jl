@@ -71,7 +71,11 @@ calculate and return tractive and resisting forces for a data point
 function calculateForces!(dataPoint::Dict,  CSs::Vector{Dict}, csId::Integer, bsType::String, train::Train, massModel)
     # calculate resisting forces
     dataPoint[:R_traction] = calcTractionUnitResistance(dataPoint[:v], train)
-    dataPoint[:R_wagons] = calcWagonsResistance(dataPoint[:v], train)
+    if train.transportType == :freight
+        dataPoint[:R_wagons] = calcFreightWagonsResistance(dataPoint[:v], train)
+    elseif train.transportType == :passenger
+        dataPoint[:R_wagons] = calcPassengerWagonsResistance(dataPoint[:v], train)
+    end
     dataPoint[:R_train] = dataPoint[:R_traction] + dataPoint[:R_wagons]
     dataPoint[:R_path] = calculatePathResistance(CSs, csId, dataPoint[:s], massModel, train)
     dataPoint[:F_R] = dataPoint[:R_train] + dataPoint[:R_path]

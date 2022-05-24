@@ -44,7 +44,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                          :speedLimitReached => drivingCourse[end][:v] > CS[:v_limit],
                          :error => false)
 
-    # determine the behavior sections for this characteristic section. It has to be at least one of those BS: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "standstill")
+    # determine the behavior sections for this characteristic section. It has to be at least one of those BS: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "halt")
     while !stateFlags[:endOfCSReached] # s < s_exit
         if !stateFlags[:brakingStartReached] # s+s_braking < s_exit
             if !stateFlags[:tractionDeficit]
@@ -103,7 +103,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
         end
     end
     #if s == s_exit
-    #    standstill
+    #    halt
     #end
 
 
@@ -116,7 +116,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
            end
    end #for
 
-   (CSs[end], drivingCourse) = addStandstill!(CSs[end], drivingCourse, settings, train, CSs)
+   (CSs[end], drivingCourse) = addHalt!(CSs[end], drivingCourse, settings, train, CSs)
 
    movingSection[:t] = drivingCourse[end][:t]            # total running time (in s)
    movingSection[:E] = drivingCourse[end][:E]            # total energy consumption (in Ws)

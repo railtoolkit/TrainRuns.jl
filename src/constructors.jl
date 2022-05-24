@@ -63,7 +63,7 @@ function Settings(file="DEFAULT")
         }""")
 
         settings = YAML.load(open(file))["settings"]
-        
+
         ## validate the loaded file
         try
             validate(schema, settings)
@@ -116,12 +116,12 @@ function Path(file, type = :YAML)
         data = YAML.load(open(file))
         if data["schema"] != "https://railtoolkit.org/schema/running-path.json"
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/running-path (2022.05)")
         end
         if data["schema_version"] != "2022.05"
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/running-path (2022.05)")
         end
 
@@ -212,7 +212,7 @@ function Path(file, type = :YAML)
             validate(railtoolkit_schema, paths)
         catch err
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/running-path (2022.05)")
         end
         if length(paths) > 1
@@ -258,7 +258,7 @@ function Path(file, type = :YAML)
             station = elem[1]     # first point of the section (in m)
             label   = elem[2] # paths speed limt (in m/s)
             measure = elem[3]     # specific path resistance of the section (in ‰)
-    
+
             point = Dict(:station => station,
                             :label   => label,
                             :measure => measure)
@@ -315,14 +315,14 @@ function Train(file, type = :YAML)
     if type == :YAML
 
         data = YAML.load(open(file))
-        if data["schema"] != "https://railtoolkit.org/schema/rolling-stock.json" 
+        if data["schema"] != "https://railtoolkit.org/schema/rolling-stock.json"
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
         end
         if data["schema_version"] != "2022.05"
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
         end
 
@@ -472,14 +472,14 @@ function Train(file, type = :YAML)
                 }
                 }
             }
-            }      
+            }
         }""")
 
         try
             validate(railtoolkit_schema, data)
         catch err
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
         end
 
@@ -514,7 +514,7 @@ function Train(file, type = :YAML)
             push!(vehicles, (data=vehicle, n=n, propulsion=propulsion) )
         end
     end
-    
+
     ## set the variables in "train"
     name = train["name"]
     id   = train["id"]
@@ -529,8 +529,8 @@ function Train(file, type = :YAML)
         haskey(vehicle.data, "load_limit")    ?
             m_train_full += vehicle.data["load_limit"] * vehicle.n * 1000 :  # in kg
             nothing
-        haskey(vehicle.data, "speed_limit")   ? 
-            v_limit > vehicle.data["speed_limit"]/3.6 ? v_limit = vehicle.data["speed_limit"]/3.6 : nothing : 
+        haskey(vehicle.data, "speed_limit")   ?
+            v_limit > vehicle.data["speed_limit"]/3.6 ? v_limit = vehicle.data["speed_limit"]/3.6 : nothing :
             nothing
     end
 
@@ -569,17 +569,17 @@ function Train(file, type = :YAML)
         resis_air  = []
         rotMassFac = []
         for car in cars
-            haskey(car.data, "base_resistance")    ? 
-                append!(resis_base,repeat([car.data["base_resistance"]],car.n))    : 
+            haskey(car.data, "base_resistance")    ?
+                append!(resis_base,repeat([car.data["base_resistance"]],car.n))    :
                 append!(resis_base,repeat([f_Rw0],car.n))
-            haskey(car.data, "rolling_resistance") ? 
-                append!(resis_roll,repeat([car.data["rolling_resistance"]],car.n)) : 
+            haskey(car.data, "rolling_resistance") ?
+                append!(resis_roll,repeat([car.data["rolling_resistance"]],car.n)) :
                 append!(resis_roll,repeat([f_Rw1],car.n))
-            haskey(car.data, "air_resistance")     ? 
-                append!(resis_air,repeat([car.data["air_resistance"]],car.n))      : 
+            haskey(car.data, "air_resistance")     ?
+                append!(resis_air,repeat([car.data["air_resistance"]],car.n))      :
                 append!(resis_air, repeat([f_Rw2],car.n))
             haskey(car.data, "rotation_mass") ?
-                append!(rotMassFac,repeat([(car.data["rotation_mass"],car.data["mass"])],car.n)) : 
+                append!(rotMassFac,repeat([(car.data["rotation_mass"],car.data["mass"])],car.n)) :
                 append!(rotMassFac,repeat([(ξ_cars ,car.data["mass"])],car.n))
             m_car_empty += car.data["mass"] * car.n * 1000 # in kg
             m_car_full  += car.data["mass"] * car.n * 1000 # in kg
@@ -727,7 +727,7 @@ BehaviorSection() TODO!
 """
 function createBehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
     BS= Dict(
-        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "standstill"
+        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "halt"
         :length => 0.0,                # total length  (in m)
         :s_entry => s_entry,           # first position (in m)
         :s_exit => 0.0,                # last position  (in m)

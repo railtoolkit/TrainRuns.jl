@@ -1304,11 +1304,11 @@ function addBrakingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::D
 end #function addBrakingSection!
 
 
-## This function calculates the data point of the standstill.
-#    Therefore it gets its first data point and the characteristic section and returns the characteristic section including the standstill if needed.
-function addStandstill!(CS::Dict, drivingCourse::Vector{Dict}, settings::Settings, train::Train, CSs::Vector{Dict})
+## This function calculates the data point of the halt.
+#    Therefore it gets its first data point and the characteristic section and returns the characteristic section including the halt if needed.
+function addHalt!(CS::Dict, drivingCourse::Vector{Dict}, settings::Settings, train::Train, CSs::Vector{Dict})
     if drivingCourse[end][:v] == 0.0
-        BS = createBehaviorSection("standstill", drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
+        BS = createBehaviorSection("halt", drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
         merge!(BS, Dict(:length => 0.0,                      # total length  (in m)
                         :t => 0.0,                           # total running time (in s)
                         :E => 0.0,                           # total energy consumption (in Ws)
@@ -1319,10 +1319,10 @@ function addStandstill!(CS::Dict, drivingCourse::Vector{Dict}, settings::Setting
         # traction effort and resisting forces (in N)
         calculateForces!(drivingCourse[end], CSs, CS[:id], BS[:type], train, settings.massModel)
 
-        merge!(CS[:behaviorSections], Dict(:standstill => BS))
-    end  # else: return the characteristic section without a standstillSection section
+        merge!(CS[:behaviorSections], Dict(:halt => BS))
+    end  # else: return the characteristic section without a halt section section
     return (CS, drivingCourse)
-end #function addStandstill!
+end #function addHalt!
 
 function mergeBehaviorSection!(BSs::Dict, BS::Dict)
     if !haskey(BSs, Symbol(BS[:type]))

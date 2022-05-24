@@ -35,7 +35,6 @@ function secureBrakingBehavior!(movingSection::Dict, a_braking::Real, approxLeve
 
             # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
             CS[:behaviorSections] = Dict()
-            CS[:E] = 0.0
             CS[:t] = 0.0
 
             followingCSv_entry = CS[:v_entry]
@@ -102,69 +101,8 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Settings, tr
 
         # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
         CS[:behaviorSections] = Dict()
-        CS[:E] = 0.0
         CS[:t] = 0.0
     end #for
 
     return movingSection
 end #function secureAcceleratingBehavior!
-
-
-#=
-## define the intersection velocities between the characterisitc sections to secure cruising behavior
-function secureCruisingBehavior!(movingSection::Dict, settings::Settings, train::Train)
-    # limit the exit velocity of the characteristic sections in case that the train cruises in every section at v_peak
-    CSs = movingSection[:characteristicSections]
-
-    startingPoint = createDataPoint()
-    startingPoint[:i] = 1
-
-    previousCSv_exit = CSs[1][:v_entry]
-
-    for CS in CSs
-        # conditions for entering the cruising phase
-        stateFlags = Dict(:endOfCSReached => false,
-                          :brakingStartReached => false,
-                          :tractionDeficit => false,
-                          :resistingForceNegative => false,
-                          :previousSpeedLimitReached => false,
-                          :speedLimitReached => false,
-                          :error => false,
-                          :usedForDefiningCharacteristics => true)
-
-        CS[:v_entry] = min(CS[:v_entry], previousCSv_exit)
-
-        startingPoint[:s] = CS[:s_entry]
-        startingPoint[:v] = CS[:v_peak]
-        cruisingCourse::Vector{Dict} = [startingPoint]    # List of data points
-
-        while !stateFlags[:endOfCSReached] #&& s_cruising > 0.0
-            if !stateFlags[:tractionDeficit]
-                s_cruising = CS[:s_exit] - cruisingCourse[end][:s]
-                if !stateFlags[:resistingForceNegative]# cruisingCourse[end][:F_R] >= 0
-                    (CS, cruisingCourse, stateFlags) = addCruisingSection!(CS, cruisingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")        # this function changes the cruisingCourse
-                else
-                    (CS, cruisingCourse, stateFlags) = addCruisingSection!(CS, cruisingCourse, stateFlags, s_cruising, settings, train, CSs, "downhillBraking")
-                end
-            else
-                if settings.massModel == :mass_point || cruisingCourse[end][:s] > CS[:s_entry] + train.length
-                    break
-                else
-                    (CS, cruisingCourse, stateFlags) = addDiminishingSection!(CS, cruisingCourse, stateFlags, settings, train, CSs)        # this function is needed in case the resisitng forces are higher than the maximum possible tractive effort
-                end
-            end
-        end
-
-        CS[:v_exit] = min(CS[:v_exit], cruisingCourse[end][:v])
-
-        previousCSv_exit = CS[:v_exit]
-
-        # reset the characteristic section (CS), delete behavior sections (BS) that were used during the preperation for setting v_entry, v_peak and v_exit
-        CS[:behaviorSections] = Dict()
-        CS[:E] = 0.0
-        CS[:t] = 0.0
-    end #for
-
-    return movingSection
-end #function secureCruisingBehavior!
-=#

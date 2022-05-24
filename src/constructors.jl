@@ -643,7 +643,6 @@ function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real
                         :s_entry => s_entry,            # first position (in m)
                         :s_exit => s_exit,              # last position (in m)
                         :t => 0.0,                      # total running time (in s)
-                        :E => 0.0,                      # total energy consumption (in Ws)
                         :characteristicSections => CSs) # list of containing characteristic sections
 
     return movingSection
@@ -659,7 +658,6 @@ function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, 
                                 :r_path => section[:f_Rp],              # path resistance (in ‰)
                                 :behaviorSections => Dict(),            # list of containing behavior sections
                                 :t => 0.0,                              # total running time (in s)
-                                :E => 0.0,                              # total energy consumption (in Ws)
                                 :v_limit => v_limit,                    # speed limit (in m/s)
                                 # initializing :v_entry, :v_peak and :v_exit with :v_limit
                                 :v_peak => v_limit,                     # maximum reachable speed (in m/s)
@@ -707,10 +705,6 @@ function createDataPoint()
         :v => 0.0,          # velocity (in m/s)
         :Δv => 0.0,         # step size (in m/s)
         :a => 0.0,          # acceleration (in m/s^2)
-        :W => 0.0,          # mechanical work (in Ws)
-        :ΔW => 0.0,         # mechanical work in this step (in Ws)
-        :E => 0.0,          # energy consumption (in Ws)
-        :ΔE => 0.0,         # energy consumption in this step (in Ws)
         :F_T => 0.0,        # tractive effort (in N)
         :F_R => 0.0,        # resisting force (in N)
         :R_path => 0.0,     # path resistance (in N)
@@ -732,7 +726,6 @@ function createBehaviorSection(type::String, s_entry::Real, v_entry::Real, start
         :s_entry => s_entry,           # first position (in m)
         :s_exit => 0.0,                # last position  (in m)
         :t => 0.0,                     # total running time (in s)
-        :E => 0.0,                     # total energy consumption (in Ws)
         :v_entry => v_entry,           # entry speed (in m/s)
         :v_exit => 0.0,                # exit speed (in m/s)
         :dataPoints => [startingPoint] # list of identifiers of the containing data points starting with the initial point

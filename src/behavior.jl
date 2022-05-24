@@ -150,11 +150,6 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
     newPoint[:s] = previousPoint[:s] + newPoint[:Δs]                    # position (in m)
     newPoint[:t] = previousPoint[:t] + newPoint[:Δt]                    # point in time (in s)
     newPoint[:v] = previousPoint[:v] + newPoint[:Δv]                    # velocity (in m/s)
-    newPoint[:ΔW] = calc_ΔW(previousPoint[:F_T], newPoint[:Δs])         # mechanical work in this step (in Ws)
-    newPoint[:W] = previousPoint[:W] + newPoint[:ΔW]                    # mechanical work (in Ws)
-    newPoint[:ΔE] = calc_ΔE(newPoint[:ΔW])                              # energy consumption in this step (in Ws)
-    newPoint[:E] = previousPoint[:E] + newPoint[:ΔE]                    # energy consumption (in Ws)
-
 
     return newPoint
 end #function moveAStep
@@ -225,18 +220,15 @@ function addBreakFreeSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags:
 
         # remove the accelerating section from the CS
         CS[:t] = CS[:t] - get(CS[:behaviorSections], :accelerating, Dict(:t=>0.0))[:t]         # total running time (in s)
-        CS[:E] = CS[:E] - get(CS[:behaviorSections], :accelerating, Dict(:E=>0.0))[:E]         # total energy consumption (in Ws)
         delete!(CS[:behaviorSections], :accelerating)
 
         # calculate the accumulated breakFree section information
         merge!(BS, Dict(:length => drivingCourse[end][:s] - BS[:s_entry],                         # total length  (in m)
                         :s_exit => drivingCourse[end][:s],                                        # last position  (in m)
                         :t => drivingCourse[end][:t] - drivingCourse[BS[:dataPoints][1]][:t],     # total running time (in s)
-                        :E => drivingCourse[end][:E] - drivingCourse[BS[:dataPoints][1]][:E],     # total energy consumption (in Ws)
                         :v_exit => drivingCourse[end][:v]))                                       # exit speed (in m/s)))
 
         CS[:t] = CS[:t] + BS[:t]         # total running time (in s)
-        CS[:E] = CS[:E] + BS[:E]         # total energy consumption (in Ws)
 
         merge!(CS[:behaviorSections], Dict(:breakFree => BS))
     end # else: return the characteristic section without a breakFree section
@@ -516,12 +508,10 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFla
             merge!(BS, Dict(:length => drivingCourse[end][:s] - BS[:s_entry],                         # total length  (in m)
                             :s_exit => drivingCourse[end][:s],                                        # last position  (in m)
                             :t => drivingCourse[end][:t] - drivingCourse[BS[:dataPoints][1]][:t],     # total running time (in s)
-                            :E => drivingCourse[end][:E] - drivingCourse[BS[:dataPoints][1]][:E],     # total energy consumption (in Ws)
                             :v_exit => drivingCourse[end][:v]))                                       # exit speed (in m/s)))
 
             # 03/10 old: CS[:v_peak] = max(drivingCourse[end][:v], CS[:v_entry])      # setting v_peak to the last data points velocity which is the highest reachable value in this characteristic section or to v_entry in case it is higher when running on a path with high resistances
             CS[:t] = CS[:t] + BS[:t]       # total running time (in s)
-            CS[:E] = CS[:E] + BS[:E]       # total energy consumption (in Ws)
 
             mergeBehaviorSection!(CS[:behaviorSections], BS)
         end
@@ -773,11 +763,9 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
         merge!(BS, Dict(:length => drivingCourse[end][:s] - BS[:s_entry],                         # total length  (in m)
                         :s_exit => drivingCourse[end][:s],                                        # last position  (in m)
                         :t => drivingCourse[end][:t] - drivingCourse[BS[:dataPoints][1]][:t],     # total running time (in s)
-                        :E => drivingCourse[end][:E] - drivingCourse[BS[:dataPoints][1]][:E],     # total energy consumption (in Ws)
                         :v_exit => drivingCourse[end][:v]))                                       # exit speed (in m/s)))
 
         CS[:t] = CS[:t] + BS[:t]       # total running time (in s)
-        CS[:E] = CS[:E] + BS[:E]       # total energy consumption (in Ws)
 
         mergeBehaviorSection!(CS[:behaviorSections], BS)
     end # else: return the characteristic section without a cruising section
@@ -962,11 +950,9 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlag
             merge!(BS, Dict(:length => drivingCourse[end][:s] - BS[:s_entry],                         # total length  (in m)
                             :s_exit => drivingCourse[end][:s],                                        # last position  (in m)
                             :t => drivingCourse[end][:t] - drivingCourse[BS[:dataPoints][1]][:t],     # total running time (in s)
-                            :E => drivingCourse[end][:E] - drivingCourse[BS[:dataPoints][1]][:E],     # total energy consumption (in Ws)
                             :v_exit => drivingCourse[end][:v]))                                       # exit speed (in m/s)))
 
             CS[:t] = CS[:t] + BS[:t]             # total running time (in s)
-            CS[:E] = CS[:E] + BS[:E]             # total energy consumption (in Ws)
 
             mergeBehaviorSection!(CS[:behaviorSections], BS)
         end
@@ -1127,11 +1113,9 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
        merge!(BS, Dict(:length => drivingCourse[end][:s] - BS[:s_entry],                         # total length  (in m)
                        :s_exit => drivingCourse[end][:s],                                        # last position  (in m)
                        :t => drivingCourse[end][:t] - drivingCourse[BS[:dataPoints][1]][:t],     # total running time (in s)
-                       :E => drivingCourse[end][:E] - drivingCourse[BS[:dataPoints][1]][:E],     # total energy consumption (in Ws)
                        :v_exit => drivingCourse[end][:v]))                                       # exit speed (in m/s)))
 
        CS[:t] = CS[:t] + BS[:t]          # total running time (in s)
-       CS[:E] = CS[:E] + BS[:E]          # total energy consumption (in Ws)
 
        merge!(CS[:behaviorSections], Dict(:coasting=>BS))
    end
@@ -1282,11 +1266,9 @@ function addBrakingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::D
        merge!(BS, Dict(:length => drivingCourse[end][:s] - BS[:s_entry],                         # total length  (in m)
                        :s_exit => drivingCourse[end][:s],                                        # last position  (in m)
                        :t => drivingCourse[end][:t] - drivingCourse[BS[:dataPoints][1]][:t],     # total running time (in s)
-                       :E => drivingCourse[end][:E] - drivingCourse[BS[:dataPoints][1]][:E],     # total energy consumption (in Ws)
                        :v_exit => drivingCourse[end][:v]))                                       # exit speed (in m/s)))
 
        CS[:t] = CS[:t] + BS[:t]       # total running time (in s)
-       CS[:E] = CS[:E] + BS[:E]       # total energy consumption (in Ws)
 
        merge!(CS[:behaviorSections], Dict(:braking=>BS))
     end  # else: return the characteristic section without a braking section
@@ -1311,7 +1293,6 @@ function addHalt!(CS::Dict, drivingCourse::Vector{Dict}, settings::Settings, tra
         BS = createBehaviorSection("halt", drivingCourse[end][:s], drivingCourse[end][:v], drivingCourse[end][:i])
         merge!(BS, Dict(:length => 0.0,                      # total length  (in m)
                         :t => 0.0,                           # total running time (in s)
-                        :E => 0.0,                           # total energy consumption (in Ws)
                         :s_exit => drivingCourse[end][:s],    # last position  (in m)
                         :v_exit => drivingCourse[end][:v]))   # exit speed (in m/s)))
         drivingCourse[end][:behavior] = BS[:type]
@@ -1355,9 +1336,4 @@ function recalculateLastBrakingPoint!(drivingCourse, s_target, v_target)
 #    end
    currentPoint[:Δt] = calc_Δt_with_Δv(currentPoint[:Δv], previousPoint[:a])    # step size (in s)
    currentPoint[:t] = previousPoint[:t] + currentPoint[:Δt]                     # point in time (in s)
-
-   currentPoint[:ΔW] = 0.0                                                      # mechanical work in this step (in Ws)
-   currentPoint[:W] = previousPoint[:W] + currentPoint[:ΔW]                     # mechanical work (in Ws)
-   currentPoint[:ΔE] = currentPoint[:ΔW]                                        # energy consumption in this step (in Ws)
-   currentPoint[:E] = previousPoint[:E] + currentPoint[:ΔE]                     # energy consumption (in Ws)
 end #function recalculateLastBrakingPoint

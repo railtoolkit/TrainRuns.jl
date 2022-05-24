@@ -12,7 +12,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
    CSs::Vector{Dict} = movingSection[:characteristicSections]
 
    if settings.massModel == :homogeneous_strip && settings.stepVariable == speed
-       println("WARNING: ! ! ! TrainRun.jl doesn't work reliably for the mass model homogeneous strip with step size v in m/s. The calculation time can be extremely high when calcutlating paths with steep gradients ! ! !")
+       println("WARNING: ! ! ! TrainRuns.jl doesn't work reliably for the mass model homogeneous strip with step size v in m/s. The calculation time can be extremely high when calcutlating paths with steep gradients ! ! !")
    end
 
    startingPoint=createDataPoint()
@@ -119,7 +119,6 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
    (CSs[end], drivingCourse) = addHalt!(CSs[end], drivingCourse, settings, train, CSs)
 
    movingSection[:t] = drivingCourse[end][:t]            # total running time (in s)
-   movingSection[:E] = drivingCourse[end][:E]            # total energy consumption (in Ws)
 
    return (movingSection, drivingCourse)
 end #function calculateMinimumRunningTime

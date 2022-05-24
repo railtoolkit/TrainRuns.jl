@@ -189,23 +189,6 @@ function calc_Δv_with_Δt(Δt::Real, a_prev::Real)
     return Δv
 end #function calc_Δv_with_Δt
 
-function calc_ΔW(F_T_prev::Real, Δs::Real)
-    # equation is based on [Wende:2003, page 17]
-
-    # F_T_prev: tractive force from previous data point
-    # Δs: distance step
-    ΔW = F_T_prev * Δs      # mechanical work in this step (in Ws)
-    return ΔW
-end #function calc_ΔW
-
-function calc_ΔE(ΔW::Real)
-    # simplified equation
-    # TODO!
-    # ΔW: mechanical work in this step (in Ws)
-    ΔE = ΔW                 # energy consumption in this step (in Ws)
-    return ΔE
-end #function calc_ΔW
-
 function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real, approxLevel::Integer)
     # equation is based on [Wende:2003, page 37]
 

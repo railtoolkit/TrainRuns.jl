@@ -1,7 +1,7 @@
 name = "TrainRuns"
 uuid = "e4541106-d44c-4e00-b50b-ecdf479fcf92"
 authors = ["Max Kannenberg", "Martin Scheidt", "contributors"]
-version = "0.8.0"
+version = "1.0.0"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

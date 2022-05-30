@@ -26,6 +26,11 @@ julia> calculateTractiveEffort(30.0, [(0.0, 180000), (20.0, 100000), (40.0, 6000
 ```
 """
 function calculateTractiveEffort(v::AbstractFloat, tractiveEffortVelocityPairs::Array{})
+    if v < 0.0
+        #println("v=",v)
+        return 0.0
+    end
+
     for row in 1:length(tractiveEffortVelocityPairs)
         nextPair = tractiveEffortVelocityPairs[row]
         if  nextPair[1] == v
@@ -81,7 +86,7 @@ function calculateForces!(dataPoint::Dict,  CSs::Vector{Dict}, csId::Integer, bs
     dataPoint[:F_R] = dataPoint[:R_train] + dataPoint[:R_path]
 
     # calculate tractive effort
-    if bsType == "braking" || bsType == "coasting"
+    if bsType == "braking" || bsType == "coasting" || bsType == "halt"
         dataPoint[:F_T] = 0.0
     elseif bsType == "cruising"
         dataPoint[:F_T] = min(max(0.0, dataPoint[:F_R]), calculateTractiveEffort(dataPoint[:v], train.tractiveEffort))
@@ -848,11 +853,11 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlag
                 # check which limit was reached and adjust the currentStepSize for the next cycle
                 if cycle < settings.approxLevel+1
                     if drivingCourse[end][:v] < 0.0
-                        if settings.stepVariable == velocity
-                            currentStepSize = drivingCourse[end-1][:v]
-                        else
+                    #    if settings.stepVariable == :velocity
+                    #        currentStepSize = drivingCourse[end-1][:v]
+                    #    else
                             currentStepSize = settings.stepSize / 10.0^cycle
-                        end
+                    #    end
                     elseif drivingCourse[end][:F_T] > drivingCourse[end][:F_R]
                         testFlag && println("in CS",CS[:id]," diminishing cycle",cycle," case: F_T=", drivingCourse[end][:F_T]," > F_R=",drivingCourse[end][:F_R])    # for testing
                         currentStepSize = settings.stepSize / 10.0^cycle
@@ -1033,14 +1038,14 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
 
                    elseif drivingCourse[end][:v] < CS[:v_exit]  # TODO: if accelereation and coasting functions will be combined this case is only for coasting
                        testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: v=", drivingCourse[end][:v]," < v_exit=", CS[:v_exit])    # for testing
-                        if settings.stepVariable == velocity
+                        if settings.stepVariable == :velocity
                             currentStepSize = drivingCourse[end-1][:v] - CS[:v_exit]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle
                         end
                    elseif drivingCourse[end][:v] > CS[:v_peak]
                        testFlag && println("in CS",CS[:id]," coasting cycle",cycle," case: v=", drivingCourse[end][:v]," > v_peak=", CS[:v_peak])    # for testing
-                       if settings.stepVariable == velocity
+                       if settings.stepVariable == :velocity
                            currentStepSize = CS[:v_peak] - drivingCourse[end-1][:v]
                        else
                            currentStepSize = settings.stepSize / 10.0^cycle

@@ -54,7 +54,7 @@ vehicles:
 
     rotation_mass: 1.09   # source: "Railway Timetabling & Operations" by Hansen, et al., 2014, p. 71 for the traction unit
     base_resistance: 2.5  # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "4-achsige Diesellokomot." -> 2.2 ‰ to 3.5 ‰
-    air_resistance: 0.006 # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "4-achsig, eckige Kopfform" with "Stromabnehmer" -> 5000 N to 6000 N; modified for the used formula
+    air_resistance: 6.0 # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "4-achsig, eckige Kopfform" with "Stromabnehmer" -> 5000 N to 6000 N; modified for the used formula
 
     tractive_effort:
       - [0.0, 300000]

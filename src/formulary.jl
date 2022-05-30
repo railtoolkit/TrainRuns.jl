@@ -55,15 +55,15 @@ function calcTractionUnitResistance(v::AbstractFloat, train::Train)
     # equation is based on [Wende:2003, page 151]
     f_Rtd0 = train.f_Rtd0 # coefficient for basic resistance due to the traction units driving axles (in ‰)
     f_Rtc0 = train.f_Rtc0 # coefficient for basic resistance due to the traction units carring axles (in ‰)
-    F_Rt2  = train.F_Rt2  # coefficient for air resistance of the traction units (in N)
+    f_Rt2  = train.f_Rt2  # coefficient for air resistance of the traction unit (in ‰)
     m_td   = train.m_td   # mass on the traction unit's driving axles (in kg)
     m_tc   = train.m_tc   # mass on the traction unit's carrying axles (in kg)
 
-    F_R_tractionUnit = f_Rtd0/1000 * m_td * g + f_Rtc0/1000 * m_tc * g + F_Rt2 * ((v + Δv_air) /v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
-    # TODO: use calcForceFromCoefficient? F_R_tractionUnit = calcForceFromCoefficient(f_Rtd0, m_td) + calcForceFromCoefficient(f_Rtc0, m_tc) + F_Rt2 * ((v + Δv_air) /v00)^2       # vehicle resistance of the traction unit (in N)
+
+    F_R_tractionUnit = f_Rtd0/1000 * m_td * g + f_Rtc0/1000 * m_tc * g + f_Rt2/1000 * (m_td+m_tc) * g * ((v + Δv_air) /v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
+    # TODO: use calcForceFromCoefficient? F_R_tractionUnit = calcForceFromCoefficient(f_Rtd0, m_td) + calcForceFromCoefficient(f_Rtc0, m_tc) + calcForceFromCoefficient(f_Rt2, m_td+m_tc) * ((v + Δv_air) /v00)^2       # vehicle resistance of the traction unit (in N)
     return F_R_tractionUnit
-    #TODO: same variable name like in the rest of the tool? return R_traction
-    #TODO: just one line? return train.f_Rtd0/1000*train.m_td*g+train.f_Rtc0/1000*train.m_tc*g+train.F_Rt2*((v+train.Δv_air)/v00)^2    # /1000 because of the unit ‰
+    #TODO: same variable name like in the rest of TrainRuns? return R_traction
 end #function calcTractionUnitResistance
 
 """

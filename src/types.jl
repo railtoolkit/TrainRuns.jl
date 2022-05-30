@@ -45,10 +45,10 @@ struct Train
     a_braking::Real         # in m/s^2
 
     # coefficients for the vehicle resistance
-    # for the traction unit (F_Rt=f_Rtd0*m_td*g+f_Rtc0*m_tc*g+F_Rt2*((v+Δv_air)/v00)^2)
+    # for the traction unit (F_Rt=f_Rtd0*m_td*g+f_Rtc0*m_tc*g+f_Rt2*m_loco*g*((v+Δv_air)/v00)^2)
     f_Rtd0::Real # coefficient for basic resistance due to the traction units driving axles (in ‰)
     f_Rtc0::Real # coefficient for basic resistance due to the traction units carring axles (in ‰)
-    F_Rt2::Real  # coefficient for air resistance of the traction units (in N)
+    f_Rt2::Real  # coefficient for air resistance of the traction units (in ‰)
 
     # for the consist (set of wagons) (F_Rw=m_w*g*(f_Rw0+f_Rw1*v/v00+f_Rw2*((v+Δv_air)/v00)^2))
     f_Rw0::Real # coefficient for the consists basic resistance (in ‰)

@@ -303,12 +303,12 @@ function Train(file, type = :YAML)
     transportType = :freight      # "freight" or "passenger" for resistance calculation
     v_limit       = 140           # in m/s (default 504 km/h)
     a_braking     = 0             # in m/s^2, todo: implement as function
-    f_Rtd0        = 0             # coefficient for basic resistance due to the traction units driving axles (in ‰)
-    f_Rtc0        = 0             # coefficient for basic resistance due to the traction units carring axles (in ‰)
-    F_Rt2         = 3000          # coefficient for air resistance of the traction units (in N)
-    f_Rw0         = 0             # coefficient for the consists basic resistance (in ‰)
-    f_Rw1         = 0             # coefficient for the consists resistance to rolling (in ‰)
-    f_Rw2         = 0             # coefficient fo the consistsr air resistance (in ‰)
+    f_Rtd0        = 0             # coefficient for basic resistance due to the traction unit's driving axles (in ‰)
+    f_Rtc0        = 0             # coefficient for basic resistance due to the traction unit's carring axles (in ‰)
+    f_Rt2         = 0             # coefficient for air resistance of the traction unit (in ‰)
+    f_Rw0         = 0             # coefficient for the consist's basic resistance (in ‰)
+    f_Rw1         = 0             # coefficient for the consist's resistance to rolling (in ‰)
+    f_Rw2         = 0             # coefficient for the consist's air resistance (in ‰)
     F_v_pairs     = []            # [v in m/s, F_T in N]
 
     ## load from file
@@ -520,6 +520,7 @@ function Train(file, type = :YAML)
     id   = train["id"]
     haskey(train, "UUID") ? uuid = parse(UUID, train["UUID"] ) : nothing
     transportType == :freight ? a_braking = -0.225 : a_braking = -0.375  # set a default a_braking value depending on the train type
+        #TODO: add source: Brünger, Dahlhaus, 2014 p. 74 (see formulary.jl)
 
     ## set the variables for all vehicles
     for vehicle in vehicles
@@ -553,7 +554,7 @@ function Train(file, type = :YAML)
     haskey(loco, "a_braking")          ? a_braking = loco["a_braking"]                : nothing
     haskey(loco, "base_resistance")    ? f_Rtd0 = loco["base_resistance"]             : nothing
     haskey(loco, "rolling_resistance") ? f_Rtc0 = loco["rolling_resistance"]          : nothing
-    haskey(loco, "air_resistance")     ? F_Rt2  = loco["air_resistance"] * g * m_loco : nothing
+    haskey(loco, "air_resistance")     ? f_Rt2  = loco["air_resistance"]              : nothing
     haskey(loco, "mass_traction")      ? m_td   = loco["mass_traction"] * 1000        : m_td = m_t
     haskey(loco, "rotation_mass")      ? ξ_loco = loco["rotation_mass"]               : nothing
     m_tc = m_loco- m_td
@@ -607,7 +608,7 @@ function Train(file, type = :YAML)
         ξ_train, ξ_loco, ξ_cars,
         transportType, v_limit,
         a_braking,
-        f_Rtd0, f_Rtc0, F_Rt2, f_Rw0, f_Rw1, f_Rw2,
+        f_Rtd0, f_Rtc0, f_Rt2, f_Rw0, f_Rw1, f_Rw2,
         F_v_pairs
     )
 
@@ -674,7 +675,7 @@ function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, 
         for POI in path.poi
             s_poi = POI[:station]
             if POI[:measure] == "rear"
-                s_poi -= s_trainLength
+                s_poi += s_trainLength
             end
             if s_entry < s_poi && s_poi < s_exit
                 push!(pointsOfInterest, (s_poi, POI[:label]) )

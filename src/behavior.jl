@@ -180,12 +180,12 @@ function getCurrentSpeedLimit(CSs::Vector{Dict}, csWithTrainHeadId::Integer, s::
 end #function getCurrentSpeedLimit
 
 """
-?
+TODO
 """
 function getNextPointOfInterest(pointsOfInterest::Vector{Tuple}, s::Real)
-    for s_POI in pointsOfInterest
-        if s_POI[1] > s
-            return s_POI
+    for POI in pointsOfInterest
+        if POI[1] > s
+            return POI
         end
     end
     error("ERROR in getNextPointOfInterest: There is no POI higher than s=",s," m.")
@@ -505,6 +505,9 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFla
             if drivingCourse[end][:s] == CS[:s_exit]
                 endOfCSReached = true
             end
+            if drivingCourse[end][:s] == nextPointOfInterest[1]
+                drivingCourse[end][:label] = nextPointOfInterest[2]
+            end
 
         end #while
 
@@ -591,7 +594,7 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
             # use the conditions for the cruising section
             while trainInPreviousCS && !targetPositionReached && !tractionDeficit && (trainIsClearing || (trainIsBrakingDownhill == resistingForceNegative)) # while clearing tractive or braking force can be used
                 currentStepSize = settings.stepSize
-                nextPointOfInterest[1] = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
+                nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
                 pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
 
                 for cycle in 1:settings.approxLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
@@ -714,6 +717,11 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
                         end
                     end
                 end #for
+
+                if drivingCourse[end][:s] == nextPointOfInterest[1]
+                    drivingCourse[end][:label] = nextPointOfInterest[2]
+                end
+
             end #while
         end #if
 
@@ -724,7 +732,10 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
 
         while !targetPositionReached && !tractionDeficit && (trainIsClearing || (trainIsBrakingDownhill == resistingForceNegative)) # while clearing tractive or braking force can be used
         # 03/09 old: while drivingCourse[end][:s] < BS[:s_entry]+s_cruising && drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
-            nextPointOfInterest = min(BS[:s_entry]+s_cruising, getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])[1])
+            nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
+            if nextPointOfInterest[1] > BS[:s_entry]+s_cruising
+                nextPointOfInterest = [BS[:s_entry]+s_cruising, ""]
+            end
 
             # tractive effort (in N):
 #03/25            drivingCourse[end][:F_T] = min(drivingCourse[end][:F_T], max(0.0, drivingCourse[end][:F_R]))
@@ -745,6 +756,9 @@ function addCruisingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
             # create the next data point
             push!(drivingCourse, moveAStep(drivingCourse[end], :distance, s_cruisingRemaining, CS[:id]))
             drivingCourse[end][:behavior] = BS[:type]
+            if drivingCourse[end][:s] == nextPointOfInterest[1]
+                drivingCourse[end][:label] = nextPointOfInterest[2]
+            end
             push!(BS[:dataPoints], drivingCourse[end][:i])
 
             calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings.massModel)
@@ -817,7 +831,7 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlag
 
         while tractionDeficit && !targetSpeedReached && !endOfCSReached && !brakingStartReached
             currentStepSize=settings.stepSize   # initialize the step size that can be reduced near intersections
-            nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])[1]
+            nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
             pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
 
             for cycle in 1:settings.approxLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
@@ -948,6 +962,10 @@ function addDiminishingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlag
                 #    end
                 end #if
             end #for
+
+            if drivingCourse[end][:s] == nextPointOfInterest[1]
+                drivingCourse[end][:label] = nextPointOfInterest[2]
+            end
         end #while
 
         if length(BS[:dataPoints]) > 1 # TODO: necessary? May it be possible that there is no diminishing because braking has to start?
@@ -1110,6 +1128,11 @@ function addCoastingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::
                    end
                end
            end #for
+
+           if drivingCourse[end][:s] == nextPointOfInterest[1]
+               drivingCourse[end][:label] = nextPointOfInterest[2]
+           end
+
        end #while
 
        stateFlags[:speedLimitReached] = false
@@ -1265,6 +1288,11 @@ function addBrakingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::D
                     end
                 end
             end #for
+
+            if drivingCourse[end][:s] == nextPointOfInterest[1]
+                drivingCourse[end][:label] = nextPointOfInterest[2]
+            end
+
         end #while
 
        # calculate the accumulated coasting section information

@@ -5,15 +5,12 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-using DataFrames
-
-function createOutput(train::Train, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
+function createOutput(settings::Settings, path::Path, drivingCourse::Vector{Dict})
     if settings.outputDetail == :running_time
-        output = drivingCourse[end][:t]
+        output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 
-    elseif settings.outputDetail == :points_of_interest
+    elseif settings.outputDetail == :points_of_interest && !isempty(path.poi)
         # add points of interest
-        if !isempty(path.poi)
 
         #    output = Dict[]
         #    POI = 1
@@ -26,79 +23,47 @@ function createOutput(train::Train, settings::Settings, path::Path, movingSectio
         #        i = i+1
         #    end
 
-            # get only the driving course's data points with POI labels
-            output = Dict[]
-            for point in 1:length(drivingCourse)
-                if point[:label] != ""
-                    push!(output, point)
-                end
+        # get only the driving course's data points with POI labels
+        output = Dict[]
+        for point in drivingCourse
+            if point[:label] != ""
+                push!(output, point)
             end
         end
 
-    elseif settings.outputDetail == :driving_course
+    else #if settings.outputDetail == :driving_course || (settings.outputDetail == :points_of_interest && !isempty(path.poi))
             output = drivingCourse
-
-    elseif settings.outputDetail == :everything
-        output = Dict{Symbol,Any}()
-        merge!(output, Dict(:train => train, :path => path, :settings => settings))
-
-
-        # add moving section and driving courses
-        merge!(output, Dict(:movingSection => movingSection,
-                            :drivingCourse => drivingCourse))
-
-
-        # add points of interest
-        if !isempty(path.poi)
-            pointsOfInterest = Dict[]
-            # get only the driving course's data points with POI labels
-            output = Dict[]
-            for point in 1:length(drivingCourse)
-                if point[:label] != ""
-                    push!(pointsOfInterest, point)
-                end
-            end
-
-            merge!(output, Dict(:pointsOfInterest => pointsOfInterest))
-
-        end
-
-        if settings.outputFormat == :dataframe
-            return createDataFrameForDataPoints(output[:drivingCourse])
-        else
-            return output
-        end
     end
 
     if settings.outputFormat == :dataframe
-        return createDataFrame(output)
-    else
+        return createDataFrame(output, settings.outputDetail)
+    elseif settings.outputFormat == :vector
         return output
     end
 end
 
 
-function createDataFrame(runningTime::AbstractFloat)
-    # create DataFrame with running time information
-    dataFrame = DataFrame(column1=["t (in s)", runningTime])
-end
+function createDataFrame(output_vector::Vector{Dict}, outputDetail)
+    if outputDetail == :running_time
+        # create DataFrame with running time information
+        dataFrame = DataFrame(column1=["t (in s)", output_vector[end][:t]])
+    else # :points_of_interest or :driving_course
+        header = ["label", "driving mode", "s (in m)", "v (in m/s)", "t (in s)", "a (in m/s^2)", "F_T (in N)", "F_R (in N)", "R_path (in N)", "R_traction (in N)", "R_wagons (in N)"]
+        columnSymbols = [:label, :behavior, :s, :v, :t, :a, :F_T, :F_R, :R_path, :R_traction, :R_wagons]
 
-function createDataFrame(dataPoints::Vector{Dict})
-    header = ["i", "behavior", "station label", "Δs (in m)", "s (in m)", "Δt (in s)","t (in s)","Δv (in m/s)","v (in m/s)","F_T (in N)","F_R (in N)","R_path (in N)","R_train (in N)","R_traction (in N)","R_wagons (in N)","a (in m/s^2)"]
-    columnSymbols = [:i, :behavior, :label, :Δs, :s, :Δt, :t, :Δv, :v, :F_T, :F_R, :R_path, :R_train, :R_traction, :R_wagons, :a]
+        allColumns = Array{Any,1}[]
+        for column in 1:length(header)
+            currentColumn = Any[]
+            push!(currentColumn, header[column])
+            for point in output_vector
+                push!(currentColumn, point[columnSymbols[column]])
+            end
+            push!(allColumns, currentColumn)
+        end # for
 
-    allColumns = Array{Any,1}[]
-    for column in 1:length(header)
-        currentColumn = Any[]
-        push!(currentColumn, header[column])
-        for point in dataPoints
-            push!(currentColumn, point[columnSymbols[column]])
-        end
-        push!(allColumns, currentColumn)
-    end # for
-
-    # combine the columns in a data frame
-    dataFrame = DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11], c12=allColumns[12], c13=allColumns[13], c14=allColumns[14], c15=allColumns[15], c16=allColumns[16])
+        # combine the columns in a data frame
+        dataFrame = DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11])
+    end
 
     return dataFrame
 end #createDataFrameForDrivingCourse

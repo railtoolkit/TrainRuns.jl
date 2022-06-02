@@ -52,12 +52,12 @@ function Settings(file="DEFAULT")
                 "outputDetail": {
                     "description": "Selecting the detail of the result",
                     "type": "string",
-                    "enum": [ "running_time", "points_of_interest", "driving_course", "everything" ]
+                    "enum": [ "running_time", "points_of_interest", "driving_course" ]
                 },
                 "outputFormat": {
                     "description": "Output format",
                     "type": "string",
-                    "enum": [ "dataframe", "dict" ]
+                    "enum": [ "dataframe", "vector" ]
                 }
             }
         }""")
@@ -256,7 +256,7 @@ function Path(file, type = :YAML)
         sort!(tmp_points, by = x -> x[1])
         for elem in tmp_points
             station = elem[1]     # first point of the section (in m)
-            label   = elem[2] # paths speed limt (in m/s)
+            label   = elem[2]     # paths speed limt (in m/s)
             measure = elem[3]     # specific path resistance of the section (in ‰)
 
             point = Dict(:station => station,
@@ -302,7 +302,7 @@ function Train(file, type = :YAML)
     ξ_cars        = 1.06          # rotation mass factor
     transportType = :freight      # "freight" or "passenger" for resistance calculation
     v_limit       = 140           # in m/s (default 504 km/h)
-    a_braking     = 0             # in m/s^2, todo: implement as function
+    a_braking     = 0             # in m/s^2, TODO: implement as function
     f_Rtd0        = 0             # coefficient for basic resistance due to the traction unit's driving axles (in ‰)
     f_Rtc0        = 0             # coefficient for basic resistance due to the traction unit's carring axles (in ‰)
     f_Rt2         = 0             # coefficient for air resistance of the traction unit (in ‰)
@@ -712,7 +712,7 @@ function createDataPoint()
         :R_train => 0.0,    # train resistance (in N)
         :R_traction => 0.0, # traction unit resistance (in N)
         :R_wagons => 0.0,   # set of wagons resistance (in N)
-        :label => ""        # a label for importend points
+        :label => ""        # a label for important points
     )
     return dataPoint
 end #function createDataPoint

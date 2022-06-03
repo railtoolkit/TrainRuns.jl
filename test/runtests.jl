@@ -14,24 +14,24 @@ settings = Dict()
 @testset "load data" begin
 
   println("testing load train data")
-  push!(trains, :freight      => @time Train("test/data/trains/freight.yaml"))
-  push!(trains, :local        => @time Train("test/data/trains/local.yaml"))
-  push!(trains, :longdistance => @time Train("test/data/trains/longdistance.yaml"))
+  push!(trains, :freight      => @time Train("data/trains/freight.yaml"))
+  push!(trains, :local        => @time Train("data/trains/local.yaml"))
+  push!(trains, :longdistance => @time Train("data/trains/longdistance.yaml"))
 
   println("testing load path data")
-  push!(paths, :const     => @time Path("test/data/paths/const.yaml"))
-  push!(paths, :slope     => @time Path("test/data/paths/slope.yaml"))
-  push!(paths, :speed     => @time Path("test/data/paths/speed.yaml"))
-  push!(paths, :realworld => @time Path("test/data/paths/realworld.yaml"))
+  push!(paths, :const     => @time Path("data/paths/const.yaml"))
+  push!(paths, :slope     => @time Path("data/paths/slope.yaml"))
+  push!(paths, :speed     => @time Path("data/paths/speed.yaml"))
+  push!(paths, :realworld => @time Path("data/paths/realworld.yaml"))
 
   println("testing load settings data")
   push!(settings, "default"       => @time Settings())
-  push!(settings, "poi"           => @time Settings("test/data/settings/points_of_interest.yaml"))
-  push!(settings, "drivingcourse" => @time Settings("test/data/settings/driving_course.yaml"))
-  push!(settings, "strip"         => @time Settings("test/data/settings/strip.yaml"))
-  push!(settings, "time"          => @time Settings("test/data/settings/time.yaml"))
-  push!(settings, "timestrip"     => @time Settings("test/data/settings/time_strip.yaml"))
-  push!(settings, "velocity"      => @time Settings("test/data/settings/velocity.yaml"))
+  push!(settings, "poi"           => @time Settings("data/settings/points_of_interest.yaml"))
+  push!(settings, "drivingcourse" => @time Settings("data/settings/driving_course.yaml"))
+  push!(settings, "strip"         => @time Settings("data/settings/strip.yaml"))
+  push!(settings, "time"          => @time Settings("data/settings/time.yaml"))
+  push!(settings, "timestrip"     => @time Settings("data/settings/time_strip.yaml"))
+  push!(settings, "velocity"      => @time Settings("data/settings/velocity.yaml"))
 
   @test typeof(first(paths)[2]) == Path
   @test typeof(first(settings)[2]) == Settings
@@ -74,8 +74,7 @@ anticipated = Dict(
     for test in tests
       test_name = String(test[1][1]) * "_" * String(test[2][1])
       println("testing $test_name")
-      @time result_dataFrame = trainrun(test[1][2], test[2][2])
-      result = result_dataFrame[!, 1][2]
+      @time result = trainrun(test[1][2], test[2][2])[end, :t]
       expected = anticipated[:default][Symbol(test_name)]
       # compare result to test data set
       @test isapprox(result, expected, rtol=0.01)

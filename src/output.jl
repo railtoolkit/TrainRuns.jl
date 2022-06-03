@@ -45,24 +45,30 @@ end
 
 function createDataFrame(output_vector::Vector{Dict}, outputDetail)
     if outputDetail == :running_time
-        # create DataFrame with running time information
-        dataFrame = DataFrame(column1=["t (in s)", output_vector[end][:t]])
+        # create a DataFrame with running time information
+        dataFrame = DataFrame(t=[output_vector[end][:t]])
     else # :points_of_interest or :driving_course
-        header = ["label", "driving mode", "s (in m)", "v (in m/s)", "t (in s)", "a (in m/s^2)", "F_T (in N)", "F_R (in N)", "R_path (in N)", "R_traction (in N)", "R_wagons (in N)"]
         columnSymbols = [:label, :behavior, :s, :v, :t, :a, :F_T, :F_R, :R_path, :R_traction, :R_wagons]
 
-        allColumns = Array{Any,1}[]
-        for column in 1:length(header)
-            currentColumn = Any[]
-            push!(currentColumn, header[column])
-            for point in output_vector
-                push!(currentColumn, point[columnSymbols[column]])
+        allColumns = []
+        for column in 1:length(columnSymbols)
+            if typeof(output_vector[1][columnSymbols[column]]) == String
+                currentStringColumn::Vector{String} = []
+                for point in output_vector
+                    push!(currentStringColumn, point[columnSymbols[column]])
+                end
+                push!(allColumns, currentStringColumn)
+            elseif typeof(output_vector[1][columnSymbols[column]]) <: Real
+                currentRealColumn::Vector{Real} = []
+                for point in output_vector
+                    push!(currentRealColumn, point[columnSymbols[column]])
+                end
+                push!(allColumns, currentRealColumn)
             end
-            push!(allColumns, currentColumn)
         end # for
 
         # combine the columns in a data frame
-        dataFrame = DataFrame(c1=allColumns[1], c2=allColumns[2],c3=allColumns[3], c4=allColumns[4], c5=allColumns[5], c6=allColumns[6], c7=allColumns[7], c8=allColumns[8], c9=allColumns[9], c10=allColumns[10], c11=allColumns[11])
+        dataFrame = DataFrame(label=allColumns[1], driving_mode=allColumns[2], s=allColumns[3], v=allColumns[4], t=allColumns[5], a=allColumns[6], F_T=allColumns[7], F_R=allColumns[8], R_path=allColumns[9], R_traction=allColumns[10], R_wagons=allColumns[11])
     end
 
     return dataFrame

@@ -19,6 +19,6 @@ settings = Settings("test/data/settings/driving_course.yaml")
 for p in 1:length(paths)
    for t in 1:length(trains)
        driving_course = trainrun(trains[t], paths[p], settings)
-       CSV.write("docs/examples/drivingCourse_path"*string(p)*"_train"*string(t)*".csv", driving_course, header=false)
+       CSV.write("docs/examples/drivingCourse_path"*string(p)*"_train"*string(t)*".csv", driving_course)
    end
 end

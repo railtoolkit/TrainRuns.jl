@@ -622,6 +622,19 @@ function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real
     s_exit = path.sections[end][:s_end]           # last position (in m)
     pathLength = s_exit - s_entry                   # total length (in m)
 
+    ##TODO: use a tuple with naming
+    pointsOfInterest = Tuple[]
+    if !isempty(path.poi)
+        for POI in path.poi
+            s_poi = POI[:station]
+            if POI[:measure] == "rear"
+                s_poi += s_trainLength
+            end
+            push!(pointsOfInterest, (s_poi, POI[:label]) )
+        end
+        sort!(pointsOfInterest, by = x -> x[1])
+    end
+
     CSs=Vector{Dict}()
     s_csStart=s_entry
     csId=1
@@ -631,26 +644,26 @@ function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real
         speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
         pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
         if speedLimitIsDifferent || pathResistanceIsDifferent
-        # 03/09 old: if min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit) || previousSection[:f_Rp] != currentSection[:f_Rp]
-            push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, path))
+            push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, pointsOfInterest))
             s_csStart = currentSection[:s_start]
             csId = csId+1
         end #if
     end #for
-    push!(CSs, createCharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, path))
+    push!(CSs, createCharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, pointsOfInterest))
 
     movingSection= Dict(:id => 1,                       # identifier    # if there is more than one moving section in a later version of this tool the id should not be constant anymore
                         :length => pathLength,          # total length (in m)
                         :s_entry => s_entry,            # first position (in m)
                         :s_exit => s_exit,              # last position (in m)
                         :t => 0.0,                      # total running time (in s)
-                        :characteristicSections => CSs) # list of containing characteristic sections
+                        :characteristicSections => CSs, # list of containing characteristic sections
+                        :pointsOfInterest => pointsOfInterest) # list of containing points of interest
 
     return movingSection
 end #function createMovingSection
 
 ## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
-function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, path::Path)
+function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
     # Create and return a characteristic section dependent on the paths attributes
     characteristicSection= Dict(:id => id,                            # identifier
                                 :s_entry => s_entry,                    # first position (in m)
@@ -670,22 +683,17 @@ function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, 
 
     ##TODO: use a tuple with naming
     pointsOfInterest = Tuple[]
-    # pointsOfInterest = Real[]
-    if !isempty(path.poi)
-        for POI in path.poi
-            s_poi = POI[:station]
-            if POI[:measure] == "rear"
-                s_poi += s_trainLength
-            end
-            if s_entry < s_poi && s_poi < s_exit
-                push!(pointsOfInterest, (s_poi, POI[:label]) )
-                # push!(pointsOfInterest, s_poi )
+    if !isempty(MS_poi)
+        for POI in MS_poi
+            s_poi = POI[1]
+            if s_entry < s_poi && s_poi <= s_exit
+                push!(pointsOfInterest, (POI))
             end
         end
     end
-    push!(pointsOfInterest, (s_exit,""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
-    # push!(pointsOfInterest, s_exit)     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
-
+    if isempty(pointsOfInterest) || pointsOfInterest[end][1] < s_exit
+        push!(pointsOfInterest, (s_exit,""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
+    end
     merge!(characteristicSection, Dict(:pointsOfInterest => pointsOfInterest))
 
     return characteristicSection

@@ -5,34 +5,26 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-function createOutput(settings::Settings, path::Path, drivingCourse::Vector{Dict})
+function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfInterest::Vector{Tuple})
     if settings.outputDetail == :running_time
         output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 
-    elseif settings.outputDetail == :points_of_interest && !isempty(path.poi)
-        # add points of interest
-
-        #    output = Dict[]
-        #    POI = 1
-        #    i = 1
-        #    while POI <= length(path.poi) && i <= drivingCourse[end][:i]
-        #        if path.poi[POI][:station] == drivingCourse[i][:s]
-        #            push!(output, drivingCourse[i])
-        #            POI = POI+1
-        #        end
-        #        i = i+1
-        #    end
-
+    elseif settings.outputDetail == :points_of_interest && !isempty(pointsOfInterest)
         # get only the driving course's data points with POI labels
         output = Dict[]
-        for point in drivingCourse
-            if point[:label] != ""
-                push!(output, point)
+        dataPoint = 1
+        for POI in 1:length(pointsOfInterest)
+            while dataPoint <= length(drivingCourse)
+                if pointsOfInterest[POI][1] == drivingCourse[dataPoint][:s]
+                    push!(output, drivingCourse[dataPoint])
+                    break
+                end
+                dataPoint += 1
             end
         end
 
     else #if settings.outputDetail == :driving_course || (settings.outputDetail == :points_of_interest && !isempty(path.poi))
-            output = drivingCourse
+        output = drivingCourse
     end
 
     if settings.outputFormat == :dataframe

@@ -56,7 +56,7 @@ function trainrun(train::Train, path::Path, settings=Settings()::Settings)
         # settings.outputDetail == :verbose && println("The driving course for the shortest running time has been calculated.")
 
     # accumulate data and create an output dictionary
-    output = createOutput(settings, path, drivingCourse)
+    output = createOutput(settings, drivingCourse, movingSection[:pointsOfInterest])
 
     return output
 end # function trainrun

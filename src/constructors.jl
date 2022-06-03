@@ -614,7 +614,7 @@ function Train(file, type = :YAML)
 end #function Train() # outer constructor
 
 ## create a moving section containing characteristic sections
-function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real)
+function MovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real)
     # this function creates and returns a moving section dependent on the paths attributes
 
     s_entry = path.sections[1][:s_start]          # first position (in m)
@@ -631,12 +631,12 @@ function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real
         pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
         if speedLimitIsDifferent || pathResistanceIsDifferent
         # 03/09 old: if min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit) || previousSection[:f_Rp] != currentSection[:f_Rp]
-            push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, path))
+            push!(CSs, CharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, path))
             s_csStart = currentSection[:s_start]
             csId = csId+1
         end #if
     end #for
-    push!(CSs, createCharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, path))
+    push!(CSs, CharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, path))
 
     movingSection= Dict(:id => 1,                       # identifier    # if there is more than one moving section in a later version of this tool the id should not be constant anymore
                         :length => pathLength,          # total length (in m)
@@ -647,10 +647,10 @@ function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real
                         :characteristicSections => CSs) # list of containing characteristic sections
 
     return movingSection
-end #function createMovingSection
+end #function MovingSection
 
 ## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
-function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, path::Path)
+function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, path::Path)
     # Create and return a characteristic section dependent on the paths attributes
     characteristicSection= Dict(:id => id,                            # identifier
                                 :s_entry => s_entry,                    # first position (in m)
@@ -690,15 +690,33 @@ function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, 
     merge!(characteristicSection, Dict(:pointsOfInterest => pointsOfInterest))
 
     return characteristicSection
-end #function createCharacteristicSection
+end #function CharacteristicSection
+
+"""
+BehaviorSection() TODO!
+"""
+function BehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
+    BS= Dict(
+        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "standstill"
+        :length => 0.0,                # total length  (in m)
+        :s_entry => s_entry,           # first position (in m)
+        :s_exit => 0.0,                # last position  (in m)
+        :t => 0.0,                     # total running time (in s)
+        :E => 0.0,                     # total energy consumption (in Ws)
+        :v_entry => v_entry,           # entry speed (in m/s)
+        :v_exit => 0.0,                # exit speed (in m/s)
+        :dataPoints => [startingPoint] # list of identifiers of the containing data points starting with the initial point
+    )
+    return BS
+end #function BehaviorSection
 
 """
 a DataPoint is the smallest element of the driving course. One step of the step approach is between two data points
 """
-function createDataPoint()
+function DataPoint()
     dataPoint = Dict(
         :i => 0,            # identifier and counter variable of the driving course
-        :behavior => "",    # type of behavior section the data point is part of - see createBehaviorSection()
+        :behavior => "",    # type of behavior section the data point is part of - see BehaviorSection()
                             # a data point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
         :s => 0.0,          # position (in m)
         :Δs => 0.0,         # step size (in m)
@@ -720,22 +738,4 @@ function createDataPoint()
         :label => ""        # a label for importend points
     )
     return dataPoint
-end #function createDataPoint
-
-"""
-BehaviorSection() TODO!
-"""
-function createBehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
-    BS= Dict(
-        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "standstill"
-        :length => 0.0,                # total length  (in m)
-        :s_entry => s_entry,           # first position (in m)
-        :s_exit => 0.0,                # last position  (in m)
-        :t => 0.0,                     # total running time (in s)
-        :E => 0.0,                     # total energy consumption (in Ws)
-        :v_entry => v_entry,           # entry speed (in m/s)
-        :v_exit => 0.0,                # exit speed (in m/s)
-        :dataPoints => [startingPoint] # list of identifiers of the containing data points starting with the initial point
-    )
-    return BS
-end #function createBehaviorSection
+end #function DataPoint

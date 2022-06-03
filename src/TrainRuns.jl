@@ -27,7 +27,6 @@ include("types.jl")
 include("constructors.jl")
 include("formulary.jl")
 include("calc.jl")
-include("characteristics.jl")
 include("behavior.jl")
 include("output.jl")
 

@@ -10,6 +10,11 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 ## [Unreleased]
 
 
+## Version [1.0.1] 2022-06-05
+
+* automated Julia package registration
+
+
 ## Version [1.0.0] 2022-06-05
 
 ### Added
@@ -187,7 +192,8 @@ Modules and variables were renamed.
 Proof of concept and master thesis submission.
 
 
-[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.0...main
+[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.1...main
+[1.0.1]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.8...v1.0.0
 [0.8]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.7...v0.8
 [0.7]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.6.2...v0.7

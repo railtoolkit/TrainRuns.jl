@@ -31,7 +31,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
            end
 
        # determine the different flags for switching between the states for creatinge moving phases
-       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
+       s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
        calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings.massModel)     # tractive effort and resisting forces (in N)
 
        previousSpeedLimitReached = false
@@ -61,14 +61,14 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                     if settings.stepVariable == :distance
                         s_cruising = settings.stepSize
                     elseif settings.stepVariable == time
-                        s_cruising = calc_Δs_with_Δt(settings.stepSize, drivingCourse[end][:a], drivingCourse[end][:v])
+                        s_cruising = Δs_with_Δt(settings.stepSize, drivingCourse[end][:a], drivingCourse[end][:v])
                     elseif settings.stepVariable == velocity
                         s_cruising = train.length/(10.0) # TODO which step size should be used?
                     end
                     (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")
 
                 elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
+                    s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                     if s_cruising > 0.0
@@ -78,7 +78,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                     end
 
                 elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] || stateFlags[:speedLimitReached]
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
+                    s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                     if s_cruising > 0.0  # TODO: define a minimum cruising length?
@@ -172,16 +172,16 @@ calculate and return the path resistance dependend on the trains position and ma
 function calculatePathResistance(CSs::Vector{Dict}, csId::Integer, s::Real, massModel, train::Train)
 
     if massModel == :mass_point
-        pathResistance = calcForceFromCoefficient(CSs[csId][:r_path], train.m_train_full)
+        pathResistance = forceFromCoefficient(CSs[csId][:r_path], train.m_train_full)
     elseif massModel == :homogeneous_strip
         pathResistance = 0.0
         s_rear = s - train.length     # position of the rear of the train
         while csId > 0 && s_rear < CSs[csId][:s_exit]
-            pathResistance = pathResistance + (min(s, CSs[csId][:s_exit]) - max(s_rear, CSs[csId][:s_entry])) / train.length * calcForceFromCoefficient(CSs[csId][:r_path], train.m_train_full)
+            pathResistance = pathResistance + (min(s, CSs[csId][:s_exit]) - max(s_rear, CSs[csId][:s_entry])) / train.length * forceFromCoefficient(CSs[csId][:r_path], train.m_train_full)
             csId = csId-1
             if csId == 0
                 # TODO: currently for values  < movingSection[:s_entry] the values of movingSection[:s_entry]  will be used
-                return pathResistance + (CSs[1][:s_entry] - s_rear) / train.length * calcForceFromCoefficient(CSs[1][:r_path], train.m_train_full)
+                return pathResistance + (CSs[1][:s_entry] - s_rear) / train.length * forceFromCoefficient(CSs[1][:r_path], train.m_train_full)
             end #if
         end #while
     end #if
@@ -195,11 +195,11 @@ calculate and return tractive and resisting forces for a data point
 """
 function calculateForces!(dataPoint::Dict,  CSs::Vector{Dict}, csId::Integer, bsType::String, train::Train, massModel)
     # calculate resisting forces
-    dataPoint[:R_traction] = calcTractionUnitResistance(dataPoint[:v], train)
+    dataPoint[:R_traction] = tractionUnitResistance(dataPoint[:v], train)
     if train.transportType == :freight
-        dataPoint[:R_wagons] = calcFreightWagonsResistance(dataPoint[:v], train)
+        dataPoint[:R_wagons] = freightWagonsResistance(dataPoint[:v], train)
     elseif train.transportType == :passenger
-        dataPoint[:R_wagons] = calcPassengerWagonsResistance(dataPoint[:v], train)
+        dataPoint[:R_wagons] = passengerWagonsResistance(dataPoint[:v], train)
     end
     dataPoint[:R_train] = dataPoint[:R_traction] + dataPoint[:R_wagons]
     dataPoint[:R_path] = calculatePathResistance(CSs, csId, dataPoint[:s], massModel, train)
@@ -237,24 +237,24 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
             if previousPoint[:v] == 0.0
                 error("ERROR: The train tries to cruise at v=0.0 m/s at s=",previousPoint[:s]," in CS",csId,".")
             end
-           newPoint[:Δt] = calc_Δt_with_constant_v(newPoint[:Δs], previousPoint[:v])    # step size (in s)
+           newPoint[:Δt] = Δt_with_constant_v(newPoint[:Δs], previousPoint[:v])    # step size (in s)
            newPoint[:Δv] = 0.0                                                          # step size (in m/s)
         else
-            # check if the parts of the following square roots will be <0.0 in the functions calc_Δt_with_Δs and calc_Δv_with_Δs
+            # check if the parts of the following square roots will be <0.0 in the functions Δt_with_Δs and Δv_with_Δs
             squareRootPartIsNegative = (previousPoint[:v]/previousPoint[:a])^2+2*newPoint[:Δs]/previousPoint[:a] < 0.0 || previousPoint[:v]^2+2*newPoint[:Δs]*previousPoint[:a] < 0.0
             if previousPoint[:a] < 0.0 && squareRootPartIsNegative
                 error("ERROR: The train stops during the accelerating section in CS",csId," because the tractive effort is lower than the resistant forces.",
                 "       Before the stop the last point has the values s=",previousPoint[:s]," m,  v=",previousPoint[:v]," m/s,  a=",previousPoint[:a]," m/s^2,",
                 "       F_T=",previousPoint[:F_T]," N,  R_traction=",previousPoint[:R_traction]," N,  R_wagons=",previousPoint[:R_wagons]," N,  R_path=",previousPoint[:R_path]," N.")
             end
-            newPoint[:Δt] = calc_Δt_with_Δs(newPoint[:Δs], previousPoint[:a], previousPoint[:v])        # step size (in s)
-            newPoint[:Δv] = calc_Δv_with_Δs(newPoint[:Δs], previousPoint[:a], previousPoint[:v])        # step size (in m/s)
+            newPoint[:Δt] = Δt_with_Δs(newPoint[:Δs], previousPoint[:a], previousPoint[:v])        # step size (in s)
+            newPoint[:Δv] = Δv_with_Δs(newPoint[:Δs], previousPoint[:a], previousPoint[:v])        # step size (in m/s)
         end
 
     elseif stepVariable == :time                                                              # time step method
         newPoint[:Δt] = stepSize                                                                     # step size (in s)
-        newPoint[:Δs] = calc_Δs_with_Δt(newPoint[:Δt], previousPoint[:a], previousPoint[:v])        # step size (in m)
-        newPoint[:Δv] = calc_Δv_with_Δt(newPoint[:Δt], previousPoint[:a])                           # step size (in m/s)
+        newPoint[:Δs] = Δs_with_Δt(newPoint[:Δt], previousPoint[:a], previousPoint[:v])        # step size (in m)
+        newPoint[:Δv] = Δv_with_Δt(newPoint[:Δt], previousPoint[:a])                           # step size (in m/s)
 
     elseif stepVariable  == :velocity                                                            # velocity step method
         if previousPoint[:a] == 0.0
@@ -263,12 +263,12 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
             end
            newPoint[:Δs] = stepSize                                                     # step size (in m)
             # TODO what is the best default step size for constant v? define Δs or Δt?
-           newPoint[:Δt] = calc_Δt_with_constant_v(newPoint[:Δs], previousPoint[:v])    # step size (in s)
+           newPoint[:Δt] = Δt_with_constant_v(newPoint[:Δs], previousPoint[:v])    # step size (in s)
            newPoint[:Δv] = 0.0                                                          # step size (in m/s)
         else
             newPoint[:Δv] = stepSize * sign(previousPoint[:a])                                          # step size (in m/s)
-            newPoint[:Δs] = calc_Δs_with_Δv(newPoint[:Δv], previousPoint[:a], previousPoint[:v])        # step size (in m)
-            newPoint[:Δt] = calc_Δt_with_Δv(newPoint[:Δv], previousPoint[:a])                           # step size (in s)
+            newPoint[:Δs] = Δs_with_Δv(newPoint[:Δv], previousPoint[:a], previousPoint[:v])        # step size (in m)
+            newPoint[:Δt] = Δt_with_Δv(newPoint[:Δv], previousPoint[:a])                           # step size (in s)
         end
     end #if
 

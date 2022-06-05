@@ -34,7 +34,7 @@ v00 = 100/3.6     # velocity factor (in m/s)
 
 #TODO: replace the ? ? ?
 """
-    calcTractionUnitResistance(v, train)
+    tractionUnitResistance(v, train)
 
 Calculate the vehicle resistance for the traction unit of the `train` dependend on the velocity `v`.
 
@@ -46,11 +46,11 @@ Calculate the vehicle resistance for the traction unit of the `train` dependend 
 
 # Examples
 ```julia-repl
-julia> calcTractionUnitResistance(30.0, ? ? ?)
+julia> tractionUnitResistance(30.0, ? ? ?)
 ? ? ?
 ```
 """
-function calcTractionUnitResistance(v::AbstractFloat, train::Train)
+function tractionUnitResistance(v::AbstractFloat, train::Train)
     # equation is based on [Wende:2003, page 151]
     f_Rtd0 = train.f_Rtd0 # coefficient for basic resistance due to the traction units driving axles (in ‰)
     f_Rtc0 = train.f_Rtc0 # coefficient for basic resistance due to the traction units carring axles (in ‰)
@@ -60,16 +60,16 @@ function calcTractionUnitResistance(v::AbstractFloat, train::Train)
 
 
     F_R_tractionUnit = f_Rtd0/1000 * m_td * g + f_Rtc0/1000 * m_tc * g + f_Rt2/1000 * (m_td+m_tc) * g * ((v + Δv_air) /v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
-    # TODO: use calcForceFromCoefficient? F_R_tractionUnit = calcForceFromCoefficient(f_Rtd0, m_td) + calcForceFromCoefficient(f_Rtc0, m_tc) + calcForceFromCoefficient(f_Rt2, m_td+m_tc) * ((v + Δv_air) /v00)^2       # vehicle resistance of the traction unit (in N)
+    # TODO: use forceFromCoefficient? F_R_tractionUnit = forceFromCoefficient(f_Rtd0, m_td) + forceFromCoefficient(f_Rtc0, m_tc) + forceFromCoefficient(f_Rt2, m_td+m_tc) * ((v + Δv_air) /v00)^2       # vehicle resistance of the traction unit (in N)
     return F_R_tractionUnit
     #TODO: same variable name like in the rest of TrainRuns? return R_traction
-end #function calcTractionUnitResistance
+end #function tractionUnitResistance
 
 """
 TODO
 calculate and return the freight wagons' vehicle resistance dependend on the velocity
 """
-function calcFreightWagonsResistance(v::AbstractFloat, train::Train)
+function freightWagonsResistance(v::AbstractFloat, train::Train)
     # equation is based on a combination of the equations of Strahl and Sauthoff [Wende:2003, page 153]
     f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
     f_Rw2  = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
@@ -77,7 +77,7 @@ function calcFreightWagonsResistance(v::AbstractFloat, train::Train)
 
     F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw2/1000 * (v /v00)^2)     # vehicle resistance of freight wagons (in N) with Strahl      # /1000 because of the unit ‰
 
-# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + ...
+# TODO: use forceFromCoefficient?    F_R_wagons = forceFromCoefficient(f_Rw0, m_w) + ...
     return F_R_wagons
 end #function calcWagonsResistance
 
@@ -85,7 +85,7 @@ end #function calcWagonsResistance
 TODO
 calculate and return the passenger wagons' vehicle resistance dependend on the velocity
 """
-function calcPassengerWagonsResistance(v::AbstractFloat, train::Train)
+function passengerWagonsResistance(v::AbstractFloat, train::Train)
     # equation is based on the equations of Sauthoff [Wende:2003, page 153]
     f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
     f_Rw1  = train.f_Rw1  # coefficient for the consists resistance to rolling (in ‰)
@@ -94,11 +94,11 @@ function calcPassengerWagonsResistance(v::AbstractFloat, train::Train)
 
     F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw1/1000 *v /v00 + f_Rw2/1000 * ((v + Δv_air) /v00)^2)     # vehicle resistance of passenger wagons (in N) with Sauthoff      # /1000 because of the unit ‰
 
-# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + ...
+# TODO: use forceFromCoefficient?    F_R_wagons = forceFromCoefficient(f_Rw0, m_w) + ...
     return F_R_wagons
 end #function calcWagonsResistance
 
-function calcForceFromCoefficient(f_R::Real, m::Real)
+function forceFromCoefficient(f_R::Real, m::Real)
     # equation is based on [Wende:2003, page 8]
 
     # f_R: specific resistance (in ‰)
@@ -106,9 +106,9 @@ function calcForceFromCoefficient(f_R::Real, m::Real)
 
     F_R = f_R /1000 *m *g     # Resisting Force (in N)  # /1000 because of the unit ‰
     return F_R
-end #function calcForceFromCoefficient
+end #function forceFromCoefficient
 
-function calcAcceleration(F_T::Real, F_R::Real, m_train::Real, ξ_train::Real)
+function acceleration(F_T::Real, F_R::Real, m_train::Real, ξ_train::Real)
     # equation is based on [Bruenger:2014, page 72] with a=dv/dt
 
     # F_T: tractive effort (in N)
@@ -118,9 +118,9 @@ function calcAcceleration(F_T::Real, F_R::Real, m_train::Real, ξ_train::Real)
 
     a = (F_T - F_R) /m_train /ξ_train      # acceleration (in m/s)
     return a
-end #function calcAcceleration
+end #function acceleration
 
-function calc_Δs_with_Δt(Δt::Real, a_prev::Real, v_prev::Real)
+function Δs_with_Δt(Δt::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δt: time step (in s)
@@ -128,9 +128,9 @@ function calc_Δs_with_Δt(Δt::Real, a_prev::Real, v_prev::Real)
     # v_prev: velocitiy from previous data point
     Δs = Δt * (2*v_prev + Δt*a_prev) /2        # step size (in m)
     return Δs
-end #function calc_Δs_with_Δt
+end #function Δs_with_Δt
 
-function calc_Δs_with_Δv(Δv::Real, a_prev::Real, v_prev::Real)
+function Δs_with_Δv(Δv::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δv: velocity step (in m/s)
@@ -138,9 +138,9 @@ function calc_Δs_with_Δv(Δv::Real, a_prev::Real, v_prev::Real)
     # v_prev: velocitiy from previous data point
     Δs = ((v_prev + Δv)^2 - v_prev^2)/2/a_prev      # step size (in m)
     return Δs
-end #function calc_Δs_with_Δv
+end #function Δs_with_Δv
 
-function calc_Δt_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
+function Δt_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δs: distance step (in m)
@@ -149,27 +149,27 @@ function calc_Δt_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
 
     Δt = sign(a_prev) *sqrt((v_prev /a_prev)^2 + 2 *Δs /a_prev) - v_prev /a_prev       # step size (in m/s)
     return Δt
-end #function calc_Δt_with_Δs
+end #function Δt_with_Δs
 
-function calc_Δt_with_Δv(Δv::Real, a_prev::Real)
+function Δt_with_Δv(Δv::Real, a_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δv: velocity step (in m/s)
     # a_prev: acceleration from previous data point
     Δt = Δv /a_prev        # step size (in s)
     return Δt
-end #function calc_Δt_with_Δv
+end #function Δt_with_Δv
 
-function calc_Δt_with_constant_v(Δs::Real, v::Real)
+function Δt_with_constant_v(Δs::Real, v::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δs: distance step (in m)
     # v: constant velocity (in m/s)
     Δt = Δs /v        # step size (in s)
     return Δt
-end #function calc_Δt_with_constant_v
+end #function Δt_with_constant_v
 
-function calc_Δv_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
+function Δv_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δs: distance step (in m)
@@ -177,30 +177,30 @@ function calc_Δv_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
     # v_prev: velocitiy from previous data point
     Δv = sqrt(v_prev^2 + 2*Δs*a_prev) - v_prev      # step size (in m/s)
     return Δv
-end #function calc_Δv_with_Δs
+end #function Δv_with_Δs
 
-function calc_Δv_with_Δt(Δt::Real, a_prev::Real)
+function Δv_with_Δt(Δt::Real, a_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δt: time step (in s)
     # a_prev: acceleration from previous data point
     Δv = Δt * a_prev        # step size (in m/s)
     return Δv
-end #function calc_Δv_with_Δt
+end #function Δv_with_Δt
 
-function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real, approxLevel::Integer)
+function brakingDistance(v_start::Real, v_end::Real, a_braking::Real, approxLevel::Integer)
     # equation is based on [Wende:2003, page 37]
 
     # v_start: velocity at the start of braking (in m/s)
     # v_end: target velocity at the end of braking (in m/s)
     # a_braking: constant braking acceleration (in m/s^2)
     s_braking = (v_end^2 - v_start^2) /2 /a_braking             # braking distance (in m)
-    # TODO: also possible: calc_Δs_with_Δv(v_end-v_start, a_braking, v_start)
+    # TODO: also possible: Δs_with_Δv(v_end-v_start, a_braking, v_start)
 #    return max(0.0, ceil(s_braking, digits=approxLevel))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
     return max(0.0, ceil(s_braking, digits= approxLevel +1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
-end #function calcBrakingDistance
+end #function brakingDistance
 
-function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real, approxLevel::Integer)
+function brakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real, approxLevel::Integer)
     # equation is based on [Wende:2003, page 37]
 
     # v_end: target velocity at the end of braking (in m/s)
@@ -209,9 +209,9 @@ function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real,
     v_start = sqrt(v_end^2 - 2*a_braking *s_braking)          # braking start velocity (in m/s)
 #    return floor(v_start, digits= approxLevel)
     return floor(v_start, digits= approxLevel +1)
-end #function calcBrakingStartVelocity
+end #function brakingStartVelocity
 
-function calcBrakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)
+function brakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)
     # equation is based on [Wende:2003, page 37]
 
     # v_start: braking start velocity (in m/s)
@@ -219,4 +219,4 @@ function calcBrakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)
     # s_braking: braking distance (in Ws)
     a_braking = (v_end^2 - v_start^2) /2 /s_braking       # constant braking acceleration (in m/s^2)
     return a_braking
-end #function calcBrakingAcceleration
+end #function brakingAcceleration

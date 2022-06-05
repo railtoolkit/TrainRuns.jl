@@ -12,7 +12,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
    CSs::Vector{Dict} = movingSection[:characteristicSections]
 
    if settings.massModel == :homogeneous_strip && settings.stepVariable == speed
-       println("WARNING: ! ! ! TrainRun.jl doesn't work reliably for the mass model homogeneous strip with step size v in m/s. The calculation time can be extremely high when calcutlating paths with steep gradients ! ! !")
+       println("WARNING: ! ! ! TrainRuns.jl doesn't work reliably for the mass model homogeneous strip with step size v in m/s. The calculation time can be extremely high when calcutlating paths with steep gradients ! ! !")
    end
 
    startingPoint=DataPoint()
@@ -32,7 +32,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
            end
 
        # determine the different flags for switching between the states for creatinge moving phases
-       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+       s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
        calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings.massModel)     # tractive effort and resisting forces (in N)
 
        previousSpeedLimitReached = false
@@ -44,7 +44,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                          :speedLimitReached => drivingCourse[end][:v] > CS[:v_limit],
                          :error => false)
 
-    # determine the behavior sections for this characteristic section. It has to be at least one of those BS: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "standstill")
+    # determine the behavior sections for this characteristic section. It has to be at least one of those BS: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "halt")
     while !stateFlags[:endOfCSReached] # s < s_exit
         if !stateFlags[:brakingStartReached] # s+s_braking < s_exit
             if !stateFlags[:tractionDeficit]
@@ -69,7 +69,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                     (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")
 
                 elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                     if s_cruising > 0.0
@@ -79,7 +79,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                     end
 
                 elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] || stateFlags[:speedLimitReached]
-                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking)
+                    s_braking = calcBrakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                     if s_cruising > 0.0  # TODO: define a minimum cruising length?
@@ -103,7 +103,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
         end
     end
     #if s == s_exit
-    #    standstill
+    #    halt
     #end
 
 
@@ -116,13 +116,13 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
            end
    end #for
 
-   (CSs[end], drivingCourse) = addStandstill!(CSs[end], drivingCourse, settings, train, CSs)
+   (CSs[end], drivingCourse) = addHalt!(CSs[end], drivingCourse, settings, train, CSs)
 
    movingSection[:t] = drivingCourse[end][:t]            # total running time (in s)
-   movingSection[:E] = drivingCourse[end][:E]            # total energy consumption (in Ws)
 
    return (movingSection, drivingCourse)
 end #function calculateMinimumRunningTime
+
 
 """
     calculateTractiveEffort(v, tractiveEffortVelocityPairs)
@@ -145,6 +145,11 @@ julia> calculateTractiveEffort(30.0, [(0.0, 180000), (20.0, 100000), (40.0, 6000
 ```
 """
 function calculateTractiveEffort(v::AbstractFloat, tractiveEffortVelocityPairs::Array{})
+    if v < 0.0
+        #println("v=",v)
+        return 0.0
+    end
+
     for row in 1:length(tractiveEffortVelocityPairs)
         nextPair = tractiveEffortVelocityPairs[row]
         if  nextPair[1] == v
@@ -160,6 +165,7 @@ function calculateTractiveEffort(v::AbstractFloat, tractiveEffortVelocityPairs::
         # TODO: also an extrapolation could be used
     return tractiveEffortVelocityPairs[end][2]
 end #function calculateTractiveEffort
+
 
 """
 calculate and return the path resistance dependend on the trains position and mass model
@@ -184,19 +190,24 @@ function calculatePathResistance(CSs::Vector{Dict}, csId::Integer, s::Real, mass
     return pathResistance
 end #function calculatePathResistance
 
+
 """
 calculate and return tractive and resisting forces for a data point
 """
 function calculateForces!(dataPoint::Dict,  CSs::Vector{Dict}, csId::Integer, bsType::String, train::Train, massModel)
     # calculate resisting forces
     dataPoint[:R_traction] = calcTractionUnitResistance(dataPoint[:v], train)
-    dataPoint[:R_wagons] = calcWagonsResistance(dataPoint[:v], train)
+    if train.transportType == :freight
+        dataPoint[:R_wagons] = calcFreightWagonsResistance(dataPoint[:v], train)
+    elseif train.transportType == :passenger
+        dataPoint[:R_wagons] = calcPassengerWagonsResistance(dataPoint[:v], train)
+    end
     dataPoint[:R_train] = dataPoint[:R_traction] + dataPoint[:R_wagons]
     dataPoint[:R_path] = calculatePathResistance(CSs, csId, dataPoint[:s], massModel, train)
     dataPoint[:F_R] = dataPoint[:R_train] + dataPoint[:R_path]
 
     # calculate tractive effort
-    if bsType == "braking" || bsType == "coasting"
+    if bsType == "braking" || bsType == "coasting" || bsType == "halt"
         dataPoint[:F_T] = 0.0
     elseif bsType == "cruising"
         dataPoint[:F_T] = min(max(0.0, dataPoint[:F_R]), calculateTractiveEffort(dataPoint[:v], train.tractiveEffort))
@@ -265,14 +276,10 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
     newPoint[:s] = previousPoint[:s] + newPoint[:Δs]                    # position (in m)
     newPoint[:t] = previousPoint[:t] + newPoint[:Δt]                    # point in time (in s)
     newPoint[:v] = previousPoint[:v] + newPoint[:Δv]                    # velocity (in m/s)
-    newPoint[:ΔW] = calc_ΔW(previousPoint[:F_T], newPoint[:Δs])         # mechanical work in this step (in Ws)
-    newPoint[:W] = previousPoint[:W] + newPoint[:ΔW]                    # mechanical work (in Ws)
-    newPoint[:ΔE] = calc_ΔE(newPoint[:ΔW])                              # energy consumption in this step (in Ws)
-    newPoint[:E] = previousPoint[:E] + newPoint[:ΔE]                    # energy consumption (in Ws)
-
 
     return newPoint
 end #function moveAStep
+
 
 """
 # if the rear of the train is still located in a former characteristic section it has to be checked if its speed limit can be kept
@@ -294,13 +301,14 @@ function getCurrentSpeedLimit(CSs::Vector{Dict}, csWithTrainHeadId::Integer, s::
     return currentSpeedLimit
 end #function getCurrentSpeedLimit
 
+
 """
-?
+TODO
 """
 function getNextPointOfInterest(pointsOfInterest::Vector{Tuple}, s::Real)
-    for s_POI in pointsOfInterest
-        if s_POI[1] > s
-            return s_POI
+    for POI in pointsOfInterest
+        if POI[1] > s
+            return POI
         end
     end
     error("ERROR in getNextPointOfInterest: There is no POI higher than s=",s," m.")
@@ -310,7 +318,7 @@ end #function getNextPointOfInterest
 ## create a moving section and its containing characteristic sections with secured braking, accelerating and cruising behavior
 function determineCharacteristics(path::Path, train::Train, settings::Settings)
     movingSection = MovingSection(path, train.v_limit, train.length)
-    movingSection = secureBrakingBehavior!(movingSection, train.a_braking)
+    movingSection = secureBrakingBehavior!(movingSection, train.a_braking, settings.approxLevel)
     movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
     #movingSection = secureCruisingBehavior!(movingSection, settings, train)
 

@@ -13,13 +13,13 @@ using UUIDs, Dates, Statistics
 ## loading external packages
 using YAML, JSONSchema, DataFrames
 
-export 
+export
 ## Interface
 trainrun, Train, Path, Settings
 
 ## global variables
 global g      = 9.80665  # acceleration due to gravity (in m/s^2)
-global μ      = 0.2      # friction as constant, todo: implement as function
+global μ      = 0.2      # friction as constant, TODO: implement as function
 global Δv_air = 15.0/3.6 # coefficient for velocitiy difference between train and outdoor air (in m/s)
 
 ## include package files
@@ -48,14 +48,14 @@ xxx.xx # in seconds
 function trainrun(train::Train, path::Path, settings=Settings()::Settings)
     # prepare the input data
     movingSection = determineCharacteristics(path, train, settings)
-    settings.outputDetail == :everything && println("The moving section has been prepared.")
+        # settings.outputDetail == :verbose && println("The moving section has been prepared.")
 
     # calculate the train run for oparation mode "minimum running time"
     (movingSection, drivingCourse) = calculateMinimumRunningTime!(movingSection, settings, train)
-    settings.outputDetail == :everything && println("The driving course for the shortest running time has been calculated.")
+        # settings.outputDetail == :verbose && println("The driving course for the shortest running time has been calculated.")
 
     # accumulate data and create an output dictionary
-    output = createOutput(train, settings, path, movingSection, drivingCourse)
+    output = createOutput(settings, drivingCourse, movingSection[:pointsOfInterest])
 
     return output
 end # function trainrun

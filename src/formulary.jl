@@ -28,7 +28,7 @@
 ## }
 #########################
 
-approxLevel = 6
+#approxLevel = 6
 v00 = 100/3.6     # velocity factor (in m/s)
 
 ## calculate forces
@@ -55,30 +55,47 @@ function calcTractionUnitResistance(v::AbstractFloat, train::Train)
     # equation is based on [Wende:2003, page 151]
     f_Rtd0 = train.f_Rtd0 # coefficient for basic resistance due to the traction units driving axles (in ‰)
     f_Rtc0 = train.f_Rtc0 # coefficient for basic resistance due to the traction units carring axles (in ‰)
-    F_Rt2  = train.F_Rt2  # coefficient for air resistance of the traction units (in N)
+    f_Rt2  = train.f_Rt2  # coefficient for air resistance of the traction unit (in ‰)
     m_td   = train.m_td   # mass on the traction unit's driving axles (in kg)
     m_tc   = train.m_tc   # mass on the traction unit's carrying axles (in kg)
 
-    F_R_tractionUnit = f_Rtd0/1000 * m_td * g + f_Rtc0/1000 * m_tc * g + F_Rt2 * ((v + Δv_air) /v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
-    # TODO: use calcForceFromCoefficient? F_R_tractionUnit = calcForceFromCoefficient(f_Rtd0, m_td) + calcForceFromCoefficient(f_Rtc0, m_tc) + F_Rt2 * ((v + Δv_air) /v00)^2       # vehicle resistance of the traction unit (in N)
+
+    F_R_tractionUnit = f_Rtd0/1000 * m_td * g + f_Rtc0/1000 * m_tc * g + f_Rt2/1000 * (m_td+m_tc) * g * ((v + Δv_air) /v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
+    # TODO: use calcForceFromCoefficient? F_R_tractionUnit = calcForceFromCoefficient(f_Rtd0, m_td) + calcForceFromCoefficient(f_Rtc0, m_tc) + calcForceFromCoefficient(f_Rt2, m_td+m_tc) * ((v + Δv_air) /v00)^2       # vehicle resistance of the traction unit (in N)
     return F_R_tractionUnit
-    #TODO: same variable name like in the rest of the tool? return R_traction
-    #TODO: just one line? return train.f_Rtd0/1000*train.m_td*g+train.f_Rtc0/1000*train.m_tc*g+train.F_Rt2*((v+train.Δv_air)/v00)^2    # /1000 because of the unit ‰
+    #TODO: same variable name like in the rest of TrainRuns? return R_traction
 end #function calcTractionUnitResistance
 
 """
 TODO
-calculate and return the wagons vehicle resistance dependend on the velocity
+calculate and return the freight wagons' vehicle resistance dependend on the velocity
 """
-function calcWagonsResistance(v::AbstractFloat, train::Train)
-    # equation is based on a combination of the equations of Strahl and Sauthoff [Wende:2003, page 153] with more detailled factors (Lehmann, page 135)
+function calcFreightWagonsResistance(v::AbstractFloat, train::Train)
+    # equation is based on a combination of the equations of Strahl and Sauthoff [Wende:2003, page 153]
+    f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
+    f_Rw2  = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
+    m_w    = train.m_w    # mass of the set of wagons (consist)  (in kg)
+
+    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw2/1000 * (v /v00)^2)     # vehicle resistance of freight wagons (in N) with Strahl      # /1000 because of the unit ‰
+
+# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + ...
+    return F_R_wagons
+end #function calcWagonsResistance
+
+"""
+TODO
+calculate and return the passenger wagons' vehicle resistance dependend on the velocity
+"""
+function calcPassengerWagonsResistance(v::AbstractFloat, train::Train)
+    # equation is based on the equations of Sauthoff [Wende:2003, page 153]
     f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
     f_Rw1  = train.f_Rw1  # coefficient for the consists resistance to rolling (in ‰)
     f_Rw2  = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
     m_w    = train.m_w    # mass of the set of wagons (consist)  (in kg)
 
-    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw1/1000 *v /v00 + f_Rw2/1000 * ((v + Δv_air) /v00)^2)     # vehicle resistance of the wagons (in N)      # /1000 because of the unit ‰
-# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + calcForceFromCoefficient(f_Rw1, m_w) *v /v00 + calcForceFromCoefficient(f_Rw2, m_w) * ((v + Δv_air) /v00)^2     # vehicle resistance of the wagons (in N)
+    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw1/1000 *v /v00 + f_Rw2/1000 * ((v + Δv_air) /v00)^2)     # vehicle resistance of passenger wagons (in N) with Sauthoff      # /1000 because of the unit ‰
+
+# TODO: use calcForceFromCoefficient?    F_R_wagons = calcForceFromCoefficient(f_Rw0, m_w) + ...
     return F_R_wagons
 end #function calcWagonsResistance
 
@@ -172,24 +189,7 @@ function calc_Δv_with_Δt(Δt::Real, a_prev::Real)
     return Δv
 end #function calc_Δv_with_Δt
 
-function calc_ΔW(F_T_prev::Real, Δs::Real)
-    # equation is based on [Wende:2003, page 17]
-
-    # F_T_prev: tractive force from previous data point
-    # Δs: distance step
-    ΔW = F_T_prev * Δs      # mechanical work in this step (in Ws)
-    return ΔW
-end #function calc_ΔW
-
-function calc_ΔE(ΔW::Real)
-    # simplified equation
-    # TODO!
-    # ΔW: mechanical work in this step (in Ws)
-    ΔE = ΔW                 # energy consumption in this step (in Ws)
-    return ΔE
-end #function calc_ΔW
-
-function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real)
+function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real, approxLevel::Integer)
     # equation is based on [Wende:2003, page 37]
 
     # v_start: velocity at the start of braking (in m/s)
@@ -198,18 +198,18 @@ function calcBrakingDistance(v_start::Real, v_end::Real, a_braking::Real)
     s_braking = (v_end^2 - v_start^2) /2 /a_braking             # braking distance (in m)
     # TODO: also possible: calc_Δs_with_Δv(v_end-v_start, a_braking, v_start)
 #    return max(0.0, ceil(s_braking, digits=approxLevel))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
-    return max(0.0, ceil(s_braking, digits=approxLevel +1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
+    return max(0.0, ceil(s_braking, digits= approxLevel +1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
 end #function calcBrakingDistance
 
-function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real)
+function calcBrakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real, approxLevel::Integer)
     # equation is based on [Wende:2003, page 37]
 
     # v_end: target velocity at the end of braking (in m/s)
     # a_braking: constant braking acceleration (in m/s^2)
     # s_braking: braking distance (in Ws)
     v_start = sqrt(v_end^2 - 2*a_braking *s_braking)          # braking start velocity (in m/s)
-#    return floor(v_start, digits=approxLevel)
-    return floor(v_start, digits=approxLevel +1)
+#    return floor(v_start, digits= approxLevel)
+    return floor(v_start, digits= approxLevel +1)
 end #function calcBrakingStartVelocity
 
 function calcBrakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)

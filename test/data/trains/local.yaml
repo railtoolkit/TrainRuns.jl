@@ -9,12 +9,12 @@ trains:
 
 vehicles:
   - name: Siemens Desiro Classic # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
-    id: DB_BR_642 
+    id: DB_BR_642
     UUID: c915c80d-c63d-490b-879f-c481e4b62b55
     picture: https://commons.wikimedia.org/wiki/File:Liesel_28-11-10_642_055-8_im_Bahnhof_Scharfenstein.JPG
     power_type: diesel             # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
     vehicle_type: multiple unit    # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
-    
+
     length: 41.7          # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
     mass: 68.0            # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
     load_limit: 20.0      # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
@@ -26,7 +26,7 @@ vehicles:
     rotation_mass: 1.08     # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 13 for "Zug, überschlägliche Berechnung"
     base_resistance: 3.0    # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "f_WL0" -> 2.5 ‰ to 3.5 ‰
     rolling_resistance: 1.4 # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "f_WW0" -> 1.2 ‰ to 1.6 ‰
-    air_resistance: 0.0039  # source: the closest parameters are used: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "Fzg. vierachsig, abgerundeter Kopf" plus "Sektion bei Mehrteiligkeit"  -> 2200 N + 400 N
+    air_resistance: 3.9  # source: the closest parameters are used: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "Fzg. vierachsig, abgerundeter Kopf" plus "Sektion bei Mehrteiligkeit"  -> 2200 N + 400 N
 
     # tractive effort as pairs of speed and tractive effort
     tractive_effort:

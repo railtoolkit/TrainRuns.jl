@@ -9,12 +9,18 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+
+## Version [1.0.0] 2022-06-05
+
 ### Added
 * dependency JSONSchema
 * validation of YAML input via JSON schema
+* labels for Points Of Interests
+* DataFrame as output format
 
 ### Changed
 * renamed TrainRun into TrainRuns
+* unified ouput format
 * replaced settings::Dict with type Settings as struct
 * replaced path::Dict with type Path as struct
 * replaced train::Dict with type Train as struct
@@ -43,6 +49,7 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 * dependency Plots and CSV
 * AdditionalOutput.jl
 * EnergySaving.jl
+* energy calculation
 * test/testEnums.jl
 * import.jl
 * export.jl
@@ -180,7 +187,8 @@ Modules and variables were renamed.
 Proof of concept and master thesis submission.
 
 
-[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.8...main
+[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.0...main
+[1.0.0]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.8...v1.0.0
 [0.8]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.7...v0.8
 [0.7]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.6.2...v0.7
 [0.6.2]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.6.1...v0.6.2

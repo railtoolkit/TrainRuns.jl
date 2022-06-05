@@ -1,6 +1,5 @@
 #!/usr/bin/env julia
 # -*- coding: UTF-8 -*-
-# __julia-version__ = 1.7.2
 # __author__        = "Martin Scheidt, Max Kannenberg"
 # __copyright__     = "2022"
 # __license__       = "ISC"

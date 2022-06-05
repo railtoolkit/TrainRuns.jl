@@ -32,10 +32,10 @@ The required julia packages are
 ```julia
 using TrainRuns
 
-train = Train("test/data/trains/freight.yaml")
-path  = Path("test/data/paths/const.yaml")
+train = Train("train.yaml") # load train from file
+path  = Path("path.yaml")   # load running path from file
 
-runtime = trainrun(train, path)
+runtime = trainrun(train, path)[end,:t]
 
 println("The train needs $runtime seconds for the running path.")
 ```

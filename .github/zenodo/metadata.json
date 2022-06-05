@@ -1,0 +1,33 @@
+{
+  "title": "TrainRuns.jl",
+  "version": "%%[SCRIPT]",
+  "creators": [
+    {
+      "affiliation": "TU Braunschweig", 
+      "name": "Kannenberg, Max"
+    }, 
+    {
+      "orcid": "0000-0002-9384-8945", 
+      "affiliation": "TU Braunschweig", 
+      "name": "Scheidt, Martin"
+    }
+  ],
+  "description": "TrainRun.jl is a step towards open science and open data in railway engineering. Its modular design offers the possibility to serve as a basis for future optimization and development. TrainRun.jl is suitable for qualitative calculations to compare different trains, and it is publicly available, and we invite others to collaborate.",
+  "keywords": [
+    "railway",
+    "running time",
+    "driving dynamics",
+    "julia language"
+  ],
+  "license": {
+    "id": "ISC"
+  },
+  "language": "eng",
+  "access_right": "open", 
+  "upload_type": "software",
+  "communities": [
+    {
+      "identifier": "railtoolkit"
+    }
+  ]
+}

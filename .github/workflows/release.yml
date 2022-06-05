@@ -1,0 +1,189 @@
+name: create new release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to register or component to bump
+        required: true
+
+jobs:
+  create_package:
+    name: "create package"
+    runs-on: ubuntu-latest
+    steps:
+      # 1. checkout the repo
+      - name: "checkout"
+        uses: actions/checkout@v3
+
+      # 2. create release notes
+      - name: "create release notes"
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          STATUS=0
+          grep -qs "Version \[$VERSION\]" CHANGELOG.md || STATUS=1
+          if [ $STATUS = 1 ]; then
+            echo "Version $VERSION is not present in CHANGELOG.md."
+            exit 1
+          fi
+          TOP=$(grep -n "Version \[$VERSION\]" CHANGELOG.md | cut -d: -f1)
+          awk "NR>$TOP" CHANGELOG.md > release-note.tmp.md
+          BOTTOM=$(grep -n -m 1 "## Version\|[Unreleased]:" release-note.tmp.md | cut -d: -f1)
+          BOTTOM=$(( $TOP + $BOTTOM ))
+          BOTTOM=$(( $BOTTOM - 2 ))
+          TOP=$(( $TOP + 1 ))
+          awk "NR>$TOP&&NR<$BOTTOM" CHANGELOG.md > release-note-$VERSION.md
+          sed -i -- "s/###/##/g" release-note-v$VERSION.md
+          rm release-note.tmp.md
+
+      # 3. Update metadata.json
+      - name: "Update metadata.json"
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          sed -i".backup" -e"s/\"version\": \"%%\[SCRIPT\]\"/\"version\": \"$VERSION\"/g" .github/zenodo/metadata.json
+
+      # 4. create release archive
+      - uses: papeloto/action-zip@v1
+        with:
+          files: docs src test README.md LICENSE Project.toml
+          recursive: false
+          dest: TrainRuns.jl-v${{ github.event.inputs.version }}.zip
+
+      # 5. upload artifact to share it with other jobs
+      - uses: actions/upload-artifact@v3
+        with:
+          path: |
+            release-note-${{ github.event.inputs.version }}.md
+            TrainRuns.jl-v${{ github.event.inputs.version }}.zip
+          if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+      - uses: actions/upload-artifact@v3
+        with:
+          path: .github/zenodo/metadata.json
+          if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+
+  register:
+    needs: create_package
+    name: "publish in JuliaRegistries"
+    runs-on: ubuntu-latest
+    steps:
+      # 1. register new release at JuliaRegistries
+      - uses: julia-actions/RegisterAction@latest
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish_github:
+    needs: create_package
+    name: "publish on github"
+    runs-on: ubuntu-latest
+    steps:
+      # 1. download artifact in folder artifact/
+      - uses: actions/download-artifact@v3
+
+      # 2. creating a new release
+      - name: "create release"
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body_path: artifact/release-note-v${{ github.event.inputs.version }}.md
+          draft: false
+          prerelease: false
+
+      # 3. upload package to new release
+      - name: "upload release asset"
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifact/TrainRuns.jl-v${{ github.event.inputs.version }}.zip
+          asset_name: TrainRuns.jl-v${{ github.event.inputs.version }}.zip
+          asset_content_type: application/zip
+
+      # 4. publish release on github
+      - name: "publish release"
+        uses: StuYarrow/publish-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          id: ${{ steps.create_release.outputs.id }}
+
+  publish_zenodo:
+    needs: create_package
+    name: "publish on zenodo"
+    outputs:
+      doi: ${{ steps.zenodraft.outputs.doi }}
+    runs-on: ubuntu-latest
+    steps:
+      # 1. download artifact in folder artifact/ and move it one level up
+      - uses: actions/download-artifact@v3
+      - run: |
+          mv ./artifact/TrainRuns.jl-v${{ github.event.inputs.version }}.zip ./
+
+      # 2. install zenodraft
+      - name: "install zenodraft"
+        run: npm install -g zenodraft
+
+      # 3. upload new release to zenodo
+      - name: "uploading to zenodo"
+        id: zenodraft
+        env:
+          ZENODO_ACCESS_TOKEN: ${{ secrets.ZENODO_ACCESS_TOKEN }}
+          COLLECTION: 6448563
+        run: |
+          ID=$(zenodraft deposition create version $COLLECTION)
+          zenodraft file add $ID TrainRuns.jl-v*.zip
+          zenodraft metadata update $ID artifact/metadata.json
+          zenodraft deposition publish $ID
+          echo "::set-output name=doi::$(zenodraft deposition show prereserved $ID)"
+
+  update_citation:
+    needs: [create_package, publish_zenodo]
+    name: "updating CITATION.cff"
+    runs-on: ubuntu-latest
+    steps:
+      # 1. checkout the repo
+      - name: "checkout"
+        uses: actions/checkout@v3
+      
+      # 2. update CITATION.cff
+      - run: |
+          DATE=$(date "+%Y-%m-%d")
+          VERSION=${{ github.event.inputs.version }}
+          DOI=${{needs.publish_zenodo.outputs.doi}}
+          echo "find lines in CITATION.cff"
+          VERSION_LINE=$(grep -n 'version: [0-9][0-9][0-9][0-9].[0-1][0-9]' CITATION.cff | cut -d: -f1)
+          DATE_LINE=$(grep -n 'date-released:' CITATION.cff | cut -d: -f1)
+          echo "select the second DOI"
+          DOI_LINE=$(grep -n 'type: doi' CITATION.cff | cut -d: -f1 | awk "NR==2")
+          DOI_LINE=$(( $DOI_LINE + 1 ))
+          echo "update CITATION.cff"
+          sed -i -- "${VERSION_LINE}s|.*|version: $VERSION|" CITATION.cff
+          sed -i -- "${DATE_LINE}s|.*|date-released: ${DATE}|" CITATION.cff
+          sed -i -- "${DOI_LINE}s|.*|    value: $DOI|" CITATION.cff
+      
+      # 3. push the change back to main
+      - name: push
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "DOI updated to ${{needs.create_package.outputs.version}} (via github action)"
+          branch: main
+          file_pattern: CITATION.cff
+          commit_user_name: railtoolkit
+          commit_user_email: railtoolkit@ownx.net
+
+  publish_twitter:
+    needs: [create_package, publish_zenodo]
+    name: "tweet about it"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: devigned/go-twitter-action@v1
+      with:
+        message: "The new version ${{ github.event.inputs.version }} of TrainRuns.jl is available! DOI: https://doi.org/${{needs.publish_zenodo.outputs.doi}}"
+        apiKey: ${{ secrets.TWITTER_API_KEY }}
+        apiKeySecret: ${{ secrets.TWITTER_API_SECRET }}
+        accessToken: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+        accessTokenSecret: ${{ secrets.TWITTER_ACCESS_SECRET }}

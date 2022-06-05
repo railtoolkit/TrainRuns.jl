@@ -1,6 +1,5 @@
 #!/usr/bin/env julia
 # -*- coding: UTF-8 -*-
-# __julia-version__ = 1.7.2
 # __author__        = "Martin Scheidt, Max Kannenberg"
 # __copyright__     = "2022"
 # __license__       = "ISC"
@@ -52,18 +51,18 @@ function Settings(file="DEFAULT")
                 "outputDetail": {
                     "description": "Selecting the detail of the result",
                     "type": "string",
-                    "enum": [ "running_time", "points_of_interest", "driving_course", "everything" ]
+                    "enum": [ "running_time", "points_of_interest", "driving_course" ]
                 },
                 "outputFormat": {
                     "description": "Output format",
                     "type": "string",
-                    "enum": [ "dataframe", "dict" ]
+                    "enum": [ "dataframe", "vector" ]
                 }
             }
         }""")
 
         settings = YAML.load(open(file))["settings"]
-        
+
         ## validate the loaded file
         try
             validate(schema, settings)
@@ -116,12 +115,12 @@ function Path(file, type = :YAML)
         data = YAML.load(open(file))
         if data["schema"] != "https://railtoolkit.org/schema/running-path.json"
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/running-path (2022.05)")
         end
         if data["schema_version"] != "2022.05"
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/running-path (2022.05)")
         end
 
@@ -212,7 +211,7 @@ function Path(file, type = :YAML)
             validate(railtoolkit_schema, paths)
         catch err
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/running-path (2022.05)")
         end
         if length(paths) > 1
@@ -256,9 +255,9 @@ function Path(file, type = :YAML)
         sort!(tmp_points, by = x -> x[1])
         for elem in tmp_points
             station = elem[1]     # first point of the section (in m)
-            label   = elem[2] # paths speed limt (in m/s)
+            label   = elem[2]     # paths speed limt (in m/s)
             measure = elem[3]     # specific path resistance of the section (in ‰)
-    
+
             point = Dict(:station => station,
                             :label   => label,
                             :measure => measure)
@@ -302,27 +301,27 @@ function Train(file, type = :YAML)
     ξ_cars        = 1.06          # rotation mass factor
     transportType = :freight      # "freight" or "passenger" for resistance calculation
     v_limit       = 140           # in m/s (default 504 km/h)
-    a_braking     = 0             # in m/s^2, todo: implement as function
-    f_Rtd0        = 0             # coefficient for basic resistance due to the traction units driving axles (in ‰)
-    f_Rtc0        = 0             # coefficient for basic resistance due to the traction units carring axles (in ‰)
-    F_Rt2         = 3000          # coefficient for air resistance of the traction units (in N)
-    f_Rw0         = 0             # coefficient for the consists basic resistance (in ‰)
-    f_Rw1         = 0             # coefficient for the consists resistance to rolling (in ‰)
-    f_Rw2         = 0             # coefficient fo the consistsr air resistance (in ‰)
+    a_braking     = 0             # in m/s^2, TODO: implement as function
+    f_Rtd0        = 0             # coefficient for basic resistance due to the traction unit's driving axles (in ‰)
+    f_Rtc0        = 0             # coefficient for basic resistance due to the traction unit's carring axles (in ‰)
+    f_Rt2         = 0             # coefficient for air resistance of the traction unit (in ‰)
+    f_Rw0         = 0             # coefficient for the consist's basic resistance (in ‰)
+    f_Rw1         = 0             # coefficient for the consist's resistance to rolling (in ‰)
+    f_Rw2         = 0             # coefficient for the consist's air resistance (in ‰)
     F_v_pairs     = []            # [v in m/s, F_T in N]
 
     ## load from file
     if type == :YAML
 
         data = YAML.load(open(file))
-        if data["schema"] != "https://railtoolkit.org/schema/rolling-stock.json" 
+        if data["schema"] != "https://railtoolkit.org/schema/rolling-stock.json"
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
         end
         if data["schema_version"] != "2022.05"
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
         end
 
@@ -472,14 +471,14 @@ function Train(file, type = :YAML)
                 }
                 }
             }
-            }      
+            }
         }""")
 
         try
             validate(railtoolkit_schema, data)
         catch err
             error("Could not load path file '$file'.\n
-                    YAML format is not recognized. 
+                    YAML format is not recognized.
                     Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
         end
 
@@ -514,12 +513,13 @@ function Train(file, type = :YAML)
             push!(vehicles, (data=vehicle, n=n, propulsion=propulsion) )
         end
     end
-    
+
     ## set the variables in "train"
     name = train["name"]
     id   = train["id"]
     haskey(train, "UUID") ? uuid = parse(UUID, train["UUID"] ) : nothing
     transportType == :freight ? a_braking = -0.225 : a_braking = -0.375  # set a default a_braking value depending on the train type
+        #TODO: add source: Brünger, Dahlhaus, 2014 p. 74 (see formulary.jl)
 
     ## set the variables for all vehicles
     for vehicle in vehicles
@@ -529,8 +529,8 @@ function Train(file, type = :YAML)
         haskey(vehicle.data, "load_limit")    ?
             m_train_full += vehicle.data["load_limit"] * vehicle.n * 1000 :  # in kg
             nothing
-        haskey(vehicle.data, "speed_limit")   ? 
-            v_limit > vehicle.data["speed_limit"]/3.6 ? v_limit = vehicle.data["speed_limit"]/3.6 : nothing : 
+        haskey(vehicle.data, "speed_limit")   ?
+            v_limit > vehicle.data["speed_limit"]/3.6 ? v_limit = vehicle.data["speed_limit"]/3.6 : nothing :
             nothing
     end
 
@@ -553,7 +553,7 @@ function Train(file, type = :YAML)
     haskey(loco, "a_braking")          ? a_braking = loco["a_braking"]                : nothing
     haskey(loco, "base_resistance")    ? f_Rtd0 = loco["base_resistance"]             : nothing
     haskey(loco, "rolling_resistance") ? f_Rtc0 = loco["rolling_resistance"]          : nothing
-    haskey(loco, "air_resistance")     ? F_Rt2  = loco["air_resistance"] * g * m_loco : nothing
+    haskey(loco, "air_resistance")     ? f_Rt2  = loco["air_resistance"]              : nothing
     haskey(loco, "mass_traction")      ? m_td   = loco["mass_traction"] * 1000        : m_td = m_t
     haskey(loco, "rotation_mass")      ? ξ_loco = loco["rotation_mass"]               : nothing
     m_tc = m_loco- m_td
@@ -569,17 +569,17 @@ function Train(file, type = :YAML)
         resis_air  = []
         rotMassFac = []
         for car in cars
-            haskey(car.data, "base_resistance")    ? 
-                append!(resis_base,repeat([car.data["base_resistance"]],car.n))    : 
+            haskey(car.data, "base_resistance")    ?
+                append!(resis_base,repeat([car.data["base_resistance"]],car.n))    :
                 append!(resis_base,repeat([f_Rw0],car.n))
-            haskey(car.data, "rolling_resistance") ? 
-                append!(resis_roll,repeat([car.data["rolling_resistance"]],car.n)) : 
+            haskey(car.data, "rolling_resistance") ?
+                append!(resis_roll,repeat([car.data["rolling_resistance"]],car.n)) :
                 append!(resis_roll,repeat([f_Rw1],car.n))
-            haskey(car.data, "air_resistance")     ? 
-                append!(resis_air,repeat([car.data["air_resistance"]],car.n))      : 
+            haskey(car.data, "air_resistance")     ?
+                append!(resis_air,repeat([car.data["air_resistance"]],car.n))      :
                 append!(resis_air, repeat([f_Rw2],car.n))
             haskey(car.data, "rotation_mass") ?
-                append!(rotMassFac,repeat([(car.data["rotation_mass"],car.data["mass"])],car.n)) : 
+                append!(rotMassFac,repeat([(car.data["rotation_mass"],car.data["mass"])],car.n)) :
                 append!(rotMassFac,repeat([(ξ_cars ,car.data["mass"])],car.n))
             m_car_empty += car.data["mass"] * car.n * 1000 # in kg
             m_car_full  += car.data["mass"] * car.n * 1000 # in kg
@@ -607,19 +607,32 @@ function Train(file, type = :YAML)
         ξ_train, ξ_loco, ξ_cars,
         transportType, v_limit,
         a_braking,
-        f_Rtd0, f_Rtc0, F_Rt2, f_Rw0, f_Rw1, f_Rw2,
+        f_Rtd0, f_Rtc0, f_Rt2, f_Rw0, f_Rw1, f_Rw2,
         F_v_pairs
     )
 
 end #function Train() # outer constructor
 
 ## create a moving section containing characteristic sections
-function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real)
+function MovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real)
     # this function creates and returns a moving section dependent on the paths attributes
 
     s_entry = path.sections[1][:s_start]          # first position (in m)
     s_exit = path.sections[end][:s_end]           # last position (in m)
     pathLength = s_exit - s_entry                   # total length (in m)
+
+    ##TODO: use a tuple with naming
+    pointsOfInterest = Tuple[]
+    if !isempty(path.poi)
+        for POI in path.poi
+            s_poi = POI[:station]
+            if POI[:measure] == "rear"
+                s_poi += s_trainLength
+            end
+            push!(pointsOfInterest, (s_poi, POI[:label]) )
+        end
+        sort!(pointsOfInterest, by = x -> x[1])
+    end
 
     CSs=Vector{Dict}()
     s_csStart=s_entry
@@ -630,27 +643,26 @@ function createMovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real
         speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
         pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
         if speedLimitIsDifferent || pathResistanceIsDifferent
-        # 03/09 old: if min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit) || previousSection[:f_Rp] != currentSection[:f_Rp]
-            push!(CSs, createCharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, path))
+            push!(CSs, CharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, pointsOfInterest))
             s_csStart = currentSection[:s_start]
             csId = csId+1
         end #if
     end #for
-    push!(CSs, createCharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, path))
+    push!(CSs, CharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, pointsOfInterest))
 
     movingSection= Dict(:id => 1,                       # identifier    # if there is more than one moving section in a later version of this tool the id should not be constant anymore
                         :length => pathLength,          # total length (in m)
                         :s_entry => s_entry,            # first position (in m)
                         :s_exit => s_exit,              # last position (in m)
                         :t => 0.0,                      # total running time (in s)
-                        :E => 0.0,                      # total energy consumption (in Ws)
-                        :characteristicSections => CSs) # list of containing characteristic sections
+                        :characteristicSections => CSs, # list of containing characteristic sections
+                        :pointsOfInterest => pointsOfInterest) # list of containing points of interest
 
     return movingSection
-end #function createMovingSection
+end #function MovingSection
 
 ## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
-function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, path::Path)
+function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
     # Create and return a characteristic section dependent on the paths attributes
     characteristicSection= Dict(:id => id,                            # identifier
                                 :s_entry => s_entry,                    # first position (in m)
@@ -659,7 +671,6 @@ function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, 
                                 :r_path => section[:f_Rp],              # path resistance (in ‰)
                                 :behaviorSections => Dict(),            # list of containing behavior sections
                                 :t => 0.0,                              # total running time (in s)
-                                :E => 0.0,                              # total energy consumption (in Ws)
                                 :v_limit => v_limit,                    # speed limit (in m/s)
                                 # initializing :v_entry, :v_peak and :v_exit with :v_limit
                                 :v_peak => v_limit,                     # maximum reachable speed (in m/s)
@@ -671,34 +682,47 @@ function createCharacteristicSection(id::Integer, s_entry::Real, section::Dict, 
 
     ##TODO: use a tuple with naming
     pointsOfInterest = Tuple[]
-    # pointsOfInterest = Real[]
-    if !isempty(path.poi)
-        for POI in path.poi
-            s_poi = POI[:station]
-            if POI[:measure] == "rear"
-                s_poi -= s_trainLength
-            end
-            if s_entry < s_poi && s_poi < s_exit
-                push!(pointsOfInterest, (s_poi, POI[:label]) )
-                # push!(pointsOfInterest, s_poi )
+    if !isempty(MS_poi)
+        for POI in MS_poi
+            s_poi = POI[1]
+            if s_entry < s_poi && s_poi <= s_exit
+                push!(pointsOfInterest, (POI))
             end
         end
     end
-    push!(pointsOfInterest, (s_exit,""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
-    # push!(pointsOfInterest, s_exit)     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
-
+    if isempty(pointsOfInterest) || pointsOfInterest[end][1] < s_exit
+        push!(pointsOfInterest, (s_exit,""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
+    end
     merge!(characteristicSection, Dict(:pointsOfInterest => pointsOfInterest))
 
     return characteristicSection
-end #function createCharacteristicSection
+end #function CharacteristicSection
+
+"""
+BehaviorSection() TODO!
+"""
+function BehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
+    BS= Dict(
+        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "standstill"
+        :length => 0.0,                # total length  (in m)
+        :s_entry => s_entry,           # first position (in m)
+        :s_exit => 0.0,                # last position  (in m)
+        :t => 0.0,                     # total running time (in s)
+        :E => 0.0,                     # total energy consumption (in Ws)
+        :v_entry => v_entry,           # entry speed (in m/s)
+        :v_exit => 0.0,                # exit speed (in m/s)
+        :dataPoints => [startingPoint] # list of identifiers of the containing data points starting with the initial point
+    )
+    return BS
+end #function BehaviorSection
 
 """
 a DataPoint is the smallest element of the driving course. One step of the step approach is between two data points
 """
-function createDataPoint()
+function DataPoint()
     dataPoint = Dict(
         :i => 0,            # identifier and counter variable of the driving course
-        :behavior => "",    # type of behavior section the data point is part of - see createBehaviorSection()
+        :behavior => "",    # type of behavior section the data point is part of - see BehaviorSection()
                             # a data point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
         :s => 0.0,          # position (in m)
         :Δs => 0.0,         # step size (in m)
@@ -717,25 +741,7 @@ function createDataPoint()
         :R_train => 0.0,    # train resistance (in N)
         :R_traction => 0.0, # traction unit resistance (in N)
         :R_wagons => 0.0,   # set of wagons resistance (in N)
-        :label => ""        # a label for importend points
+        :label => ""        # a label for important points
     )
     return dataPoint
-end #function createDataPoint
-
-"""
-BehaviorSection() TODO!
-"""
-function createBehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
-    BS= Dict(
-        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "standstill"
-        :length => 0.0,                # total length  (in m)
-        :s_entry => s_entry,           # first position (in m)
-        :s_exit => 0.0,                # last position  (in m)
-        :t => 0.0,                     # total running time (in s)
-        :E => 0.0,                     # total energy consumption (in Ws)
-        :v_entry => v_entry,           # entry speed (in m/s)
-        :v_exit => 0.0,                # exit speed (in m/s)
-        :dataPoints => [startingPoint] # list of identifiers of the containing data points starting with the initial point
-    )
-    return BS
-end #function createBehaviorSection
+end #function DataPoint

@@ -1,32 +1,24 @@
 #!/usr/bin/env julia
 
-import TrainRuns
+using TrainRuns
+using CSV
 
 paths=[]
-push!(paths, importFromYaml(:path, "data/paths/path_1_10km_nConst_vConst.yaml"))
-push!(paths, importFromYaml(:path, "data/paths/path_2_10km_nVar_vConst.yaml"))
-push!(paths, importFromYaml(:path, "data/paths/path_3_10km_nConst_vVar.yaml"))
-push!(paths, importFromYaml(:path, "data/paths/path_4_real_Germany_EastSaxony_DG-DN.yaml"))
-
-settings=[]
-push!(settings, importFromYaml(:settings, "data/settings/settings_distanceStep_massPoint.yaml"))
+push!(paths, Path("test/data/paths/const.yaml"))
+push!(paths, Path("test/data/paths/slope.yaml"))
+push!(paths, Path("test/data/paths/speed.yaml"))
+push!(paths, Path("test/data/paths/realworld.yaml"))
 
 trains=[]
-push!(trains, importFromYaml(:train, "data/trains/train_freight_V90withOreConsist.yaml"))
-push!(trains, importFromYaml(:train, "data/trains/train_passenger_SiemensDesiroClassic.yaml"))
-push!(trains, importFromYaml(:train, "data/trains/train_passenger_IC2.yaml"))
+push!(trains, Train("test/data/trains/freight.yaml"))
+push!(trains, Train("test/data/trains/local.yaml"))
+push!(trains, Train("test/data/trains/longdistance.yaml"))
 
-for path in paths
-    # println(" -    -    -     -     -     -      -     -    -")
-    # println("path: ", path[:name])
-   for train in trains
-       # println("train: ", train[:name])
-       for settings in settings
-           resultsDict = trainrun(train, path, settings)
-           if haskey(settings, :outputFormat) && settings[:outputFormat] == "CSV"
-               exportToCsv(resultsDict, settings)
-               sleep(2)
-           end
-       end
+settings = Settings("test/data/settings/driving_course.yaml")
+
+for p in 1:length(paths)
+   for t in 1:length(trains)
+       driving_course = trainrun(trains[t], paths[p], settings)
+       CSV.write("docs/examples/drivingCourse_path"*string(p)*"_train"*string(t)*".csv", driving_course)
    end
 end

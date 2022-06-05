@@ -1,110 +1,66 @@
 #!/usr/bin/env julia
 # -*- coding: UTF-8 -*-
-# __julia-version__ = 1.7.2
 # __author__        = "Max Kannenberg"
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-function createOutput(train::Train, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
+function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfInterest::Vector{Tuple})
     if settings.outputDetail == :running_time
-        output = movingSection[:t]  # TODO: or use drivingCourse[end][:t]
+        output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 
-    elseif settings.outputDetail == :points_of_interest
-        # add points of interest
-        if !isempty(path.poi)
-
-            # for elem in 1:length(driving_course)
-            # end
-
-            output = Dict[]
-            POI = 1
-            i = 1
-            while POI <= length(path.poi) && i <= drivingCourse[end][:i]
-                if path.poi[POI][:station] == drivingCourse[i][:s]
-                    push!(output, drivingCourse[i])
-                    POI = POI+1
+    elseif settings.outputDetail == :points_of_interest && !isempty(pointsOfInterest)
+        # get only the driving course's data points with POI labels
+        output = Dict[]
+        dataPoint = 1
+        for POI in 1:length(pointsOfInterest)
+            while dataPoint <= length(drivingCourse)
+                if pointsOfInterest[POI][1] == drivingCourse[dataPoint][:s]
+                    push!(output, drivingCourse[dataPoint])
+                    break
                 end
-                i = i+1
+                dataPoint += 1
             end
         end
 
-    elseif settings.outputDetail == :driving_course
-            output = drivingCourse
-
-    elseif settings.outputDetail == :everything
-        output = Dict{Symbol,Any}()
-        merge!(output, Dict(:train => train, :path => path, :settings => settings))
-
-
-        # add moving section and driving courses
-        if settings[:operationModeMinimumRunningTime] == true
-            merge!(output, Dict(:movingSectionMinimumRunningTime => movingSection,
-                                    :drivingCourseMinimumRunningTime => drivingCourse))
-        elseif settings[:operationModeMinimumEnergyConsumption] == true
-            merge!(output, Dict(:movingSectionMinimumEnergyConsumption => movingSection,
-                                    :drivingCourseMinimumEnergyConsumption => drivingCourse))
-        end
-
-        # add points of interest
-        if !isempty(path.poi)
-            pointsOfInterest = Vector{Dict}()
-            POI = 1
-            i = 1
-            while POI <= length(path.poi) && i <= drivingCourse[end][:i]
-                if path.poi[POI] == drivingCourse[i][:s]
-                    push!(pointsOfInterest, drivingCourse[i])
-                    POI = POI+1
-                end
-                i = i+1
-            end
-
-            if settings[:operationModeMinimumRunningTime] == true
-                merge!(output, Dict(:pointsOfInterestMinimumRunningTime => pointsOfInterest))
-            elseif settings[:operationModeMinimumEnergyConsumption] == true
-                merge!(output, Dict(:pointsOfInterestMinimumEnergyConsumption => pointsOfInterest))
-            end
-        end
-    else
-        output = nothing
+    else #if settings.outputDetail == :driving_course || (settings.outputDetail == :points_of_interest && !isempty(path.poi))
+        output = drivingCourse
     end
-    return output
+
+    if settings.outputFormat == :dataframe
+        return createDataFrame(output, settings.outputDetail)
+    elseif settings.outputFormat == :vector
+        return output
+    end
 end
 
-#=
-function createOutputDict(train::Train, settings::Settings, path::Path, movingSection::Dict, drivingCourse::Vector{Dict})
-    outputDict = Dict{Symbol,Any}()
-    merge!(outputDict, Dict(:train => train, :path => path, :settings => settings))
 
+function createDataFrame(output_vector::Vector{Dict}, outputDetail)
+    if outputDetail == :running_time
+        # create a DataFrame with running time information
+        dataFrame = DataFrame(t=[output_vector[end][:t]])
+    else # :points_of_interest or :driving_course
+        columnSymbols = [:label, :behavior, :s, :v, :t, :a, :F_T, :F_R, :R_path, :R_traction, :R_wagons]
 
-    # add moving section and driving courses
-    if settings[:operationModeMinimumRunningTime] == true
-        merge!(outputDict, Dict(:movingSectionMinimumRunningTime => movingSection,
-                                :drivingCourseMinimumRunningTime => drivingCourse))
-    elseif settings[:operationModeMinimumEnergyConsumption] == true
-        merge!(outputDict, Dict(:movingSectionMinimumEnergyConsumption => movingSection,
-                                :drivingCourseMinimumEnergyConsumption => drivingCourse))
-    end
-
-    # add points of interest
-    if !isempty(path.poi)
-        pointsOfInterest = Vector{Dict}()
-        POI = 1
-        i = 1
-        while POI <= length(path.poi) && i <= drivingCourse[end][:i]
-            if path.poi[POI] == drivingCourse[i][:s]
-                push!(pointsOfInterest, drivingCourse[i])
-                POI = POI+1
+        allColumns = []
+        for column in 1:length(columnSymbols)
+            if typeof(output_vector[1][columnSymbols[column]]) == String
+                currentStringColumn::Vector{String} = []
+                for point in output_vector
+                    push!(currentStringColumn, point[columnSymbols[column]])
+                end
+                push!(allColumns, currentStringColumn)
+            elseif typeof(output_vector[1][columnSymbols[column]]) <: Real
+                currentRealColumn::Vector{Real} = []
+                for point in output_vector
+                    push!(currentRealColumn, point[columnSymbols[column]])
+                end
+                push!(allColumns, currentRealColumn)
             end
-            i = i+1
-        end
+        end # for
 
-        if settings[:operationModeMinimumRunningTime] == true
-            merge!(outputDict, Dict(:pointsOfInterestMinimumRunningTime => pointsOfInterest))
-        elseif settings[:operationModeMinimumEnergyConsumption] == true
-            merge!(outputDict, Dict(:pointsOfInterestMinimumEnergyConsumption => pointsOfInterest))
-        end
+        # combine the columns in a data frame
+        dataFrame = DataFrame(label=allColumns[1], driving_mode=allColumns[2], s=allColumns[3], v=allColumns[4], t=allColumns[5], a=allColumns[6], F_T=allColumns[7], F_R=allColumns[8], R_path=allColumns[9], R_traction=allColumns[10], R_wagons=allColumns[11])
     end
 
-    return outputDict
-end # function createOutputDict
-=#
+    return dataFrame
+end #createDataFrameForDrivingCourse

@@ -1,4 +1,4 @@
 %YAML 1.2
 ---
 settings:
-  outputDetail: "driving_course" # single value "running_time", array of "points_of_interest",complete array "driving_course", or dict() "everything"
+  outputDetail: "driving_course" # single value "running_time", list of "points_of_interest", complete "driving_course"

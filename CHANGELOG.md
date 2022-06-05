@@ -23,10 +23,18 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 * renamed Validate.jl into types.jl
 * renamed TrainRunCalc.jl into calc.jl
 * moved trainrun function from calc.jl to TrainRun.jl
-* moved createDataPoint() from behavior.jl to types.jl
-* moved createBehaviorSection() from behavior.jl to types.jl
-* moved createMovingSection() from characteristics.jl to types.jl
-* moved createCharacteristicSection() from characteristics.jl to types.jl
+* moved createDataPoint() from behavior.jl to constructors.jl
+* moved createBehaviorSection() from behavior.jl to constructors.jl
+* moved createMovingSection() from characteristics.jl to constructors.jl
+* moved createCharacteristicSection() from characteristics.jl to constructors.jl
+* removed characteristics.jl and moved all functions inside to behavior.jl
+* moved calculateTractiveEffort() from behavior.jl to calc.jl
+* moved calculatePathResistance() from behavior.jl to calc.jl
+* moved calculateForces!() from behavior.jl to calc.jl
+* moved moveAStep() from behavior.jl to calc.jl
+* moved getCurrentSpeedLimit() from behavior.jl to calc.jl
+* moved getNextPointOfInterest() from behavior.jl to calc.jl
+* moved determineCharacteristics() from behavior.jl to calc.jl
 * changed title of include files from upper case to lower case
 * changed seperation of submodules into a single module with file include
 * updated test files to railtoolkit/schema (2022.05)

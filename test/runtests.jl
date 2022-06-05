@@ -28,7 +28,6 @@ settings = Dict()
   push!(settings, "default"       => @time Settings())
   push!(settings, "poi"           => @time Settings("data/settings/points_of_interest.yaml"))
   push!(settings, "drivingcourse" => @time Settings("data/settings/driving_course.yaml"))
-  push!(settings, "everything"    => @time Settings("data/settings/everything.yaml"))
   push!(settings, "strip"         => @time Settings("data/settings/strip.yaml"))
   push!(settings, "time"          => @time Settings("data/settings/time.yaml"))
   push!(settings, "timestrip"     => @time Settings("data/settings/time_strip.yaml"))
@@ -53,18 +52,18 @@ tests = Base.Iterators.product(trains,paths)
 
 anticipated = Dict(
   :default => Dict(
-    :longdistance_speed => 499.96109564970516,
-    :freight_slope => 831.4768274141168,
-    :local_slope => 396.99313307033276,
-    :longdistance_const => 328.83479381353095,
-    :freight_realworld => 8971.50124080998,
-    :longdistance_slope => 329.22915822053164,
-    :freight_const => 727.7969403041934,
-    :longdistance_realworld => 2900.1198723158523,
-    :local_speed => 524.3948201513945,
-    :local_realworld => 3443.917823618831,
-    :freight_speed => 733.2610572579886,
-    :local_const => 392.7234008268302
+    :freight_const => 746.6594691660882,
+    :freight_slope => 842.3797947097586,
+    :freight_speed => 751.9727357301351,
+    :freight_realworld => 8789.299477891092,
+    :local_const => 392.6801497584646,
+    :local_slope => 396.59291844946534,
+    :local_speed => 524.3734475900396,
+    :local_realworld => 3438.3543735577446,
+    :longdistance_const => 330.8511578156266,
+    :longdistance_slope => 331.7163794230447,
+    :longdistance_speed => 501.13448446081713,
+    :longdistance_realworld => 2913.3759609192407
   )
 )
 
@@ -75,7 +74,7 @@ anticipated = Dict(
     for test in tests
       test_name = String(test[1][1]) * "_" * String(test[2][1])
       println("testing $test_name")
-      @time result = trainrun(test[1][2],test[2][2])
+      @time result = trainrun(test[1][2], test[2][2])[end, :t]
       expected = anticipated[:default][Symbol(test_name)]
       # compare result to test data set
       @test isapprox(result, expected, rtol=0.01)

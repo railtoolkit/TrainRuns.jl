@@ -1,6 +1,5 @@
 #!/usr/bin/env julia
 # -*- coding: UTF-8 -*-
-# __julia-version__ = 1.7.2
 # __author__        = "Martin Scheidt, Max Kannenberg"
 # __copyright__     = "2022"
 # __license__       = "ISC"
@@ -10,10 +9,10 @@ struct Settings
     massModel::Symbol    # model type of train mass ":mass_point" or ":homogeneous_strip".
     stepVariable::Symbol # variable of the linear multistep method: ":distance", ":time" or ":velocity".
     stepSize::Real       # step size, unit depends on stepVariable - :distance in meter, time in seconds and velocity in meter/second.
-    approxLevel::Int     # value for approximation; used when rounding or interating.
-    outputDetail::Symbol # single Float() ":running_time", Array() of ":points_of_interest",
-                         # complete Array() ":driving_course", or Dict() ":everything".
-    outputFormat::Symbol # output as ":dataframe" or as ":dict".
+    approxLevel::Int     # value for approximation; used when rounding or iterating.
+    outputDetail::Symbol # single Float() ":running_time", Vector() of ":points_of_interest",
+                         # or complete Vector() ":driving_course"
+    outputFormat::Symbol # output as ":dataframe" or as ":vector".
 
 end #struct Settings
 
@@ -45,10 +44,10 @@ struct Train
     a_braking::Real         # in m/s^2
 
     # coefficients for the vehicle resistance
-    # for the traction unit (F_Rt=f_Rtd0*m_td*g+f_Rtc0*m_tc*g+F_Rt2*((v+Δv_air)/v00)^2)
+    # for the traction unit (F_Rt=f_Rtd0*m_td*g+f_Rtc0*m_tc*g+f_Rt2*m_loco*g*((v+Δv_air)/v00)^2)
     f_Rtd0::Real # coefficient for basic resistance due to the traction units driving axles (in ‰)
     f_Rtc0::Real # coefficient for basic resistance due to the traction units carring axles (in ‰)
-    F_Rt2::Real  # coefficient for air resistance of the traction units (in N)
+    f_Rt2::Real  # coefficient for air resistance of the traction units (in ‰)
 
     # for the consist (set of wagons) (F_Rw=m_w*g*(f_Rw0+f_Rw1*v/v00+f_Rw2*((v+Δv_air)/v00)^2))
     f_Rw0::Real # coefficient for the consists basic resistance (in ‰)

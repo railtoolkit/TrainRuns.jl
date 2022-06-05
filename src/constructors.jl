@@ -12,7 +12,7 @@ The function Settings() will create a set of settings for the train run calculat
 `file` is optinal may be used to load settings in the YAML format.
 
 # Example
-```jldoctest
+```
 julia> my_settings = Settings() # will generate default settings
 Settings(mass_point, :distance, 20, 3, running_time, :dataframe)
 ```
@@ -92,7 +92,7 @@ The function Path() will create a running path for the train.
 Supported formats are: railtoolkit/schema (2022.05)
 
 # Example
-```jldoctest
+```
 julia> my_path = Path("file.yaml") # will generate a path from a YAML file.
 Path(variables)
 ```
@@ -277,7 +277,7 @@ The function Train() will create a train to use in calculations.
 Supported formats for the YAML files are: railtoolkit/schema (2022.05)
 
 # Example
-```jldoctest
+```
 julia> my_train = Train("file.yaml") # will generate a train from a YAML file.
 Train(variables)
 ```

@@ -141,7 +141,7 @@ jobs:
           echo "::set-output name=doi::$(zenodraft deposition show prereserved $ID)"
 
   update_citation:
-    needs: [create_package, publish_zenodo]
+    needs: [create_package, register, publish_zenodo]
     name: "updating CITATION.cff"
     runs-on: ubuntu-latest
     steps:
@@ -176,7 +176,7 @@ jobs:
           commit_user_email: railtoolkit@ownx.net
 
   publish_twitter:
-    needs: [create_package, publish_zenodo]
+    needs: [publish_zenodo]
     name: "tweet about it"
     runs-on: ubuntu-latest
     steps:

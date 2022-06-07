@@ -4,6 +4,7 @@ on:
     branches:
       - main
     paths-ignore:
+      - 'CHANGELOG.md'
       - 'CITATION.cff'
       - 'CODE_OF_CONDUCT.md'
       - 'CONTRIBUTING.md'
@@ -11,9 +12,12 @@ on:
       - 'README.md'
       - '.github/workflows/cffvalidation.yml'
       - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/release.yml'
       - '.github/workflows/TagBot.yml'
+      - '.github/zenodo/*'
   pull_request:
     paths-ignore:
+      - 'CHANGELOG.md'
       - 'CITATION.cff'
       - 'CODE_OF_CONDUCT.md'
       - 'CONTRIBUTING.md'
@@ -21,7 +25,9 @@ on:
       - 'README.md'
       - '.github/workflows/cffvalidation.yml'
       - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/release.yml'
       - '.github/workflows/TagBot.yml'
+      - '.github/zenodo/*'
   workflow_dispatch:
 
 concurrency:

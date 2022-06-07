@@ -32,7 +32,7 @@ jobs:
           BOTTOM=$(( $TOP + $BOTTOM ))
           BOTTOM=$(( $BOTTOM - 2 ))
           TOP=$(( $TOP + 1 ))
-          awk "NR>$TOP&&NR<$BOTTOM" CHANGELOG.md > release-note-$VERSION.md
+          awk "NR>$TOP&&NR<$BOTTOM" CHANGELOG.md > release-note-v$VERSION.md
           sed -i -- "s/###/##/g" release-note-v$VERSION.md
           rm release-note.tmp.md
 

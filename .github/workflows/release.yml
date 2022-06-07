@@ -53,7 +53,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: |
-            release-note-${{ github.event.inputs.version }}.md
+            release-note-v${{ github.event.inputs.version }}.md
             TrainRuns.jl-v${{ github.event.inputs.version }}.zip
           if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
       - uses: actions/upload-artifact@v3

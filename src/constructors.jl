@@ -18,16 +18,15 @@ julia> my_settings = Settings() # will generate default settings
 Settings(:mass_point, :distance, 20, 3, :running_time, :dataframe)
 ```
 """
-function Settings(file="DEFAULT")
-
-    ## default values
-    massModel    = :mass_point
-    stepVariable = :distance
-    stepSize     = 20
-    approxLevel  = 3
-    outputDetail = :running_time
-    outputFormat = :dataframe
-
+function Settings(
+            file         = "DEFAULT";
+            massModel::Symbol    = :mass_point,
+            stepVariable::Symbol = :distance,
+            stepSize::Number     = 20,
+            approxLevel::Number  = 3,
+            outputDetail::Symbol = :running_time,
+            outputFormat::Symbol = :dataframe
+        )
     ## load from file
     if file != "DEFAULT"
 

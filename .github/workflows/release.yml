@@ -61,16 +61,6 @@ jobs:
           path: .github/zenodo/metadata.json
           if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
 
-  register:
-    needs: create_package
-    name: "publish in JuliaRegistries"
-    runs-on: ubuntu-latest
-    steps:
-      # 1. register new release at JuliaRegistries
-      - uses: julia-actions/RegisterAction@latest
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   publish_github:
     needs: create_package
     name: "publish on github"
@@ -141,7 +131,7 @@ jobs:
           echo "::set-output name=doi::$(zenodraft deposition show prereserved $ID)"
 
   update_citation:
-    needs: [create_package, register, publish_zenodo]
+    needs: publish_zenodo
     name: "updating CITATION.cff"
     runs-on: ubuntu-latest
     steps:
@@ -175,8 +165,18 @@ jobs:
           commit_user_name: railtoolkit
           commit_user_email: railtoolkit@ownx.net
 
+  register:
+    needs: update_citation
+    name: "publish in JuliaRegistries"
+    runs-on: ubuntu-latest
+    steps:
+      # 1. register new release at JuliaRegistries
+      - uses: julia-actions/RegisterAction@latest
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   publish_twitter:
-    needs: [publish_zenodo]
+    needs: publish_zenodo
     name: "tweet about it"
     runs-on: ubuntu-latest
     steps:

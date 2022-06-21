@@ -40,7 +40,7 @@ The running time will be return in seconds.
 
 # Examples
 ```julia-repl
-julia> trainrun(train, path)
+julia> trainrun(train, path)[end,:t]
 xxx.xx # in seconds
 ```
 """

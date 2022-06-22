@@ -22,6 +22,18 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
             end
         end
 
+    elseif settings.outputDetail == :data_points
+        # get the driving course's support points where a new behavior section starts and the driving mode changes
+        output = Dict[]
+        # the first support point is the first data point
+        push!(output, drivingCourse[1])
+
+        for supportPoint in 2:length(drivingCourse)
+            if drivingCourse[supportPoint-1][:behavior] != drivingCourse[supportPoint][:behavior]
+                push!(output, drivingCourse[supportPoint])
+            end
+        end
+
     else #if settings.outputDetail == :driving_course || (settings.outputDetail == :points_of_interest && !isempty(path.poi))
         output = drivingCourse
     end
@@ -38,7 +50,7 @@ function createDataFrame(output_vector::Vector{Dict}, outputDetail)
     if outputDetail == :running_time
         # create a DataFrame with running time information
         dataFrame = DataFrame(t=[output_vector[end][:t]])
-    else # :points_of_interest or :driving_course
+    else # :points_of_interest, :data_points or :driving_course
         columnSymbols = [:label, :behavior, :s, :v, :t, :a, :F_T, :F_R, :R_path, :R_traction, :R_wagons]
 
         allColumns = []

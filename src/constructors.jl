@@ -51,7 +51,7 @@ function Settings(
                 "outputDetail": {
                     "description": "Selecting the detail of the result",
                     "type": "string",
-                    "enum": [ "running_time", "points_of_interest", "driving_course" ]
+                    "enum": [ "running_time", "points_of_interest", "data_points", "driving_course" ]
                 },
                 "outputFormat": {
                     "description": "Output format",

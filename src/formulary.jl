@@ -124,8 +124,8 @@ function Δs_with_Δt(Δt::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δt: time step (in s)
-    # a_prev: acceleration from previous data point
-    # v_prev: velocitiy from previous data point
+    # a_prev: acceleration from previous support point
+    # v_prev: velocitiy from previous support point
     Δs = Δt * (2*v_prev + Δt*a_prev) /2        # step size (in m)
     return Δs
 end #function Δs_with_Δt
@@ -134,8 +134,8 @@ function Δs_with_Δv(Δv::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δv: velocity step (in m/s)
-    # a_prev: acceleration from previous data point
-    # v_prev: velocitiy from previous data point
+    # a_prev: acceleration from previous support point
+    # v_prev: velocitiy from previous support point
     Δs = ((v_prev + Δv)^2 - v_prev^2)/2/a_prev      # step size (in m)
     return Δs
 end #function Δs_with_Δv
@@ -144,8 +144,8 @@ function Δt_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δs: distance step (in m)
-    # a_prev: acceleration from previous data point
-    # v_prev: velocitiy from previous data point
+    # a_prev: acceleration from previous support point
+    # v_prev: velocitiy from previous support point
 
     Δt = sign(a_prev) *sqrt((v_prev /a_prev)^2 + 2 *Δs /a_prev) - v_prev /a_prev       # step size (in m/s)
     return Δt
@@ -155,7 +155,7 @@ function Δt_with_Δv(Δv::Real, a_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δv: velocity step (in m/s)
-    # a_prev: acceleration from previous data point
+    # a_prev: acceleration from previous support point
     Δt = Δv /a_prev        # step size (in s)
     return Δt
 end #function Δt_with_Δv
@@ -173,8 +173,8 @@ function Δv_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δs: distance step (in m)
-    # a_prev: acceleration from previous data point
-    # v_prev: velocitiy from previous data point
+    # a_prev: acceleration from previous support point
+    # v_prev: velocitiy from previous support point
     Δv = sqrt(v_prev^2 + 2*Δs*a_prev) - v_prev      # step size (in m/s)
     return Δv
 end #function Δv_with_Δs
@@ -183,7 +183,7 @@ function Δv_with_Δt(Δt::Real, a_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
     # Δt: time step (in s)
-    # a_prev: acceleration from previous data point
+    # a_prev: acceleration from previous support point
     Δv = Δt * a_prev        # step size (in m/s)
     return Δv
 end #function Δv_with_Δt

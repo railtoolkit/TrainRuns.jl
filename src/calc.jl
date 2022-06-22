@@ -14,11 +14,11 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
        println("WARNING: ! ! ! TrainRuns.jl doesn't work reliably for the mass model homogeneous strip with step size v in m/s. The calculation time can be extremely high when calcutlating paths with steep gradients ! ! !")
    end
 
-   startingPoint=DataPoint()
-   startingPoint[:i]=1
-   startingPoint[:s]=CSs[1][:s_entry]
+   startingPoint = SupportPoint()
+   startingPoint[:i] = 1
+   startingPoint[:s] = CSs[1][:s_entry]
    calculateForces!(startingPoint, CSs, 1, "default", train, settings.massModel) # traction effort and resisting forces (in N)
-   drivingCourse::Vector{Dict} = [startingPoint]    # List of data points
+   drivingCourse::Vector{Dict} = [startingPoint]    # List of support points
 
    for csId in 1:length(CSs)
        CS = CSs[csId]
@@ -30,7 +30,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
                println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_entry=",CS[:v_entry])
            end
 
-       # determine the different flags for switching between the states for creatinge moving phases
+       # determine the different flags for switching between the states for creating moving phases
        s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
        calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings.massModel)     # tractive effort and resisting forces (in N)
 
@@ -191,30 +191,30 @@ end #function calculatePathResistance
 
 
 """
-calculate and return tractive and resisting forces for a data point
+calculate and return tractive and resisting forces for a support point
 """
-function calculateForces!(dataPoint::Dict,  CSs::Vector{Dict}, csId::Integer, bsType::String, train::Train, massModel)
+function calculateForces!(supportPoint::Dict,  CSs::Vector{Dict}, csId::Integer, bsType::String, train::Train, massModel)
     # calculate resisting forces
-    dataPoint[:R_traction] = tractionUnitResistance(dataPoint[:v], train)
+    supportPoint[:R_traction] = tractionUnitResistance(supportPoint[:v], train)
     if train.transportType == :freight
-        dataPoint[:R_wagons] = freightWagonsResistance(dataPoint[:v], train)
+        supportPoint[:R_wagons] = freightWagonsResistance(supportPoint[:v], train)
     elseif train.transportType == :passenger
-        dataPoint[:R_wagons] = passengerWagonsResistance(dataPoint[:v], train)
+        supportPoint[:R_wagons] = passengerWagonsResistance(supportPoint[:v], train)
     end
-    dataPoint[:R_train] = dataPoint[:R_traction] + dataPoint[:R_wagons]
-    dataPoint[:R_path] = calculatePathResistance(CSs, csId, dataPoint[:s], massModel, train)
-    dataPoint[:F_R] = dataPoint[:R_train] + dataPoint[:R_path]
+    supportPoint[:R_train] = supportPoint[:R_traction] + supportPoint[:R_wagons]
+    supportPoint[:R_path] = calculatePathResistance(CSs, csId, supportPoint[:s], massModel, train)
+    supportPoint[:F_R] = supportPoint[:R_train] + supportPoint[:R_path]
 
     # calculate tractive effort
     if bsType == "braking" || bsType == "coasting" || bsType == "halt"
-        dataPoint[:F_T] = 0.0
+        supportPoint[:F_T] = 0.0
     elseif bsType == "cruising"
-        dataPoint[:F_T] = min(max(0.0, dataPoint[:F_R]), calculateTractiveEffort(dataPoint[:v], train.tractiveEffort))
+        supportPoint[:F_T] = min(max(0.0, supportPoint[:F_R]), calculateTractiveEffort(supportPoint[:v], train.tractiveEffort))
     else # bsType == "accelerating" || bsType == "diminishing" || 'default'
-        dataPoint[:F_T] = calculateTractiveEffort(dataPoint[:v], train.tractiveEffort)
+        supportPoint[:F_T] = calculateTractiveEffort(supportPoint[:v], train.tractiveEffort)
     end
 
-    return dataPoint
+    return supportPoint
 end #function calculateForces!
 
 
@@ -226,8 +226,8 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
     # TODO: csId is only for error messages. Should it be removed?
     #= 08/31 TODO: How to check if the train stopps during this step? I should throw an error myself that I catch in higher hierarchies.    =#
 
-    # create the next data point
-    newPoint = DataPoint()
+    # create the next support point
+    newPoint = SupportPoint()
     newPoint[:i] = previousPoint[:i]+1         # identifier
 
     # calculate s, t, v, E

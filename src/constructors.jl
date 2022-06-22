@@ -677,7 +677,7 @@ function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limi
                                 :v_entry => v_limit,                    # maximum entry speed (in m/s)
                                 :v_exit => v_limit)                     # maximum exit speed (in m/s)
 
-    # list of positions of every point of interest (POI) in this charateristic section for which data points should be calculated
+    # list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated
     s_exit = characteristicSection[:s_exit]
 
     ##TODO: use a tuple with naming
@@ -711,19 +711,19 @@ function BehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoi
         :E => 0.0,                     # total energy consumption (in Ws)
         :v_entry => v_entry,           # entry speed (in m/s)
         :v_exit => 0.0,                # exit speed (in m/s)
-        :dataPoints => [startingPoint] # list of identifiers of the containing data points starting with the initial point
+        :supportPoints => [startingPoint] # list of identifiers of the containing support points starting with the initial point
     )
     return BS
 end #function BehaviorSection
 
 """
-a DataPoint is the smallest element of the driving course. One step of the step approach is between two data points
+a SupportPoint is the smallest element of the driving course. One step of the step approach is between two support points
 """
-function DataPoint()
-    dataPoint = Dict(
+function SupportPoint()
+    supportPoint = Dict(
         :i => 0,            # identifier and counter variable of the driving course
-        :behavior => "",    # type of behavior section the data point is part of - see BehaviorSection()
-                            # a data point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
+        :behavior => "",    # type of behavior section the support point is part of - see BehaviorSection()
+                            # a support point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
         :s => 0.0,          # position (in m)
         :Δs => 0.0,         # step size (in m)
         :t => 0.0,          # point in time (in s)
@@ -743,5 +743,5 @@ function DataPoint()
         :R_wagons => 0.0,   # set of wagons resistance (in N)
         :label => ""        # a label for important points
     )
-    return dataPoint
-end #function DataPoint
+    return supportPoint
+end #function SupportPoint

@@ -9,16 +9,16 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
         output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 
     elseif settings.outputDetail == :points_of_interest && !isempty(pointsOfInterest)
-        # get only the driving course's data points with POI labels
+        # get only the driving course's support points with POI labels
         output = Dict[]
-        dataPoint = 1
+        supportPoint = 1
         for POI in 1:length(pointsOfInterest)
-            while dataPoint <= length(drivingCourse)
-                if pointsOfInterest[POI][1] == drivingCourse[dataPoint][:s]
-                    push!(output, drivingCourse[dataPoint])
+            while supportPoint <= length(drivingCourse)
+                if pointsOfInterest[POI][1] == drivingCourse[supportPoint][:s]
+                    push!(output, drivingCourse[supportPoint])
                     break
                 end
-                dataPoint += 1
+                supportPoint += 1
             end
         end
 
@@ -63,4 +63,4 @@ function createDataFrame(output_vector::Vector{Dict}, outputDetail)
     end
 
     return dataFrame
-end #createDataFrameForDrivingCourse
+end #createDataFrame

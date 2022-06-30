@@ -232,49 +232,49 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
 
     # calculate s, t, v, E
     if stepVariable == :distance                                             # distance step method
-        newPoint[:Δs] = stepSize                                                    # step size (in m)
+        Δs = stepSize                                                    # step size (in m)
         if previousPoint[:a] == 0.0
             if previousPoint[:v] == 0.0
                 error("ERROR: The train tries to cruise at v=0.0 m/s at s=",previousPoint[:s]," in CS",csId,".")
             end
-           newPoint[:Δt] = Δt_with_constant_v(newPoint[:Δs], previousPoint[:v])    # step size (in s)
-           newPoint[:Δv] = 0.0                                                          # step size (in m/s)
+           Δt = Δt_with_constant_v(Δs, previousPoint[:v])    # step size (in s)
+           Δv = 0.0                                                          # step size (in m/s)
         else
             # check if the parts of the following square roots will be <0.0 in the functions Δt_with_Δs and Δv_with_Δs
-            squareRootPartIsNegative = (previousPoint[:v]/previousPoint[:a])^2+2*newPoint[:Δs]/previousPoint[:a] < 0.0 || previousPoint[:v]^2+2*newPoint[:Δs]*previousPoint[:a] < 0.0
+            squareRootPartIsNegative = (previousPoint[:v]/previousPoint[:a])^2+2*Δs/previousPoint[:a] < 0.0 || previousPoint[:v]^2+2*Δs*previousPoint[:a] < 0.0
             if previousPoint[:a] < 0.0 && squareRootPartIsNegative
                 error("ERROR: The train stops during the accelerating section in CS",csId," because the tractive effort is lower than the resistant forces.",
                 "       Before the stop the last point has the values s=",previousPoint[:s]," m,  v=",previousPoint[:v]," m/s,  a=",previousPoint[:a]," m/s^2,",
                 "       F_T=",previousPoint[:F_T]," N,  R_traction=",previousPoint[:R_traction]," N,  R_wagons=",previousPoint[:R_wagons]," N,  R_path=",previousPoint[:R_path]," N.")
             end
-            newPoint[:Δt] = Δt_with_Δs(newPoint[:Δs], previousPoint[:a], previousPoint[:v])        # step size (in s)
-            newPoint[:Δv] = Δv_with_Δs(newPoint[:Δs], previousPoint[:a], previousPoint[:v])        # step size (in m/s)
+            Δt = Δt_with_Δs(Δs, previousPoint[:a], previousPoint[:v])        # step size (in s)
+            Δv = Δv_with_Δs(Δs, previousPoint[:a], previousPoint[:v])        # step size (in m/s)
         end
 
     elseif stepVariable == :time                                                              # time step method
-        newPoint[:Δt] = stepSize                                                                     # step size (in s)
-        newPoint[:Δs] = Δs_with_Δt(newPoint[:Δt], previousPoint[:a], previousPoint[:v])        # step size (in m)
-        newPoint[:Δv] = Δv_with_Δt(newPoint[:Δt], previousPoint[:a])                           # step size (in m/s)
+        Δt = stepSize                                                                     # step size (in s)
+        Δs = Δs_with_Δt(Δt, previousPoint[:a], previousPoint[:v])        # step size (in m)
+        Δv = Δv_with_Δt(Δt, previousPoint[:a])                           # step size (in m/s)
 
     elseif stepVariable  == :velocity                                                            # velocity step method
         if previousPoint[:a] == 0.0
             if previousPoint[:v] == 0.0
                 error("ERROR: The train tries to cruise at v=0.0 m/s at s=",previousPoint[:s]," in CS",csId,".")
             end
-           newPoint[:Δs] = stepSize                                                     # step size (in m)
+           Δs = stepSize                                                     # step size (in m)
             # TODO what is the best default step size for constant v? define Δs or Δt?
-           newPoint[:Δt] = Δt_with_constant_v(newPoint[:Δs], previousPoint[:v])    # step size (in s)
-           newPoint[:Δv] = 0.0                                                          # step size (in m/s)
+           Δt = Δt_with_constant_v(Δs, previousPoint[:v])    # step size (in s)
+           Δv = 0.0                                                          # step size (in m/s)
         else
-            newPoint[:Δv] = stepSize * sign(previousPoint[:a])                                          # step size (in m/s)
-            newPoint[:Δs] = Δs_with_Δv(newPoint[:Δv], previousPoint[:a], previousPoint[:v])        # step size (in m)
-            newPoint[:Δt] = Δt_with_Δv(newPoint[:Δv], previousPoint[:a])                           # step size (in s)
+            Δv = stepSize * sign(previousPoint[:a])                                          # step size (in m/s)
+            Δs = Δs_with_Δv(Δv, previousPoint[:a], previousPoint[:v])        # step size (in m)
+            Δt = Δt_with_Δv(Δv, previousPoint[:a])                           # step size (in s)
         end
     end #if
 
-    newPoint[:s] = previousPoint[:s] + newPoint[:Δs]                    # position (in m)
-    newPoint[:t] = previousPoint[:t] + newPoint[:Δt]                    # point in time (in s)
-    newPoint[:v] = previousPoint[:v] + newPoint[:Δv]                    # velocity (in m/s)
+    newPoint[:s] = previousPoint[:s] + Δs                    # position (in m)
+    newPoint[:t] = previousPoint[:t] + Δt                    # point in time (in s)
+    newPoint[:v] = previousPoint[:v] + Δv                    # velocity (in m/s)
 
     return newPoint
 end #function moveAStep

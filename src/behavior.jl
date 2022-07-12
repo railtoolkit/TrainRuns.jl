@@ -107,11 +107,8 @@ end #function addClearingSection
 ## This function calculates the support points of the accelerating section.
  #  Therefore it gets its previous driving course and the characteristic section and returns the characteristic section and driving course including the accelerating section
 function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFlags::Dict, settings::Settings, train::Train, CSs::Vector{Dict})
- #function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, settings::Settings, train::Train, CSs::Vector{Dict}, ignoreBraking::Bool)
-    #=if drivingCourse would also be part of movingSectiong: function addAcceleratingSection!(movingSection::Dict, stateFlags::Dict, csId::Integer, settings::Settings, train::Train)
-      CSs = movingSection[:characteristicSections]
-      CS = CSs[csId]
-      drivingCourse = movingSection[:drivingCourse]=#
+#= TODO: instead of CS just give csId?
+      -> CS = CSs[csId]      =#
 
     calculateForces!(drivingCourse[end], CSs, CS[:id], "accelerating", train, settings.massModel)
 
@@ -1176,9 +1173,8 @@ function recalculateLastBrakingPoint!(drivingCourse, s_target, v_target)
 end #function recalculateLastBrakingPoint
 
 ## define the intersection velocities between the characterisitc sections to secure braking behavior
-function secureBrakingBehavior!(movingSection::Dict, a_braking::Real, approxLevel::Integer)
-    # this function limits the entry and exit velocity of the characteristic sections to secure that the train stops at the moving sections end
-        CSs = movingSection[:characteristicSections]
+function secureBrakingBehavior!(CSs::Vector{Dict}, a_braking::Real, approxLevel::Integer)
+    # limit the entry and exit velocity of the characteristic sections to secure that the train stops at the moving sections end
 
         csId = length(CSs)
         followingCSv_entry = 0.0     # the exit velocity of the last characteristic section is 0.0 m/s
@@ -1200,13 +1196,12 @@ function secureBrakingBehavior!(movingSection::Dict, a_braking::Real, approxLeve
             followingCSv_entry = CS[:v_entry]
             csId = csId - 1
         end #while
-    return movingSection
+    return CSs
 end #function secureBrakingBehavior!
 
 ## define the intersection velocities between the characterisitc sections to secure accelerating behavior
-function secureAcceleratingBehavior!(movingSection::Dict, settings::Settings, train::Train)
-    # this function limits the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises aterwards
-    CSs = movingSection[:characteristicSections]
+function secureAcceleratingBehavior!(CSs::Vector{Dict}, settings::Settings, train::Train)
+    # limit the entry and exit velocity of the characteristic sections in case that the train accelerates in every section and cruises afterwards
 
     CSs[1][:v_entry] = 0.0     # the entry velocity of the first characteristic section is 0.0 m/s
     startingPoint = SupportPoint()
@@ -1264,5 +1259,5 @@ function secureAcceleratingBehavior!(movingSection::Dict, settings::Settings, tr
         CS[:t] = 0.0
     end #for
 
-    return movingSection
+    return CSs
 end #function secureAcceleratingBehavior!

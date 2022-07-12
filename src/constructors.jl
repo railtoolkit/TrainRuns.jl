@@ -254,9 +254,9 @@ function Path(file, type = :YAML)
     if POI_PRESENT
         sort!(tmp_points, by = x -> x[1])
         for elem in tmp_points
-            station = elem[1]     # first point of the section (in m)
-            label   = elem[2]     # paths speed limt (in m/s)
-            measure = elem[3]     # specific path resistance of the section (in ‰)
+            station = elem[1]     # station in m
+            label   = elem[2]     # name
+            measure = elem[3]     # front or rear
 
             point = Dict(:station => station,
                             :label   => label,
@@ -613,53 +613,28 @@ function Train(file, type = :YAML)
 
 end #function Train() # outer constructor
 
-## create a moving section containing characteristic sections
-function MovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real)
-    # this function creates and returns a moving section dependent on the paths attributes
-
-    s_entry = path.sections[1][:s_start]          # first position (in m)
-    s_exit = path.sections[end][:s_end]           # last position (in m)
-    pathLength = s_exit - s_entry                   # total length (in m)
-
-    ##TODO: use a tuple with naming
-    pointsOfInterest = Tuple[]
-    if !isempty(path.poi)
-        for POI in path.poi
-            s_poi = POI[:station]
-            if POI[:measure] == "rear"
-                s_poi += s_trainLength
-            end
-            push!(pointsOfInterest, (s_poi, POI[:label]) )
-        end
-        sort!(pointsOfInterest, by = x -> x[1])
-    end
+## create the moving section's characteristic sections
+function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
+    # create and return the characteristic sections of a moving section dependent on the paths attributes
 
     CSs=Vector{Dict}()
-    s_csStart=s_entry
-    csId=1
+    s_csStart = path.sections[1][:s_start]          # first position (in m)
+    csId = 1
     for row in 2:length(path.sections)
         previousSection = path.sections[row-1]
         currentSection = path.sections[row]
         speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
         pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
         if speedLimitIsDifferent || pathResistanceIsDifferent
-            push!(CSs, CharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, pointsOfInterest))
+            push!(CSs, CharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, MS_poi))
             s_csStart = currentSection[:s_start]
             csId = csId+1
         end #if
     end #for
-    push!(CSs, CharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, pointsOfInterest))
+    push!(CSs, CharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, MS_poi))
 
-    movingSection= Dict(:id => 1,                       # identifier    # if there is more than one moving section in a later version of this tool the id should not be constant anymore
-                        :length => pathLength,          # total length (in m)
-                        :s_entry => s_entry,            # first position (in m)
-                        :s_exit => s_exit,              # last position (in m)
-                        :t => 0.0,                      # total running time (in s)
-                        :characteristicSections => CSs, # list of containing characteristic sections
-                        :pointsOfInterest => pointsOfInterest) # list of containing points of interest
-
-    return movingSection
-end #function MovingSection
+    return CSs
+end #function CharacteristicSections
 
 ## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
 function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})

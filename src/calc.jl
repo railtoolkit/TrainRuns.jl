@@ -7,12 +7,11 @@
 # Calculate the running time of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
 
 # calculate a train run focussing on using the minimum possible running time
-function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, train::Train)
-   CSs::Vector{Dict} = movingSection[:characteristicSections]
+function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, train::Train)
 
    if settings.massModel == :homogeneous_strip && settings.stepVariable == speed
        println("WARNING: ! ! ! TrainRuns.jl doesn't work reliably for the mass model homogeneous strip with step size v in m/s. The calculation time can be extremely high when calcutlating paths with steep gradients ! ! !")
-   end
+   end # TODO
 
    startingPoint = SupportPoint()
    startingPoint[:i] = 1
@@ -22,7 +21,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
 
    for csId in 1:length(CSs)
        CS = CSs[csId]
-           # for testing
+           # for testing:   # TODO
            if drivingCourse[end][:s] != CS[:s_entry]
                println("ERROR: In CS", csId," the train run starts at s=",drivingCourse[end][:s]," and not s_entry=",CS[:s_entry])
            end
@@ -106,7 +105,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
     #end
 
 
-           # for testing:
+           # for testing:   # TODO
            if drivingCourse[end][:s] != CS[:s_exit]
                println("ERROR: In CS", csId," the train run ends at s=",drivingCourse[end][:s]," and not s_exit=",CS[:s_exit])
            end
@@ -117,9 +116,7 @@ function calculateMinimumRunningTime!(movingSection::Dict, settings::Settings, t
 
    (CSs[end], drivingCourse) = addHalt!(CSs[end], drivingCourse, settings, train, CSs)
 
-   movingSection[:t] = drivingCourse[end][:t]            # total running time (in s)
-
-   return (movingSection, drivingCourse)
+   return (CSs, drivingCourse)
 end #function calculateMinimumRunningTime
 
 
@@ -180,7 +177,7 @@ function calculatePathResistance(CSs::Vector{Dict}, csId::Integer, s::Real, mass
             pathResistance = pathResistance + (min(s, CSs[csId][:s_exit]) - max(s_rear, CSs[csId][:s_entry])) / train.length * forceFromCoefficient(CSs[csId][:r_path], train.m_train_full)
             csId = csId-1
             if csId == 0
-                # TODO: currently for values  < movingSection[:s_entry] the values of movingSection[:s_entry]  will be used
+                # TODO: currently for values  < s_trainrun_start the values of s_trainrun_start  will be used
                 return pathResistance + (CSs[1][:s_entry] - s_rear) / train.length * forceFromCoefficient(CSs[1][:r_path], train.m_train_full)
             end #if
         end #while
@@ -289,7 +286,7 @@ function getCurrentSpeedLimit(CSs::Vector{Dict}, csWithTrainHeadId::Integer, s::
     if csWithTrainHeadId > 1 && s -trainLength < CSs[csWithTrainHeadId][:s_entry]
         formerCsId = csWithTrainHeadId-1
         while formerCsId > 0 && s -trainLength < CSs[formerCsId][:s_exit]
-            if CSs[formerCsId][:v_limit] < v_limit    # TODO: is the position of the train's rear < movingSection[:s_entry], v_limit of the first CS is used
+            if CSs[formerCsId][:v_limit] < v_limit    # TODO: is the position of the train's rear < s_trainrun_start, v_limit of the first CS is used
                 v_limit = CSs[formerCsId][:v_limit]
                 s_exit = CSs[formerCsId][:s_exit]
             end
@@ -314,12 +311,25 @@ function getNextPointOfInterest(pointsOfInterest::Vector{Tuple}, s::Real)
 end #function getNextPointOfInterest
 
 
-## create a moving section and its containing characteristic sections with secured braking, accelerating and cruising behavior
+## create vectors with the moving section's points of interest and with the characteristic sections with secured braking and accelerating behavior
 function determineCharacteristics(path::Path, train::Train, settings::Settings)
-    movingSection = MovingSection(path, train.v_limit, train.length)
-    movingSection = secureBrakingBehavior!(movingSection, train.a_braking, settings.approxLevel)
-    movingSection = secureAcceleratingBehavior!(movingSection, settings, train)
-    #movingSection = secureCruisingBehavior!(movingSection, settings, train)
+    # determine the positions of the points of interest depending on the interesting part of the train (front/rear) and the train's length
+    ##TODO: use a tuple with naming
+    pointsOfInterest = Tuple[]
+    if !isempty(path.poi)
+        for POI in path.poi
+            s_poi = POI[:station]
+            if POI[:measure] == "rear"
+                s_poi += train.length
+            end
+            push!(pointsOfInterest, (s_poi, POI[:label]) )
+        end
+        sort!(pointsOfInterest, by = x -> x[1])
+    end
 
-    return movingSection
+    characteristicSections = CharacteristicSections(path, train.v_limit, train.length, pointsOfInterest)
+    characteristicSections = secureBrakingBehavior!(characteristicSections, train.a_braking, settings.approxLevel)
+    characteristicSections = secureAcceleratingBehavior!(characteristicSections, settings, train)
+
+    return (characteristicSections, pointsOfInterest)
 end #function determineCharacteristics

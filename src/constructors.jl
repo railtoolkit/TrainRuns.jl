@@ -639,18 +639,16 @@ end #function CharacteristicSections
 ## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
 function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
     # Create and return a characteristic section dependent on the paths attributes
-    characteristicSection= Dict(:id => id,                            # identifier
-                                :s_entry => s_entry,                    # first position (in m)
-                                :s_exit => section[:s_end],             # last position  (in m)
-                                :length => section[:s_end] -s_entry,    # total length  (in m)
-                                :r_path => section[:f_Rp],              # path resistance (in ‰)
-                                :behaviorSections => Dict(),            # list of containing behavior sections
-                                :t => 0.0,                              # total running time (in s)
-                                :v_limit => v_limit,                    # speed limit (in m/s)
-                                # initializing :v_entry, :v_peak and :v_exit with :v_limit
-                                :v_peak => v_limit,                     # maximum reachable speed (in m/s)
-                                :v_entry => v_limit,                    # maximum entry speed (in m/s)
-                                :v_exit => v_limit)                     # maximum exit speed (in m/s)
+    characteristicSection::Dict{Symbol, Any} = Dict(:id => id,                            # identifier
+                                                    :s_entry => s_entry,                    # first position (in m)
+                                                    :s_exit => section[:s_end],             # last position  (in m)
+                                                    :length => section[:s_end] -s_entry,    # total length  (in m)
+                                                    :r_path => section[:f_Rp],              # path resistance (in ‰)
+                                                    :v_limit => v_limit,                    # speed limit (in m/s)
+                                                    # initializing :v_entry, :v_peak and :v_exit with :v_limit
+                                                    :v_peak => v_limit,                     # maximum reachable speed (in m/s)
+                                                    :v_entry => v_limit,                    # maximum entry speed (in m/s)
+                                                    :v_exit => v_limit)                     # maximum exit speed (in m/s)
 
     # list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated
     s_exit = characteristicSection[:s_exit]
@@ -672,23 +670,6 @@ function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limi
 
     return characteristicSection
 end #function CharacteristicSection
-
-"""
-BehaviorSection() TODO!
-"""
-function BehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
-    BS= Dict(
-        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "standstill"
-        :length => 0.0,                # total length  (in m)
-        :s_entry => s_entry,           # first position (in m)
-        :s_exit => 0.0,                # last position  (in m)
-        :t => 0.0,                     # total running time (in s)
-        :v_entry => v_entry,           # entry speed (in m/s)
-        :v_exit => 0.0,                # exit speed (in m/s)
-        :supportPoints => [startingPoint] # list of identifiers of the containing support points starting with the initial point
-    )
-    return BS
-end #function BehaviorSection
 
 """
 a SupportPoint is the smallest element of the driving course. One step of the step approach is between two support points

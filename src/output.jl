@@ -45,17 +45,17 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
     end
 
     if settings.outputFormat == :dataframe
-        return createDataFrame(output, settings.outputDetail)
+        return createDataFrame(output, settings.outputDetail, settings.approxLevel)
     elseif settings.outputFormat == :vector
         return output
     end
 end
 
 
-function createDataFrame(output_vector::Vector{Dict}, outputDetail)
+function createDataFrame(output_vector::Vector{Dict}, outputDetail, approxLevel::Int)
     if outputDetail == :running_time
         # create a DataFrame with running time information
-        dataFrame = DataFrame(t=[output_vector[end][:t]])
+        dataFrame = DataFrame(t=[round(output_vector[end][:t], digits=approxLevel)])
     else # :points_of_interest, :data_points or :driving_course
         columnSymbols = [:label, :behavior, :s, :v, :t, :a, :F_T, :F_R, :R_path, :R_traction, :R_wagons]
 
@@ -72,6 +72,7 @@ function createDataFrame(output_vector::Vector{Dict}, outputDetail)
                 for point in output_vector
                     push!(currentRealColumn, point[columnSymbols[column]])
                 end
+                currentRealColumn = round.(currentRealColumn, digits=approxLevel)
                 push!(allColumns, currentRealColumn)
             end
         end # for

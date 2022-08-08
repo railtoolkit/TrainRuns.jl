@@ -8,17 +8,23 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
     if settings.outputDetail == :running_time
         output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 
-    elseif settings.outputDetail == :points_of_interest && !isempty(pointsOfInterest)
+    elseif settings.outputDetail == :points_of_interest
         # get only the driving course's support points with POI labels
+        # if there is no point with POI label return the information of departure and arrival (first and last points)
         output = Dict[]
-        supportPoint = 1
-        for POI in 1:length(pointsOfInterest)
-            while supportPoint <= length(drivingCourse)
-                if pointsOfInterest[POI][1] == drivingCourse[supportPoint][:s]
-                    push!(output, drivingCourse[supportPoint])
-                    break
+        if isempty(pointsOfInterest)
+            push!(output, drivingCourse[1])
+            push!(output, drivingCourse[end])
+        else
+            supportPoint = 1
+            for POI in 1:length(pointsOfInterest)
+                while supportPoint <= length(drivingCourse)
+                    if pointsOfInterest[POI][1] == drivingCourse[supportPoint][:s]
+                        push!(output, drivingCourse[supportPoint])
+                        break
+                    end
+                    supportPoint += 1
                 end
-                supportPoint += 1
             end
         end
 
@@ -34,7 +40,7 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
             end
         end
 
-    else #if settings.outputDetail == :driving_course || (settings.outputDetail == :points_of_interest && !isempty(path.poi))
+    elseif settings.outputDetail == :driving_course
         output = drivingCourse
     end
 

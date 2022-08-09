@@ -10,7 +10,7 @@ struct Settings
     stepVariable::Symbol # variable of the linear multistep method: ":distance", ":time" or ":velocity".
     stepSize::Real       # step size, unit depends on stepVariable - :distance in meter, time in seconds and velocity in meter/second.
     approxLevel::Int     # value for approximation; used when rounding or iterating.
-    outputDetail::Symbol # single Float() ":running_time", Vector() of ":points_of_interest",
+    outputDetail::Symbol # single Float() ":running_time", Vector() of ":points_of_interest", Vector() of ":data_points"
                          # or complete Vector() ":driving_course"
     outputFormat::Symbol # output as ":dataframe" or as ":vector".
 

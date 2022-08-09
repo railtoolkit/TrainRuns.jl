@@ -51,7 +51,7 @@ function Settings(
                 "outputDetail": {
                     "description": "Selecting the detail of the result",
                     "type": "string",
-                    "enum": [ "running_time", "points_of_interest", "driving_course" ]
+                    "enum": [ "running_time", "points_of_interest", "data_points", "driving_course" ]
                 },
                 "outputFormat": {
                     "description": "Output format",
@@ -254,9 +254,9 @@ function Path(file, type = :YAML)
     if POI_PRESENT
         sort!(tmp_points, by = x -> x[1])
         for elem in tmp_points
-            station = elem[1]     # first point of the section (in m)
-            label   = elem[2]     # paths speed limt (in m/s)
-            measure = elem[3]     # specific path resistance of the section (in ‰)
+            station = elem[1]     # station in m
+            label   = elem[2]     # name
+            measure = elem[3]     # front or rear
 
             point = Dict(:station => station,
                             :label   => label,
@@ -613,71 +613,44 @@ function Train(file, type = :YAML)
 
 end #function Train() # outer constructor
 
-## create a moving section containing characteristic sections
-function MovingSection(path::Path, v_trainLimit::Real, s_trainLength::Real)
-    # this function creates and returns a moving section dependent on the paths attributes
-
-    s_entry = path.sections[1][:s_start]          # first position (in m)
-    s_exit = path.sections[end][:s_end]           # last position (in m)
-    pathLength = s_exit - s_entry                   # total length (in m)
-
-    ##TODO: use a tuple with naming
-    pointsOfInterest = Tuple[]
-    if !isempty(path.poi)
-        for POI in path.poi
-            s_poi = POI[:station]
-            if POI[:measure] == "rear"
-                s_poi += s_trainLength
-            end
-            push!(pointsOfInterest, (s_poi, POI[:label]) )
-        end
-        sort!(pointsOfInterest, by = x -> x[1])
-    end
+## create the moving section's characteristic sections
+function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
+    # create and return the characteristic sections of a moving section dependent on the paths attributes
 
     CSs=Vector{Dict}()
-    s_csStart=s_entry
-    csId=1
+    s_csStart = path.sections[1][:s_start]          # first position (in m)
+    csId = 1
     for row in 2:length(path.sections)
         previousSection = path.sections[row-1]
         currentSection = path.sections[row]
         speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
         pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
         if speedLimitIsDifferent || pathResistanceIsDifferent
-            push!(CSs, CharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, pointsOfInterest))
+            push!(CSs, CharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, MS_poi))
             s_csStart = currentSection[:s_start]
             csId = csId+1
         end #if
     end #for
-    push!(CSs, CharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, pointsOfInterest))
+    push!(CSs, CharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, MS_poi))
 
-    movingSection= Dict(:id => 1,                       # identifier    # if there is more than one moving section in a later version of this tool the id should not be constant anymore
-                        :length => pathLength,          # total length (in m)
-                        :s_entry => s_entry,            # first position (in m)
-                        :s_exit => s_exit,              # last position (in m)
-                        :t => 0.0,                      # total running time (in s)
-                        :characteristicSections => CSs, # list of containing characteristic sections
-                        :pointsOfInterest => pointsOfInterest) # list of containing points of interest
-
-    return movingSection
-end #function MovingSection
+    return CSs
+end #function CharacteristicSections
 
 ## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
 function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
     # Create and return a characteristic section dependent on the paths attributes
-    characteristicSection= Dict(:id => id,                            # identifier
-                                :s_entry => s_entry,                    # first position (in m)
-                                :s_exit => section[:s_end],             # last position  (in m)
-                                :length => section[:s_end] -s_entry,    # total length  (in m)
-                                :r_path => section[:f_Rp],              # path resistance (in ‰)
-                                :behaviorSections => Dict(),            # list of containing behavior sections
-                                :t => 0.0,                              # total running time (in s)
-                                :v_limit => v_limit,                    # speed limit (in m/s)
-                                # initializing :v_entry, :v_peak and :v_exit with :v_limit
-                                :v_peak => v_limit,                     # maximum reachable speed (in m/s)
-                                :v_entry => v_limit,                    # maximum entry speed (in m/s)
-                                :v_exit => v_limit)                     # maximum exit speed (in m/s)
+    characteristicSection::Dict{Symbol, Any} = Dict(:id => id,                            # identifier
+                                                    :s_entry => s_entry,                    # first position (in m)
+                                                    :s_exit => section[:s_end],             # last position  (in m)
+                                                    :length => section[:s_end] -s_entry,    # total length  (in m)
+                                                    :r_path => section[:f_Rp],              # path resistance (in ‰)
+                                                    :v_limit => v_limit,                    # speed limit (in m/s)
+                                                    # initializing :v_entry, :v_peak and :v_exit with :v_limit
+                                                    :v_peak => v_limit,                     # maximum reachable speed (in m/s)
+                                                    :v_entry => v_limit,                    # maximum entry speed (in m/s)
+                                                    :v_exit => v_limit)                     # maximum exit speed (in m/s)
 
-    # list of positions of every point of interest (POI) in this charateristic section for which data points should be calculated
+    # list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated
     s_exit = characteristicSection[:s_exit]
 
     ##TODO: use a tuple with naming
@@ -699,42 +672,17 @@ function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limi
 end #function CharacteristicSection
 
 """
-BehaviorSection() TODO!
+a SupportPoint is the smallest element of the driving course. One step of the step approach is between two support points
 """
-function BehaviorSection(type::String, s_entry::Real, v_entry::Real, startingPoint::Integer)
-    BS= Dict(
-        :type => type,                 # type of behavior section: "breakFree", "clearing", "accelerating", "cruising", "downhillBraking", "diminishing", "coasting", "braking" or "standstill"
-        :length => 0.0,                # total length  (in m)
-        :s_entry => s_entry,           # first position (in m)
-        :s_exit => 0.0,                # last position  (in m)
-        :t => 0.0,                     # total running time (in s)
-        :E => 0.0,                     # total energy consumption (in Ws)
-        :v_entry => v_entry,           # entry speed (in m/s)
-        :v_exit => 0.0,                # exit speed (in m/s)
-        :dataPoints => [startingPoint] # list of identifiers of the containing data points starting with the initial point
-    )
-    return BS
-end #function BehaviorSection
-
-"""
-a DataPoint is the smallest element of the driving course. One step of the step approach is between two data points
-"""
-function DataPoint()
-    dataPoint = Dict(
+function SupportPoint()
+    supportPoint = Dict(
         :i => 0,            # identifier and counter variable of the driving course
-        :behavior => "",    # type of behavior section the data point is part of - see BehaviorSection()
-                            # a data point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
+        :behavior => "",    # type of behavior section the support point is part of - see BehaviorSection()
+                            # a support point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
         :s => 0.0,          # position (in m)
-        :Δs => 0.0,         # step size (in m)
         :t => 0.0,          # point in time (in s)
-        :Δt => 0.0,         # step size (in s)
         :v => 0.0,          # velocity (in m/s)
-        :Δv => 0.0,         # step size (in m/s)
         :a => 0.0,          # acceleration (in m/s^2)
-        :W => 0.0,          # mechanical work (in Ws)
-        :ΔW => 0.0,         # mechanical work in this step (in Ws)
-        :E => 0.0,          # energy consumption (in Ws)
-        :ΔE => 0.0,         # energy consumption in this step (in Ws)
         :F_T => 0.0,        # tractive effort (in N)
         :F_R => 0.0,        # resisting force (in N)
         :R_path => 0.0,     # path resistance (in N)
@@ -743,5 +691,5 @@ function DataPoint()
         :R_wagons => 0.0,   # set of wagons resistance (in N)
         :label => ""        # a label for important points
     )
-    return dataPoint
-end #function DataPoint
+    return supportPoint
+end #function SupportPoint

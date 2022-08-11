@@ -80,7 +80,7 @@ function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, tra
                     s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                     s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
-                    if s_cruising > 0.0  # TODO: define a minimum cruising length?
+                    if s_cruising > 1/10^(settings.approxLevel) # TODO: define another minimum cruising length?
                         (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")
                     else
                         stateFlags[:brakingStartReached] = true

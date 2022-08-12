@@ -99,6 +99,13 @@ function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, tra
         #else
         #   error()
         end
+
+        if CS[:s_exit] - drivingCourse[end][:s] < 1/10^(settings.approxLevel)
+            drivingCourse[end][:s] = CS[:s_exit] # round s up to CS[:s_exit]
+
+            # set state flag
+            stateFlags[:endOfCSReached] = true
+        end
     end
     #if s == s_exit
     #    halt

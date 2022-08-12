@@ -188,7 +188,7 @@ function addAcceleratingSection!(CS::Dict, drivingCourse::Vector{Dict}, stateFla
 
                     elseif drivingCourse[end][:v] > CS[:v_peak]
                         testFlag && println("in CS",CS[:id]," accelerating cycle",cycle," case: v=", drivingCourse[end][:v]," > v_peak=",CS[:v_peak])    # for testing
-                        if settings.stepVariable == :speed
+                        if settings.stepVariable == :velocity
                             currentStepSize = CS[:v_peak]-drivingCourse[end-1][:v]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle

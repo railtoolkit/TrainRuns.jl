@@ -644,8 +644,7 @@ function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limi
                                                     :s_exit => section[:s_end],             # last position  (in m)
                                                     :r_path => section[:f_Rp],              # path resistance (in ‰)
                                                     :v_limit => v_limit,                    # speed limit (in m/s)
-                                                    # initializing :v_entry, :v_peak and :v_exit with :v_limit
-                                                    :v_peak => v_limit,                     # maximum reachable speed (in m/s)
+                                                    # initializing :v_entry and :v_exit with :v_limit             
                                                     :v_entry => v_limit,                    # maximum entry speed (in m/s)
                                                     :v_exit => v_limit)                     # maximum exit speed (in m/s)
 

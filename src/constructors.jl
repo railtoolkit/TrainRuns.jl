@@ -642,7 +642,6 @@ function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limi
     characteristicSection::Dict{Symbol, Any} = Dict(:id => id,                            # identifier
                                                     :s_entry => s_entry,                    # first position (in m)
                                                     :s_exit => section[:s_end],             # last position  (in m)
-                                                    :length => section[:s_end] -s_entry,    # total length  (in m)
                                                     :r_path => section[:f_Rp],              # path resistance (in ‰)
                                                     :v_limit => v_limit,                    # speed limit (in m/s)
                                                     # initializing :v_entry, :v_peak and :v_exit with :v_limit

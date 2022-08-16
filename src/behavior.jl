@@ -1069,7 +1069,7 @@ function secureBrakingBehavior!(CSs::Vector{Dict}, a_braking::Real, approxLevel:
 
             CS[:v_exit] = min(CS[:v_limit], followingCSv_entry)
 
-            v_entryMax = brakingStartVelocity(CS[:v_exit], a_braking, CS[:length], approxLevel)
+            v_entryMax = brakingStartVelocity(CS[:v_exit], a_braking, CS[:s_exit]-CS[:s_entry], approxLevel)
 
             CS[:v_entry] = min(CS[:v_limit], v_entryMax)
             CS[:v_peak] = CS[:v_entry]

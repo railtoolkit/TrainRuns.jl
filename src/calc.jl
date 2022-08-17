@@ -44,6 +44,10 @@ function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, tra
 
     # determine the behavior sections for this characteristic section. It has to be at least one of those BS: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "halt")
     while !stateFlags[:endOfCSReached] # s < s_exit
+        if stateFlags[:error]
+            error("ERROR in calc in CS",CS[:id],":  BS=",drivingCourse[end][:behavior],"  s=",drivingCourse[end][:s],"  s_braking=",s_braking,"  v_limit=",CS[:v_limit],"  v=",drivingCourse[end][:v],"  v_exit=",CS[:v_exit]," with the flags:  endOfCS: ",stateFlags[:endOfCSReached],"    brakingStart: ",stateFlags[:brakingStartReached],"  F_T<F_R: ",stateFlags[:tractionDeficit],"  F_R<0: ",stateFlags[:resistingForceNegative]," v_previousLimit: ",stateFlags[:previousSpeedLimitReached]," v_limit: ",stateFlags[:speedLimitReached]," error: ",stateFlags[:error])
+        end
+
         if !stateFlags[:brakingStartReached] # s+s_braking < s_exit
             if !stateFlags[:tractionDeficit]
                 if drivingCourse[end][:F_T] >  drivingCourse[end][:F_R] && drivingCourse[end][:v] == 0.0
@@ -287,7 +291,7 @@ end #function moveAStep
 """
 # if the rear of the train is still located in a former characteristic section it has to be checked if its speed limit can be kept
 """
-function getCurrentSpeedLimit(CSs::Vector{Dict}, csWithTrainHeadId::Integer, s::Real, trainLength::Real)
+function getLowestSpeedLimit(CSs::Vector{Dict}, csWithTrainHeadId::Integer, s::Real, trainLength::Real)
     v_limit = CSs[csWithTrainHeadId][:v_limit]
     s_exit = CSs[csWithTrainHeadId][:s_exit]
     if csWithTrainHeadId > 1 && s -trainLength < CSs[csWithTrainHeadId][:s_entry]
@@ -300,9 +304,9 @@ function getCurrentSpeedLimit(CSs::Vector{Dict}, csWithTrainHeadId::Integer, s::
             formerCsId = formerCsId -1
         end
     end
-    currentSpeedLimit = Dict(:v => v_limit, :s_end => s_exit + trainLength)
-    return currentSpeedLimit
-end #function getCurrentSpeedLimit
+    lowestSpeedLimit = Dict(:v => v_limit, :s_end => s_exit + trainLength)
+    return lowestSpeedLimit
+end #function getLowestSpeedLimit
 
 
 """

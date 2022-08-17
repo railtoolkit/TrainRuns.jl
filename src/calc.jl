@@ -340,7 +340,6 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
 
     characteristicSections = CharacteristicSections(path, train.v_limit, train.length, pointsOfInterest)
     characteristicSections = secureBrakingBehavior!(characteristicSections, train.a_braking, settings.approxLevel)
-    characteristicSections = secureAcceleratingBehavior!(characteristicSections, settings, train)
 
     return (characteristicSections, pointsOfInterest)
 end #function determineCharacteristics

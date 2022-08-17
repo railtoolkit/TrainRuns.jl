@@ -617,30 +617,29 @@ end #function Train() # outer constructor
 function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
     # create and return the characteristic sections of a moving section dependent on the paths attributes
 
-    CSs=Vector{Dict}()
+    CSs = Vector{Dict}()
     s_csStart = path.sections[1][:s_start]          # first position (in m)
-    csId = 1
+    #csId = 1
     for row in 2:length(path.sections)
         previousSection = path.sections[row-1]
         currentSection = path.sections[row]
         speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
         pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
         if speedLimitIsDifferent || pathResistanceIsDifferent
-            push!(CSs, CharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, MS_poi))
+            push!(CSs, CharacteristicSection(s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, MS_poi))
             s_csStart = currentSection[:s_start]
-            csId = csId+1
+            #csId = csId+1
         end #if
     end #for
-    push!(CSs, CharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, MS_poi))
+    push!(CSs, CharacteristicSection(s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, MS_poi))
 
     return CSs
 end #function CharacteristicSections
 
 ## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
-function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
+function CharacteristicSection(s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
     # Create and return a characteristic section dependent on the paths attributes
-    characteristicSection::Dict{Symbol, Any} = Dict(:id => id,                            # identifier
-                                                    :s_entry => s_entry,                    # first position (in m)
+    characteristicSection::Dict{Symbol, Any} = Dict(:s_entry => s_entry,                    # first position (in m)
                                                     :s_exit => section[:s_end],             # last position  (in m)
                                                     :r_path => section[:f_Rp],              # path resistance (in ‰)
                                                     :v_limit => v_limit,                    # speed limit (in m/s)

@@ -23,89 +23,89 @@ function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, tra
        CS = CSs[csId]
        # determine the different flags for switching between the states for creating moving phases
        s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
-       calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings.massModel)     # tractive effort and resisting forces (in N)
+       calculateForces!(drivingCourse[end], CSs, csId, "default", train, settings.massModel)     # tractive effort and resisting forces (in N)
 
        previousSpeedLimitReached = false
        stateFlags = Dict(:endOfCSReached => drivingCourse[end][:s] > CS[:s_exit],
                          :brakingStartReached => drivingCourse[end][:s] + s_braking == CS[:s_exit],
                          :tractionDeficit => drivingCourse[end][:F_T] < drivingCourse[end][:F_R], # or add another flag for equal forces?
                          :resistingForceNegative => drivingCourse[end][:F_R] < 0.0,
-                         :previousSpeedLimitReached => false, #speedLimitReached, # check already at this position?
+                         :previousSpeedLimitReached => false,
                          :speedLimitReached => drivingCourse[end][:v] > CS[:v_limit],
                          :error => false)
 
-    # determine the behavior sections for this characteristic section. It has to be at least one of those BS: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "halt")
-    while !stateFlags[:endOfCSReached] # s < s_exit
-        if stateFlags[:error]
-            error("ERROR in calc in CS",CS[:id],":  BS=",drivingCourse[end][:behavior],"  s=",drivingCourse[end][:s],"  s_braking=",s_braking,"  v_limit=",CS[:v_limit],"  v=",drivingCourse[end][:v],"  v_exit=",CS[:v_exit]," with the flags:  endOfCS: ",stateFlags[:endOfCSReached],"    brakingStart: ",stateFlags[:brakingStartReached],"  F_T<F_R: ",stateFlags[:tractionDeficit],"  F_R<0: ",stateFlags[:resistingForceNegative]," v_previousLimit: ",stateFlags[:previousSpeedLimitReached]," v_limit: ",stateFlags[:speedLimitReached]," error: ",stateFlags[:error])
-        end
-
-        if !stateFlags[:brakingStartReached] # s+s_braking < s_exit
-            if !stateFlags[:tractionDeficit]
-                if drivingCourse[end][:F_T] >  drivingCourse[end][:F_R] && drivingCourse[end][:v] == 0.0
-                    (CS, drivingCourse, stateFlags) = addBreakFreeSection!(CS, drivingCourse, stateFlags, settings, train, CSs)
-
-                elseif stateFlags[:previousSpeedLimitReached]
-                    (CS, drivingCourse, stateFlags) = addClearingSection!(CS, drivingCourse, stateFlags, settings, train, CSs)
-
-                elseif drivingCourse[end][:F_T] > drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached]
-                    (CS, drivingCourse, stateFlags) = addAcceleratingSection!(CS, drivingCourse, stateFlags, settings, train, CSs)
-
-                elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached]
-                    # cruise only one step
-                    if settings.stepVariable == :distance
-                        s_cruising = settings.stepSize
-                    elseif settings.stepVariable == time
-                        s_cruising = Δs_with_Δt(settings.stepSize, drivingCourse[end][:a], drivingCourse[end][:v])
-                    elseif settings.stepVariable == velocity
-                        s_cruising = train.length/(10.0) # TODO which step size should be used?
-                    end
-                    (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")
-
-                elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
-                    s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
-                    s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
-
-                    if s_cruising > 0.0
-                        (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "downhillBraking")
-                    else
-                        stateFlags[:brakingStartReached] = true
-                    end
-
-                elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] || stateFlags[:speedLimitReached]
-                    s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
-                    s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
-
-                    if s_cruising > 1/10^(settings.approxLevel) # TODO: define another minimum cruising length?
-                        (CS, drivingCourse, stateFlags) = addCruisingSection!(CS, drivingCourse, stateFlags, s_cruising, settings, train, CSs, "cruising")
-                    else
-                        stateFlags[:brakingStartReached] = true
-                    end
-                else
-                    error()
-                end
-            elseif stateFlags[:tractionDeficit]
-                (CS, drivingCourse, stateFlags) = addDiminishingSection!(CS, drivingCourse, stateFlags, settings, train, CSs)
-
-            else
-                 error()
+        # determine the behavior sections for this characteristic section. It has to be at least one of those BS: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "halt")
+        while !stateFlags[:endOfCSReached] # s < s_exit
+            if stateFlags[:error]
+                error("ERROR in calc in CS",csId,":  BS=",drivingCourse[end][:behavior],"  s=",drivingCourse[end][:s],"  s_braking=",s_braking,"  v_limit=",CS[:v_limit],"  v=",drivingCourse[end][:v],"  v_exit=",CS[:v_exit]," with the flags:  endOfCS: ",stateFlags[:endOfCSReached],"    brakingStart: ",stateFlags[:brakingStartReached],"  F_T<F_R: ",stateFlags[:tractionDeficit],"  F_R<0: ",stateFlags[:resistingForceNegative]," v_previousLimit: ",stateFlags[:previousSpeedLimitReached]," v_limit: ",stateFlags[:speedLimitReached]," error: ",stateFlags[:error])
             end
-        else#if !stateFlags[:endOfCSReached] # s < s_exit
-            (CS, drivingCourse, stateFlags) = addBrakingSection!(CS, drivingCourse, stateFlags, settings, train, CSs)
-        #else
-        #   error()
-        end
 
-        if CS[:s_exit] - drivingCourse[end][:s] < 1/10^(settings.approxLevel)
-            drivingCourse[end][:s] = CS[:s_exit] # round s up to CS[:s_exit]
+            if !stateFlags[:brakingStartReached] # s+s_braking < s_exit
+                if !stateFlags[:tractionDeficit]
+                    if drivingCourse[end][:F_T] >  drivingCourse[end][:F_R] && drivingCourse[end][:v] == 0.0
+                        (drivingCourse, stateFlags) = addBreakFreeSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
 
-            # set state flag
-            stateFlags[:endOfCSReached] = true
+                    elseif stateFlags[:previousSpeedLimitReached]
+                        (drivingCourse, stateFlags) = addClearingSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
+
+                    elseif drivingCourse[end][:F_T] > drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached]
+                        (drivingCourse, stateFlags) = addAcceleratingSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
+
+                    elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached]
+                        # cruise only one step
+                        if settings.stepVariable == :distance
+                            s_cruising = settings.stepSize
+                        elseif settings.stepVariable == time
+                            s_cruising = Δs_with_Δt(settings.stepSize, drivingCourse[end][:a], drivingCourse[end][:v])
+                        elseif settings.stepVariable == velocity
+                            s_cruising = train.length/(10.0) # TODO which step size should be used?
+                        end
+                        (drivingCourse, stateFlags) = addCruisingSection!(drivingCourse, stateFlags, CSs, csId, settings, train, "cruising",  s_cruising)
+
+                    elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
+                        s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
+                        s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
+
+                        if s_cruising > 0.0
+                            (drivingCourse, stateFlags) = addCruisingSection!(drivingCourse, stateFlags, CSs, csId, settings, train, "downhillBraking",  s_cruising)
+                        else
+                            stateFlags[:brakingStartReached] = true
+                        end
+
+                    elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] || stateFlags[:speedLimitReached]
+                        s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
+                        s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
+
+                        if s_cruising > 1/10^(settings.approxLevel) # TODO: define another minimum cruising length?
+                            (drivingCourse, stateFlags) = addCruisingSection!(drivingCourse, stateFlags, CSs, csId, settings, train, "cruising",  s_cruising)
+                        else
+                            stateFlags[:brakingStartReached] = true
+                        end
+                    else
+                        error()
+                    end
+                elseif stateFlags[:tractionDeficit]
+                    (drivingCourse, stateFlags) = addDiminishingSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
+
+                else
+                     error()
+                end
+            else#if !stateFlags[:endOfCSReached] # s < s_exit
+                (drivingCourse, stateFlags) = addBrakingSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
+            #else
+            #   error()
+            end
+
+            if CS[:s_exit] - drivingCourse[end][:s] < 1/10^(settings.approxLevel)
+                drivingCourse[end][:s] = CS[:s_exit] # round s up to CS[:s_exit]
+
+                # set state flag
+                stateFlags[:endOfCSReached] = true
+            end
         end
-    end
-    #if s == s_exit
-    #    halt
-    #end
+        #if s == s_exit
+        #    halt
+        #end
 
 
            # for testing:   # TODO
@@ -117,7 +117,7 @@ function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, tra
            end
    end #for
 
-   (CSs[end], drivingCourse) = addHalt!(CSs[end], drivingCourse, settings, train, CSs)
+   drivingCourse = addHalt!(drivingCourse, CSs, length(CSs), settings, train)
 
    return (CSs, drivingCourse)
 end #function calculateMinimumRunningTime

@@ -644,9 +644,7 @@ function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limi
                                                     :s_exit => section[:s_end],             # last position  (in m)
                                                     :r_path => section[:f_Rp],              # path resistance (in ‰)
                                                     :v_limit => v_limit,                    # speed limit (in m/s)
-                                                    # initializing :v_entry and :v_exit with :v_limit             
-                                                    :v_entry => v_limit,                    # maximum entry speed (in m/s)
-                                                    :v_exit => v_limit)                     # maximum exit speed (in m/s)
+                                                    :v_exit => v_limit)                     # maximum exit speed (in m/s) initialized with v_limit
 
     # list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated
     s_exit = characteristicSection[:s_exit]

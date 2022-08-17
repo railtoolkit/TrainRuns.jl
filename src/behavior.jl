@@ -1003,20 +1003,20 @@ end #function recalculateLastBrakingPoint
 
 ## define the intersection velocities between the characterisitc sections to secure braking behavior
 function secureBrakingBehavior!(CSs::Vector{Dict}, a_braking::Real, approxLevel::Integer)
-    # limit the entry and exit velocity of the characteristic sections to secure that the train stops at the moving sections end
+    # limit the entry and exit velocities of the characteristic sections to secure that the train stops at the moving sections end
 
         csId = length(CSs)
-        followingCSv_entry = 0.0     # the exit velocity of the last characteristic section is 0.0 m/s
+        v_entryFollowing = 0.0     # the exit velocity of the last characteristic section is 0.0 m/s
         while csId >= 1
+            # calculate the maximum possible entry velocity to define the previous section's maximum allowed exit velocity
             CS = CSs[csId]
 
-            CS[:v_exit] = min(CS[:v_limit], followingCSv_entry)
+            CS[:v_exit] = min(CS[:v_limit], v_entryFollowing)
 
-            v_entryMax = brakingStartVelocity(CS[:v_exit], a_braking, CS[:s_exit]-CS[:s_entry], approxLevel)
+            v_entry = brakingStartVelocity(CS[:v_exit], a_braking, CS[:s_exit]-CS[:s_entry], approxLevel)
 
-            CS[:v_entry] = min(CS[:v_limit], v_entryMax)
+            v_entryFollowing = min(CS[:v_limit], v_entry)
 
-            followingCSv_entry = CS[:v_entry]
             csId = csId - 1
         end #while
     return CSs

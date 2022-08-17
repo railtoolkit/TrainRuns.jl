@@ -21,14 +21,6 @@ function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, tra
 
    for csId in 1:length(CSs)
        CS = CSs[csId]
-           # for testing:   # TODO
-           if drivingCourse[end][:s] != CS[:s_entry]
-               println("ERROR: In CS", csId," the train run starts at s=",drivingCourse[end][:s]," and not s_entry=",CS[:s_entry])
-           end
-           if drivingCourse[end][:v] > CS[:v_entry]
-               println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_entry=",CS[:v_entry])
-           end
-
        # determine the different flags for switching between the states for creating moving phases
        s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
        calculateForces!(drivingCourse[end], CSs, CS[:id], "default", train, settings.massModel)     # tractive effort and resisting forces (in N)

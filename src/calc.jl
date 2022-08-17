@@ -7,12 +7,7 @@
 # Calculate the running time of a train run on a path with special settings with information from the corresponding YAML files with the file paths `trainDirectory`, `pathDirectory`, `settingsDirectory`.
 
 # calculate a train run focussing on using the minimum possible running time
-function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, train::Train)
-
-   if settings.massModel == :homogeneous_strip && settings.stepVariable == speed
-       println("WARNING: ! ! ! TrainRuns.jl doesn't work reliably for the mass model homogeneous strip with step size v in m/s. The calculation time can be extremely high when calcutlating paths with steep gradients ! ! !")
-   end # TODO
-
+function calculateMinimumRunningTime(CSs::Vector{Dict}, settings::Settings, train::Train)
    startingPoint = SupportPoint()
    startingPoint[:i] = 1
    startingPoint[:s] = CSs[1][:s_entry]
@@ -119,7 +114,7 @@ function calculateMinimumRunningTime!(CSs::Vector{Dict}, settings::Settings, tra
 
    drivingCourse = addHalt!(drivingCourse, CSs, length(CSs), settings, train)
 
-   return (CSs, drivingCourse)
+   return drivingCourse
 end #function calculateMinimumRunningTime
 
 

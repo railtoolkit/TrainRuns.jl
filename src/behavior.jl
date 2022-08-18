@@ -17,7 +17,7 @@ function addBreakFreeSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs
     if trainIsHalting && !endOfCSReached
         drivingMode = "breakFree"
         drivingCourse[end][:behavior] = drivingMode
-        startingPoint = drivingCourse[end][:i]
+        startingPoint = length(drivingCourse)
 
         # traction effort and resisting forces (in N)
         calculateForces!(drivingCourse[end], CSs, csId, "accelerating", train, settings.massModel)    # currently the tractive effort is calculated like in the accelerating section
@@ -30,7 +30,7 @@ function addBreakFreeSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs
         end
 
         # delete every supportPoint except the first two
-        while drivingCourse[end][:i] > startingPoint +1
+        while length(drivingCourse) > startingPoint +1
             pop!(drivingCourse)
         end
 
@@ -851,7 +851,6 @@ function addBrakingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs::
                   if settings.stepVariable == :distance && ((drivingCourse[end][:v]/drivingCourse[end][:a])^2+2*currentStepSize/drivingCourse[end][:a])<0.0 || (drivingCourse[end][:v]^2+2*currentStepSize*drivingCourse[end][:a])<0.0
                       # create empty support point and set it for the values of s_exit and v_exit
                       push!(drivingCourse, SupportPoint())
-                      drivingCourse[end][:i] = drivingCourse[end-1][:i]+1
                       drivingCourse[end][:behavior] = drivingMode
                       recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], CS[:v_exit])
                   else
@@ -859,7 +858,6 @@ function addBrakingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs::
                       push!(drivingCourse, moveAStep(drivingCourse[end], settings.stepVariable, currentStepSize, csId))
                       drivingCourse[end][:behavior] = drivingMode
                   end
-                  #println(drivingCourse[end][:i],".  s=",drivingCourse[end][:s],"  s_exit=", CS[:s_exit],"  v_exit=", CS[:v_exit],"  v=",drivingCourse[end][:v])
 
                   # conditions for the next while cycle
                   pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]

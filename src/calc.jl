@@ -9,7 +9,6 @@
 # calculate a train run focussing on using the minimum possible running time
 function calculateMinimumRunningTime(CSs::Vector{Dict}, settings::Settings, train::Train)
    startingPoint = SupportPoint()
-   startingPoint[:i] = 1
    startingPoint[:s] = CSs[1][:s_entry]
    calculateForces!(startingPoint, CSs, 1, "default", train, settings.massModel) # traction effort and resisting forces (in N)
    drivingCourse::Vector{Dict} = [startingPoint]    # List of support points
@@ -223,7 +222,6 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
 
     # create the next support point
     newPoint = SupportPoint()
-    newPoint[:i] = previousPoint[:i]+1         # identifier
 
     # calculate s, t, v, E
     if stepVariable == :distance                                             # distance step method

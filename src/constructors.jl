@@ -671,9 +671,8 @@ a SupportPoint is the smallest element of the driving course. One step of the st
 """
 function SupportPoint()
     supportPoint = Dict(
-        :i => 0,            # identifier and counter variable of the driving course
         :behavior => "",    # type of behavior section the support point is part of - see BehaviorSection()
-                            # a support point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
+                             # a support point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
         :s => 0.0,          # position (in m)
         :t => 0.0,          # point in time (in s)
         :v => 0.0,          # velocity (in m/s)

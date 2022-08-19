@@ -614,7 +614,7 @@ function Train(file, type = :YAML)
 end #function Train() # outer constructor
 
 ## create the moving section's characteristic sections
-function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
+function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::Real, MS_poi::Vector{NamedTuple})
     # create and return the characteristic sections of a moving section dependent on the paths attributes
 
     CSs = Vector{Dict}()
@@ -636,8 +636,8 @@ function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::R
     return CSs
 end #function CharacteristicSections
 
-## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
-function CharacteristicSection(s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
+## create a characteristic section for a path section.
+function CharacteristicSection(s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{NamedTuple})
     # Create and return a characteristic section dependent on the paths attributes
     characteristicSection::Dict{Symbol, Any} = Dict(:s_entry => s_entry,                    # first position (in m)
                                                     :s_exit => section[:s_end],             # last position  (in m)
@@ -645,23 +645,21 @@ function CharacteristicSection(s_entry::Real, section::Dict, v_limit::Real, s_tr
                                                     :v_limit => v_limit,                    # speed limit (in m/s)
                                                     :v_exit => v_limit)                     # maximum exit speed (in m/s) initialized with v_limit
 
-    # list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated
+    # get the list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated from the list of the whole moving section's POI
     s_exit = characteristicSection[:s_exit]
-
-    ##TODO: use a tuple with naming
-    pointsOfInterest = Tuple[]
+    CS_poi = NamedTuple[]
     if !isempty(MS_poi)
         for POI in MS_poi
-            s_poi = POI[1]
+            s_poi = POI[:s]
             if s_entry < s_poi && s_poi <= s_exit
-                push!(pointsOfInterest, (POI))
+                push!(CS_poi, POI)
             end
         end
     end
-    if isempty(pointsOfInterest) || pointsOfInterest[end][1] < s_exit
-        push!(pointsOfInterest, (s_exit,""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
+    if isempty(CS_poi) || CS_poi[end][:s] < s_exit
+        push!(CS_poi, (s = s_exit, label = ""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
     end
-    merge!(characteristicSection, Dict(:pointsOfInterest => pointsOfInterest))
+    merge!(characteristicSection, Dict(:pointsOfInterest => CS_poi))
 
     return characteristicSection
 end #function CharacteristicSection

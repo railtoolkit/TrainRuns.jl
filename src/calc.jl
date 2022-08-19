@@ -297,7 +297,7 @@ end #function getLowestSpeedLimit
 """
 TODO
 """
-function getNextPointOfInterest(pointsOfInterest::Vector{Tuple}, s::Real)
+function getNextPointOfInterest(pointsOfInterest::Vector{NamedTuple}, s::Real)
     for POI in pointsOfInterest
         if POI[1] > s
             return POI
@@ -310,17 +310,16 @@ end #function getNextPointOfInterest
 ## create vectors with the moving section's points of interest and with the characteristic sections with secured braking and accelerating behavior
 function determineCharacteristics(path::Path, train::Train, settings::Settings)
     # determine the positions of the points of interest depending on the interesting part of the train (front/rear) and the train's length
-    ##TODO: use a tuple with naming
-    pointsOfInterest = Tuple[]
+    pointsOfInterest = NamedTuple[]
     if !isempty(path.poi)
         for POI in path.poi
             s_poi = POI[:station]
             if POI[:measure] == "rear"
                 s_poi += train.length
             end
-            push!(pointsOfInterest, (s_poi, POI[:label]) )
+            push!(pointsOfInterest, (s = s_poi, label = POI[:label]) )
         end
-        sort!(pointsOfInterest, by = x -> x[1])
+        sort!(pointsOfInterest, by = x -> x[:s])
     end
 
     characteristicSections = CharacteristicSections(path, train.v_limit, train.length, pointsOfInterest)

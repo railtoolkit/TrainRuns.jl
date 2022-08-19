@@ -4,7 +4,7 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfInterest::Vector{Tuple})
+function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfInterest::Vector{NamedTuple})
     if settings.outputDetail == :running_time
         output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 

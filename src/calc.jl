@@ -299,7 +299,7 @@ TODO
 """
 function getNextPointOfInterest(pointsOfInterest::Vector{NamedTuple}, s::Real)
     for POI in pointsOfInterest
-        if POI[1] > s
+        if POI[:s] > s
             return POI
         end
     end

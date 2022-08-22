@@ -19,7 +19,7 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
             supportPoint = 1
             for POI in 1:length(pointsOfInterest)
                 while supportPoint <= length(drivingCourse)
-                    if pointsOfInterest[POI][1] == drivingCourse[supportPoint][:s]
+                    if pointsOfInterest[POI][:s] == drivingCourse[supportPoint][:s]
                         push!(output, drivingCourse[supportPoint])
                         break
                     end

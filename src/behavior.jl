@@ -105,7 +105,7 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
         while !speedLimitReached && !endOfCSReached && tractionSurplus && !brakingStartReached && !previousSpeedLimitReached
             currentStepSize = settings.stepSize   # initialize the step size that can be reduced near intersections
             nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
-            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
 
             for cycle in 1:settings.approxLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 while !speedLimitReached && !brakingStartReached && !pointOfInterestReached && tractionSurplus && !previousSpeedLimitReached
@@ -129,7 +129,7 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
                     brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
                     speedLimitReached = drivingCourse[end][:v] >= CS[:v_limit]
                     previousSpeedLimitReached  = lowestSpeedLimit[:v] < CS[:v_limit] && (drivingCourse[end][:v] > lowestSpeedLimit[:v] || (drivingCourse[end][:v] == lowestSpeedLimit[:v] && drivingCourse[end][:s] < lowestSpeedLimit[:s_end]))
-                    pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]   # POIs include s_exit as well
+                    pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]   # POIs include s_exit as well
                     tractionSurplus = drivingCourse[end][:F_T] > drivingCourse[end][:F_R]
                 end #while
 
@@ -149,10 +149,10 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
                         testFlag && println("in CS",csId," accelerating cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],",+",s_braking," = ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])    # for testing
                         currentStepSize = settings.stepSize / 10.0^cycle
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[1]
-                        testFlag && println("in CS",csId," accelerating cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPOI=",nextPointOfInterest[1])    # for testing
+                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                        testFlag && println("in CS",csId," accelerating cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPOI=",nextPointOfInterest[:s])    # for testing
                         if settings.stepVariable == :distance
-                            currentStepSize = nextPointOfInterest[1] - drivingCourse[end-1][:s]
+                            currentStepSize = nextPointOfInterest[:s] - drivingCourse[end-1][:s]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle
                         end
@@ -176,16 +176,16 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
                         testFlag && println("in CS",csId," accelerating cycle",cycle," case: v=", drivingCourse[end][:v]," == v_lowestLimit=", lowestSpeedLimit[:v])    # for testing
                         break
 
-                    elseif drivingCourse[end][:s] == nextPointOfInterest[1]
-                        testFlag && println("in CS",csId," accelerating cycle",cycle," case: s=", drivingCourse[end][:s]," == nextPOI=",nextPointOfInterest[1])    # for testing
-                        if nextPointOfInterest[1] == CS[:s_exit]
+                    elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
+                        testFlag && println("in CS",csId," accelerating cycle",cycle," case: s=", drivingCourse[end][:s]," == nextPOI=",nextPointOfInterest[:s])    # for testing
+                        if nextPointOfInterest[:s] == CS[:s_exit]
                             endOfCSReached = true
                         end
                         break
 
                     else
                         println("v=",drivingCourse[end][:v],"   v_limit= ", CS[:v_limit] , "  v_lowestLimit=", lowestSpeedLimit[:v])
-                        println("s=" ,drivingCourse[end][:s],"   s_exit=", CS[:s_exit], "   s+s_braking=", drivingCourse[end][:s] +s_braking,"   nextPOI=",nextPointOfInterest[1])
+                        println("s=" ,drivingCourse[end][:s],"   s_exit=", CS[:s_exit], "   s+s_braking=", drivingCourse[end][:s] +s_braking,"   nextPOI=",nextPointOfInterest[:s])
                         println("F_T=",drivingCourse[end][:F_T] ,"   F_R=", drivingCourse[end][:F_R])
 
                         error("ERROR at accelerating section: With the step variable ",settings.stepVariable," the while loop will be left although v<v_limit and s<s_exit in CS",csId,"  with s=" ,drivingCourse[end][:s]," m and v=",drivingCourse[end][:v]," m/s")
@@ -218,9 +218,9 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
                             drivingCourse[end][:s] = CS[:s_exit] # round s down to CS[:s_exit]
                         end
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[1]
-                        testFlag && println("in CS",csId," accelerating cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest[1]=",nextPointOfInterest[1])    # for testing
-                        drivingCourse[end][:s] = nextPointOfInterest[1] # round s down to nextPointOfInterest
+                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                        testFlag && println("in CS",csId," accelerating cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest[:s]=",nextPointOfInterest[:s])    # for testing
+                        drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
 
                     elseif drivingCourse[end][:F_T] <= drivingCourse[end][:F_R]
                         testFlag && println("in CS",csId," accelerating cycle",cycle," case: F_T=", drivingCourse[end][:F_T]," <= F_R=",drivingCourse[end][:F_R])    # for testing
@@ -245,8 +245,8 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
             if drivingCourse[end][:s] == CS[:s_exit]
                 endOfCSReached = true
             end
-            if drivingCourse[end][:s] == nextPointOfInterest[1]
-                drivingCourse[end][:label] = nextPointOfInterest[2]
+            if drivingCourse[end][:s] == nextPointOfInterest[:s]
+                drivingCourse[end][:label] = nextPointOfInterest[:label]
             end
 
         end #while
@@ -315,7 +315,7 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
             while trainInPreviousCS && !targetPositionReached && !tractionDeficit && (trainIsClearing || (trainIsBrakingDownhill == resistingForceNegative)) # while clearing tractive or braking force can be used
                 currentStepSize = settings.stepSize
                 nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
-                pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
+                pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
 
                 for cycle in 1:settings.approxLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                     while trainInPreviousCS && !targetPositionReached && !pointOfInterestReached && !tractionDeficit && (trainIsClearing || (trainIsBrakingDownhill == resistingForceNegative)) # while clearing tractive or braking force can be used
@@ -344,7 +344,7 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                         calculateForces!(drivingCourse[end], CSs, csId, "default", train, settings.massModel)
 
                         # conditions for the next while cycle
-                        pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]   # POIs include s_exit as well
+                        pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]   # POIs include s_exit as well
                         tractionDeficit = drivingCourse[end][:F_T] < drivingCourse[end][:F_R]
                         targetPositionReached = drivingCourse[end][:s] >= targetPosition
                         trainInPreviousCS = drivingCourse[end][:s] < CS[:s_entry] + train.length
@@ -362,9 +362,9 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                         elseif trainIsBrakingDownhill && !resistingForceNegative
                             currentStepSize = settings.stepSize / 10.0^cycle
 
-                        elseif drivingCourse[end][:s] > nextPointOfInterest[1]
+                        elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
                             if settings.stepVariable == :distance
-                                currentStepSize = nextPointOfInterest[1] - drivingCourse[end-1][:s]
+                                currentStepSize = nextPointOfInterest[:s] - drivingCourse[end-1][:s]
                             else
                                 currentStepSize = settings.stepSize / 10.0^cycle
                             end
@@ -382,7 +382,7 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                         elseif drivingCourse[end][:s] >= CS[:s_entry] + train.length
                             break
 
-                        elseif drivingCourse[end][:s] == nextPointOfInterest[1]
+                        elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
                             break
 
                         elseif !trainInPreviousCS
@@ -403,8 +403,8 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                         resistingForceNegative = drivingCourse[end][:F_R] < 0.0
 
                     else # if the level of approximation is reached
-                        if drivingCourse[end][:s] > nextPointOfInterest[1]
-                            drivingCourse[end][:s] = nextPointOfInterest[1] # round s down to nextPointOfInterest
+                        if drivingCourse[end][:s] > nextPointOfInterest[:s]
+                            drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
                         elseif drivingCourse[end][:s] > targetPosition
                             if drivingMode != "clearing"
                                 pop!(drivingCourse)
@@ -426,8 +426,8 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                     end
                 end #for
 
-                if drivingCourse[end][:s] == nextPointOfInterest[1]
-                    drivingCourse[end][:label] = nextPointOfInterest[2]
+                if drivingCourse[end][:s] == nextPointOfInterest[:s]
+                    drivingCourse[end][:label] = nextPointOfInterest[:label]
                 end
 
             end #while
@@ -440,8 +440,8 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
 
         while !targetPositionReached && !tractionDeficit && (trainIsClearing || (trainIsBrakingDownhill == resistingForceNegative)) # while clearing tractive or braking force can be used
             nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
-            if nextPointOfInterest[1] > targetPosition
-                nextPointOfInterest = [targetPosition, ""]
+            if nextPointOfInterest[:s] > targetPosition
+                nextPointOfInterest = (s = targetPosition, label = "") #[targetPosition, ""]
             end
 
             # tractive effort (in N):
@@ -457,13 +457,13 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
 
             # calculate the remaining cruising way
             #s_cruisingRemaining=targetPosition-drivingCourse[end][:s]
-            s_cruisingRemaining = min(nextPointOfInterest[1] -drivingCourse[end][:s], targetPosition -drivingCourse[end][:s])
+            s_cruisingRemaining = min(nextPointOfInterest[:s] -drivingCourse[end][:s], targetPosition -drivingCourse[end][:s])
 
             # create the next support point
             push!(drivingCourse, moveAStep(drivingCourse[end], :distance, s_cruisingRemaining, csId))
             drivingCourse[end][:behavior] = drivingMode
-            if drivingCourse[end][:s] == nextPointOfInterest[1]
-                drivingCourse[end][:label] = nextPointOfInterest[2]
+            if drivingCourse[end][:s] == nextPointOfInterest[:s]
+                drivingCourse[end][:label] = nextPointOfInterest[:label]
             end
 
             calculateForces!(drivingCourse[end], CSs, csId, "default", train, settings.massModel)
@@ -514,11 +514,10 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
         while tractionDeficit && !targetSpeedReached && !endOfCSReached && !brakingStartReached
             currentStepSize = settings.stepSize   # initialize the step size that can be reduced near intersections
             nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
-            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
 
             for cycle in 1:settings.approxLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 while tractionDeficit && !brakingStartReached && !pointOfInterestReached && !targetSpeedReached
-                # 03/09 old: while drivingCourse[end][:F_T] < drivingCourse[end][:F_R] && !brakingStartReached && drivingCourse[end][:s] < nextPointOfInterest[1] && drivingCourse[end][:v]>0.0       # as long as s_i + s_braking < s_end
                     # acceleration (in m/s^2):
                     drivingCourse[end][:a] = acceleration(drivingCourse[end][:F_T], drivingCourse[end][:F_R], train.m_train_full, train.ξ_train)
 
@@ -532,7 +531,7 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                     s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
 
                     brakingStartReached = drivingCourse[end][:s] +s_braking >= CS[:s_exit]
-                    pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
+                    pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
                     targetSpeedReached = drivingCourse[end][:v] <= 0.0
                     tractionDeficit = drivingCourse[end][:F_T] < drivingCourse[end][:F_R]
                     endOfCSReached = drivingCourse[end][:s] == CS[:s_exit]
@@ -560,10 +559,10 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                         testFlag && println("in CS",csId," diminishing cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])    # for testing
                         currentStepSize = settings.stepSize / 10.0^cycle
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[1]
-                        testFlag && println("in CS",csId," diminishing cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPOI=",nextPointOfInterest[1])    # for testing
+                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                        testFlag && println("in CS",csId," diminishing cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPOI=",nextPointOfInterest[:s])    # for testing
                         if settings.stepVariable == :distance
-                            currentStepSize = nextPointOfInterest[1] - drivingCourse[end-1][:s]
+                            currentStepSize = nextPointOfInterest[:s] - drivingCourse[end-1][:s]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle
                         end
@@ -572,8 +571,8 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                         testFlag && println("in CS",csId," diminishing cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," == s_exit=",CS[:s_exit])    # for testing
                         break
 
-                    elseif drivingCourse[end][:s] == nextPointOfInterest[1]
-                        testFlag && println("in CS",csId," diminishing cycle",cycle," case: s=", drivingCourse[end][:s]," == nextPOI=",nextPointOfInterest[1])    # for testing
+                    elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
+                        testFlag && println("in CS",csId," diminishing cycle",cycle," case: s=", drivingCourse[end][:s]," == nextPOI=",nextPointOfInterest[:s])    # for testing
                         break
 
                     elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R]
@@ -614,9 +613,9 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                         tractionDeficit = true
                         endOfCSReached = false
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[1]
-                        testFlag && println("in CS",csId," diminishing cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest[1]=",nextPointOfInterest[1])    # for testing
-                        drivingCourse[end][:s] = nextPointOfInterest[1] # round s down to nextPointOfInterest
+                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                        testFlag && println("in CS",csId," diminishing cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest[:s]=",nextPointOfInterest[:s])    # for testing
+                        drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
 
                     elseif drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
                         testFlag && println("in CS",csId," diminishing cycle",cycle," case: F_T=", drivingCourse[end][:F_T]," >= F_R=", drivingCourse[end][:F_R])    # for testing
@@ -625,7 +624,7 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                     else
                         testFlag && println("in CS",csId," diminishing cycle",cycle," case: else with v=", drivingCourse[end][:v]," > 0.0   and F_T=", drivingCourse[end][:F_T]," <= F_R=", drivingCourse[end][:F_R])    # for testing
                         #println("     and s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
-                        #println("     and s=", drivingCourse[end][:s]," <= nextPointOfInterest[1]=",nextPointOfInterest[1])    # for testing
+                        #println("     and s=", drivingCourse[end][:s]," <= nextPointOfInterest[:s]=",nextPointOfInterest[:s])    # for testing
 
                     #    if drivingCourse[end][:s] + s_braking == CS[:s_exit]
                     #        brakingStartReached = true
@@ -639,8 +638,8 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                 end #if
             end #for
 
-            if drivingCourse[end][:s] == nextPointOfInterest[1]
-                drivingCourse[end][:label] = nextPointOfInterest[2]
+            if drivingCourse[end][:s] == nextPointOfInterest[:s]
+                drivingCourse[end][:label] = nextPointOfInterest[:label]
             end
         end #while
     end
@@ -679,8 +678,8 @@ function addCoastingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
 
        while !targetSpeedReached && !endOfCSReached && !brakingStartReached
            currentStepSize = settings.stepSize  # initialize the step size that can be reduced near intersections
-           nextPointOfInterest[1] = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
-           pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
+           nextPointOfInterest[:s] = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
+           pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
 
            for cycle in 1:settings.approxLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 while !targetSpeedReached && !brakingStartReached && !pointOfInterestReached
@@ -702,7 +701,7 @@ function addCoastingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                    # conditions for the next while cycle
                    s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
                    brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
-                   pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
+                   pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
                    targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit] || drivingCourse[end][:v] > CS[:v_limit] ||  lowestSpeedLimit[:v] < CS[:v_limit] && (drivingCourse[end][:v] > lowestSpeedLimit[:v] || (drivingCourse[end][:v] == lowestSpeedLimit[:v] && drivingCourse[end][:s] < lowestSpeedLimit[:s_end]))
                 end # while
 
@@ -714,10 +713,10 @@ function addCoastingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                        testFlag && println("in CS",csId," coasting cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])    # for testing
                        currentStepSize = settings.stepSize / 10.0^cycle
 
-                   elseif drivingCourse[end][:s] > nextPointOfInterest[1]
-                       testFlag && println("in CS",csId," coasting cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest[1]=",nextPointOfInterest[1])    # for testing
+                   elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                       testFlag && println("in CS",csId," coasting cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest[:s]=",nextPointOfInterest[:s])    # for testing
                        if settings.stepVariable == :distance
-                           currentStepSize = nextPointOfInterest[1] - drivingCourse[end-1][:s]
+                           currentStepSize = nextPointOfInterest[:s] - drivingCourse[end-1][:s]
                        else
                            currentStepSize = settings.stepSize / 10.0^cycle
                        end
@@ -746,8 +745,8 @@ function addCoastingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                        testFlag && println("in CS",csId," coasting cycle",cycle," case: v=", drivingCourse[end][:v]," == v_exit=", CS[:v_exit])    # for testing
                        break
 
-                   elseif drivingCourse[end][:s] == nextPointOfInterest[1]
-                       testFlag && println("in CS",csId," coasting cycle",cycle," case: s =", drivingCourse[end][:s]," > nextPointOfInterest[1]=",nextPointOfInterest[1])    # for testing
+                   elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
+                       testFlag && println("in CS",csId," coasting cycle",cycle," case: s =", drivingCourse[end][:s]," > nextPointOfInterest[:s]=",nextPointOfInterest[:s])    # for testing
                        break
 
                    else
@@ -791,16 +790,16 @@ function addCoastingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                            speedLimitReached = true
                        end
 
-                   elseif drivingCourse[end][:s] > nextPointOfInterest[1]
-                       drivingCourse[end][:s] = nextPointOfInterest[1] # round s down to nextPointOfInterest
+                   elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                       drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
                    else
                        # do nothing for example for drivingCourse[end][:s] + s_braking == CS[:s_exit]
                    end
                end
            end #for
 
-           if drivingCourse[end][:s] == nextPointOfInterest[1]
-               drivingCourse[end][:label] = nextPointOfInterest[2]
+           if drivingCourse[end][:s] == nextPointOfInterest[:s]
+               drivingCourse[end][:label] = nextPointOfInterest[:label]
            end
 
        end #while
@@ -836,11 +835,10 @@ function addBrakingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs::
         while !targetSpeedReached && !endOfCSReached
             currentStepSize = settings.stepSize  # initialize the step size that can be reduced near intersections
             nextPointOfInterest = getNextPointOfInterest(CS[:pointsOfInterest], drivingCourse[end][:s])
-            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
 
             for cycle in 1:settings.approxLevel+1   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 while !targetSpeedReached && !endOfCSReached && !pointOfInterestReached
-                # 03/09 old: while drivingCourse[end][:v] > CS[:v_exit] && !targetSpeedReached && drivingCourse[end][:s] < CS[:s_exit] && drivingCourse[end][:s] < nextPointOfInterest[1]
                   # traction effort and resisting forces (in N):
                   calculateForces!(drivingCourse[end], CSs, csId, drivingMode, train, settings.massModel)
 
@@ -860,7 +858,7 @@ function addBrakingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs::
                   end
 
                   # conditions for the next while cycle
-                  pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[1]
+                  pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
                   endOfCSReached = drivingCourse[end][:s] >= CS[:s_exit]
                   targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit]
                 end # while
@@ -875,9 +873,9 @@ function addBrakingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs::
                             currentStepSize = settings.stepSize / 10.0^cycle
                         end
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[1]
+                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
                         if settings.stepVariable == :distance
-                            currentStepSize = nextPointOfInterest[1] - drivingCourse[end-1][:s]
+                            currentStepSize = nextPointOfInterest[:s] - drivingCourse[end-1][:s]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle
                         end
@@ -895,7 +893,7 @@ function addBrakingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs::
                         targetSpeedReached = true
                         break
 
-                    elseif drivingCourse[end][:s] == nextPointOfInterest[1]
+                    elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
                         break
                     end
 
@@ -920,8 +918,8 @@ function addBrakingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs::
                       # recalculateLastBrakingPoint!(drivingCourse, CS[:s_exit], CS[:v_exit])
                        drivingCourse[end][:s] = CS[:s_exit]
                        break
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[1]
-                        drivingCourse[end][:s] = nextPointOfInterest[1] # round s down to nextPointOfInterest
+                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                        drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
                         break
                     elseif drivingCourse[end][:v] == CS[:v_exit] && drivingCourse[end][:s] == CS[:s_exit]
                         break
@@ -942,13 +940,13 @@ function addBrakingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs::
                         targetSpeedReached = true
                         break
                     else
-                        # do nothing for example for drivingCourse[end][:s]==nextPointOfInterest[1]
+                        # do nothing for example for drivingCourse[end][:s]==nextPointOfInterest[:s]
                     end
                 end
             end #for
 
-            if drivingCourse[end][:s] == nextPointOfInterest[1]
-                drivingCourse[end][:label] = nextPointOfInterest[2]
+            if drivingCourse[end][:s] == nextPointOfInterest[:s]
+                drivingCourse[end][:label] = nextPointOfInterest[:label]
             end
 
         end #while

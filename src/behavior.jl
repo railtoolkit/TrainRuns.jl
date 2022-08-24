@@ -167,9 +167,6 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
 
                     elseif drivingCourse[end][:s] + s_braking == CS[:s_exit]
                         testFlag && println("in CS",csId," accelerating cycle",cycle," case: s +s_braking=", drivingCourse[end][:s],",+",s_braking," = ",drivingCourse[end][:s] +s_braking," == s_exit=",CS[:s_exit])    # for testing
-                        if s_braking == 0.0
-                            endOfCSReached = true
-                        end
                         break
 
                     elseif drivingCourse[end][:v] == lowestSpeedLimit[:v]
@@ -178,9 +175,6 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
 
                     elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
                         testFlag && println("in CS",csId," accelerating cycle",cycle," case: s=", drivingCourse[end][:s]," == nextPOI=",nextPointOfInterest[:s])    # for testing
-                        if nextPointOfInterest[:s] == CS[:s_exit]
-                            endOfCSReached = true
-                        end
                         break
 
                     else
@@ -197,7 +191,6 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
                     brakingStartReached = false
                     previousSpeedLimitReached = false
                     speedLimitReached = false
-                    endOfCSReached = false
                     pointOfInterestReached = false
                     tractionSurplus = true
 
@@ -228,17 +221,12 @@ function addAcceleratingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, 
                     else
                         if drivingCourse[end][:s] + s_braking == CS[:s_exit]
                             testFlag && println("in CS",csId," accelerating cycle",cycle," else case and there: s +s_braking=", drivingCourse[end][:s],",+",s_braking," = ",drivingCourse[end][:s] +s_braking," > s_exit=",CS[:s_exit])    # for testing
+
                         elseif drivingCourse[end][:v] == lowestSpeedLimit[:v]
                             testFlag && println("in CS",csId," accelerating cycle",cycle," case: v=", drivingCourse[end][:v]," == v_lowestLimit=", lowestSpeedLimit[:v])    # for testing
 
                         end
                     end
-
-                    # TODO is it possible to put this into to the if-fork?
-                    if drivingCourse[end][:s] == CS[:s_exit]
-                        endOfCSReached = true
-                    end
-
                 end
             end #for
 
@@ -534,7 +522,6 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                     pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
                     targetSpeedReached = drivingCourse[end][:v] <= 0.0
                     tractionDeficit = drivingCourse[end][:F_T] < drivingCourse[end][:F_R]
-                    endOfCSReached = drivingCourse[end][:s] == CS[:s_exit]
                 end #while
 
                 if csId==0
@@ -595,7 +582,6 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                     pointOfInterestReached = false
                     targetSpeedReached = false
                     tractionDeficit = true
-                    endOfCSReached = false
 
                 else # if the level of approximation is reached
                     if drivingCourse[end][:v] <= 0.0
@@ -611,7 +597,6 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                         pointOfInterestReached = false
                         targetSpeedReached = false
                         tractionDeficit = true
-                        endOfCSReached = false
 
                     elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
                         testFlag && println("in CS",csId," diminishing cycle",cycle," case: s=", drivingCourse[end][:s]," > nextPointOfInterest[:s]=",nextPointOfInterest[:s])    # for testing
@@ -625,19 +610,11 @@ function addDiminishingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, C
                         testFlag && println("in CS",csId," diminishing cycle",cycle," case: else with v=", drivingCourse[end][:v]," > 0.0   and F_T=", drivingCourse[end][:F_T]," <= F_R=", drivingCourse[end][:F_R])    # for testing
                         #println("     and s +s_braking=", drivingCourse[end][:s],"+",s_braking," = ",drivingCourse[end][:s] +s_braking," <= s_exit=",CS[:s_exit])    # for testing
                         #println("     and s=", drivingCourse[end][:s]," <= nextPointOfInterest[:s]=",nextPointOfInterest[:s])    # for testing
-
-                    #    if drivingCourse[end][:s] + s_braking == CS[:s_exit]
-                    #        brakingStartReached = true
-                    #    end
                     end #if
-
-                #    # TODO is it possible to put this into to the if-fork?
-                #    if drivingCourse[end][:s] == CS[:s_exit]
-                #        endOfCSReached = true
-                #    end
                 end #if
             end #for
 
+            endOfCSReached = drivingCourse[end][:s] == CS[:s_exit]
             if drivingCourse[end][:s] == nextPointOfInterest[:s]
                 drivingCourse[end][:label] = nextPointOfInterest[:label]
             end
@@ -798,6 +775,7 @@ function addCoastingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                end
            end #for
 
+           endOfCSReached = drivingCourse[end][:s] == CS[:s_exit]
            if drivingCourse[end][:s] == nextPointOfInterest[:s]
                drivingCourse[end][:label] = nextPointOfInterest[:label]
            end

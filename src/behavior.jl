@@ -321,7 +321,7 @@ function addCruisingSection!(drivingCourse::Vector{Dict}, stateFlags::Dict, CSs:
                         drivingCourse[end][:a] = 0.0
 
                         # create the next support point
-                        if settings.stepVariable == :distance || settings.stepVariable == time
+                        if settings.stepVariable == :distance || settings.stepVariable == :time
                             push!(drivingCourse, moveAStep(drivingCourse[end], settings.stepVariable, currentStepSize, csId))
                         else
                             push!(drivingCourse, moveAStep(drivingCourse[end], settings.stepVariable, train.length/(10.0^cycle), csId)) # TODO which step size should be used?

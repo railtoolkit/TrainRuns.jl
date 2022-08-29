@@ -9,6 +9,9 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+
+## Version [1.0.2] 2022-09-01
+
 ### Added
 * output alternative with starting points of the driving modes
 
@@ -208,7 +211,8 @@ Modules and variables were renamed.
 Proof of concept and master thesis submission.
 
 
-[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.1...main
+[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.2...main
+[1.0.2]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.8...v1.0.0
 [0.8]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.7...v0.8

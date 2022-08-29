@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to register or component to bump
+        description: "Version to register or component to bump (without leading 'v' e.g. '1.0.1')"
         required: true
 
 jobs:

@@ -1,8 +1,7 @@
 name: "continuous integration test"
 on:
   push:
-    branches:
-      - main
+    branches: [ main, development ]
     paths-ignore:
       - 'CHANGELOG.md'
       - 'CITATION.cff'
@@ -16,6 +15,7 @@ on:
       - '.github/workflows/TagBot.yml'
       - '.github/zenodo/*'
   pull_request:
+    branches: [ main, development ]
     paths-ignore:
       - 'CHANGELOG.md'
       - 'CITATION.cff'

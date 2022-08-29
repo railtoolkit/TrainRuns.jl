@@ -4,7 +4,7 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
-function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfInterest::Vector{Tuple})
+function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfInterest::Vector{NamedTuple})
     if settings.outputDetail == :running_time
         output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 
@@ -19,7 +19,7 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
             supportPoint = 1
             for POI in 1:length(pointsOfInterest)
                 while supportPoint <= length(drivingCourse)
-                    if pointsOfInterest[POI][1] == drivingCourse[supportPoint][:s]
+                    if pointsOfInterest[POI][:s] == drivingCourse[supportPoint][:s]
                         push!(output, drivingCourse[supportPoint])
                         break
                     end

@@ -614,59 +614,52 @@ function Train(file, type = :YAML)
 end #function Train() # outer constructor
 
 ## create the moving section's characteristic sections
-function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
+function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::Real, MS_poi::Vector{NamedTuple})
     # create and return the characteristic sections of a moving section dependent on the paths attributes
 
-    CSs=Vector{Dict}()
+    CSs = Vector{Dict}()
     s_csStart = path.sections[1][:s_start]          # first position (in m)
-    csId = 1
+    #csId = 1
     for row in 2:length(path.sections)
         previousSection = path.sections[row-1]
         currentSection = path.sections[row]
         speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
         pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
         if speedLimitIsDifferent || pathResistanceIsDifferent
-            push!(CSs, CharacteristicSection(csId, s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, MS_poi))
+            push!(CSs, CharacteristicSection(s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, MS_poi))
             s_csStart = currentSection[:s_start]
-            csId = csId+1
+            #csId = csId+1
         end #if
     end #for
-    push!(CSs, CharacteristicSection(csId, s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, MS_poi))
+    push!(CSs, CharacteristicSection(s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, MS_poi))
 
     return CSs
 end #function CharacteristicSections
 
-## create a characteristic section for a path section. A characteristic section is a part of the moving section. It contains behavior sections.
-function CharacteristicSection(id::Integer, s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{Tuple})
+## create a characteristic section for a path section.
+function CharacteristicSection(s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{NamedTuple})
     # Create and return a characteristic section dependent on the paths attributes
-    characteristicSection::Dict{Symbol, Any} = Dict(:id => id,                            # identifier
-                                                    :s_entry => s_entry,                    # first position (in m)
+    characteristicSection::Dict{Symbol, Any} = Dict(:s_entry => s_entry,                    # first position (in m)
                                                     :s_exit => section[:s_end],             # last position  (in m)
-                                                    :length => section[:s_end] -s_entry,    # total length  (in m)
                                                     :r_path => section[:f_Rp],              # path resistance (in ‰)
                                                     :v_limit => v_limit,                    # speed limit (in m/s)
-                                                    # initializing :v_entry, :v_peak and :v_exit with :v_limit
-                                                    :v_peak => v_limit,                     # maximum reachable speed (in m/s)
-                                                    :v_entry => v_limit,                    # maximum entry speed (in m/s)
-                                                    :v_exit => v_limit)                     # maximum exit speed (in m/s)
+                                                    :v_exit => v_limit)                     # maximum exit speed (in m/s) initialized with v_limit
 
-    # list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated
+    # get the list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated from the list of the whole moving section's POI
     s_exit = characteristicSection[:s_exit]
-
-    ##TODO: use a tuple with naming
-    pointsOfInterest = Tuple[]
+    CS_poi = NamedTuple[]
     if !isempty(MS_poi)
         for POI in MS_poi
-            s_poi = POI[1]
+            s_poi = POI[:s]
             if s_entry < s_poi && s_poi <= s_exit
-                push!(pointsOfInterest, (POI))
+                push!(CS_poi, POI)
             end
         end
     end
-    if isempty(pointsOfInterest) || pointsOfInterest[end][1] < s_exit
-        push!(pointsOfInterest, (s_exit,""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
+    if isempty(CS_poi) || CS_poi[end][:s] < s_exit
+        push!(CS_poi, (s = s_exit, label = ""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
     end
-    merge!(characteristicSection, Dict(:pointsOfInterest => pointsOfInterest))
+    merge!(characteristicSection, Dict(:pointsOfInterest => CS_poi))
 
     return characteristicSection
 end #function CharacteristicSection
@@ -676,9 +669,8 @@ a SupportPoint is the smallest element of the driving course. One step of the st
 """
 function SupportPoint()
     supportPoint = Dict(
-        :i => 0,            # identifier and counter variable of the driving course
         :behavior => "",    # type of behavior section the support point is part of - see BehaviorSection()
-                            # a support point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
+                             # a support point which is the last point of one behavior section and the first point of the next behavior section will be attached to the latter
         :s => 0.0,          # position (in m)
         :t => 0.0,          # point in time (in s)
         :v => 0.0,          # velocity (in m/s)

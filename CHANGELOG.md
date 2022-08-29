@@ -9,6 +9,22 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+### Added
+* output alternative with starting points of the driving modes
+
+### Changed
+* renamed data points into 'support points'
+* reduced number of decimal places of output data
+* replace v_peak by the existing v_limit
+* changed type of a point of interest from Tuple to NamedTuple
+
+### Removed
+* dictionary MovingSection
+* redundant keys from the dictionary CharacteristicSection
+* dictionary BehaviorSection
+* redundant keys from the dictionary SupportPoint
+* function secureAcceleratingBehavior()
+
 
 ## Version [1.0.1] 2022-06-05
 

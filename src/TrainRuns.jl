@@ -50,7 +50,7 @@ function trainrun(train::Train, path::Path, settings=Settings()::Settings)
         # TODO settings.outputDetail == :verbose && println("The characteristics haven been determined.")
 
     # calculate the train run with the minimum running time
-    (characteristicSections, drivingCourse) = calculateMinimumRunningTime!(characteristicSections, settings, train)
+    drivingCourse = calculateMinimumRunningTime(characteristicSections, settings, train)
         # TODO settings.outputDetail == :verbose && println("The driving course for the shortest running time has been calculated.")
 
     # accumulate data and create an output dictionary

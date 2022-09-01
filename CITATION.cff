@@ -20,7 +20,7 @@ identifiers:
     value: 10.5281/zenodo.6448563
     description: 'Collection of archived snapshots of all versions of the library'
   - type: doi
-    value: 10.5281/zenodo.6619548
+    value: 10.5281/zenodo.7040109
     description: Current version
 url: 'https://www.railtoolkit.org/projects/TrainRuns.jl/'
 repository: 'https://github.com/railtoolkit/TrainRuns.jl'
@@ -36,5 +36,5 @@ keywords:
   - driving dynamics
   - julia language
 license: ISC
-version: 1.0.1
-date-released: 2022-06-07
+version: 1.0.2
+date-released: 2022-09-01

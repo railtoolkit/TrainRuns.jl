@@ -4,6 +4,32 @@
 # __copyright__     = "2020-2022"
 # __license__       = "ISC"
 
+"""
+    createOutput(settings, drivingCourse, pointsOfInterest)
+
+Create output information depending on `settings`, `drivingCourse` and `pointsOfInterest`.
+
+See also [`createOutput`](@ref).
+
+# Arguments
+- `settings::Settings`: the Settings object containing settings for output format and detail.
+- `drivingCourse::Vector{Dict}`: the Vector containing dictionaries for all support points.
+- `pointsOfInterest::Vector{NamedTuple}`: the Vector containing tuples for the paths' points of interest.
+
+# Examples
+```julia-repl
+julia> createOutput(settings_poi, drivingCourse_longdistance, pointsOfInterest_pathWithSlope)
+5×11 DataFrame
+ Row │ label             driving_mode  s        v       t        a       F_T        F_R      R_path   R_traction  R_wagons
+     │ String            String        Real     Real    Real     Real    Real       Real     Real     Real        Real
+─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ view_point_1      accelerating   850.0   28.707   54.049   0.331  1.93049e5  36602.1     0.0      9088.56   27513.6
+   2 │ distant_signal_1  accelerating  1000.0   30.325   59.129   0.294  1.82746e5  43604.7  4344.35     9795.13   29465.2
+   3 │ main_signal_1     accelerating  2000.0   37.356   88.468   0.185  1.48352e5  60899.4  8688.69    13259.1    38951.5
+   4 │ main_signal_3     braking       9000.0   27.386  258.578  -0.375  0.0        34522.1     0.0      8537.05   25985.0
+   5 │ clearing_point_1  braking       9203.37  24.443  266.426  -0.375  0.0        30176.2     0.0      7389.44   22786.8
+```
+"""
 function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfInterest::Vector{NamedTuple})
     if settings.outputDetail == :running_time
         output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
@@ -52,7 +78,34 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
 end
 
 
-function createDataFrame(output_vector::Vector{Dict}, outputDetail, approxLevel::Int)
+"""
+    createDataFrame(output_vector, outputDetail, approxLevel)
+
+Create a DataFrame from `output_vector` with `outputDetail` and `approxLevel`.
+
+See also [`createOutput`](@ref).
+
+# Arguments
+
+- `output_vector::Vector{Dict}`: the Vector containing all data to be outputted.
+- `outputDetail::Symbol`: the detail level the DataFrame is created for.
+- `approxLevel::Int`: the number of digits for rounding each Number in the DataFrame.
+
+# Examples
+```julia-repl
+julia> createDataFrame(vector_pointsOfInterest, detail_data_points, approxLevel_default)
+5×11 DataFrame
+ Row │ label             driving_mode  s        v       t        a       F_T        F_R      R_path   R_traction  R_wagons
+     │ String            String        Real     Real    Real     Real    Real       Real     Real     Real        Real
+─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1 │ view_point_1      accelerating   850.0   28.707   54.049   0.331  1.93049e5  36602.1     0.0      9088.56   27513.6
+   2 │ distant_signal_1  accelerating  1000.0   30.325   59.129   0.294  1.82746e5  43604.7  4344.35     9795.13   29465.2
+   3 │ main_signal_1     accelerating  2000.0   37.356   88.468   0.185  1.48352e5  60899.4  8688.69    13259.1    38951.5
+   4 │ main_signal_3     braking       9000.0   27.386  258.578  -0.375  0.0        34522.1     0.0      8537.05   25985.0
+   5 │ clearing_point_1  braking       9203.37  24.443  266.426  -0.375  0.0        30176.2     0.0      7389.44   22786.8
+```
+"""
+function createDataFrame(output_vector::Vector{Dict}, outputDetail::Symbol, approxLevel::Int)
     if outputDetail == :running_time
         # create a DataFrame with running time information
         dataFrame = DataFrame(t=[round(output_vector[end][:t], digits=approxLevel)])

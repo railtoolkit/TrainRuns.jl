@@ -322,8 +322,25 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
         sort!(pointsOfInterest, by = x -> x[:s])
     end
 
-    characteristicSections = CharacteristicSections(path, train.v_limit, train.length, pointsOfInterest)
-    characteristicSections = secureBrakingBehavior!(characteristicSections, train.a_braking, settings.approxLevel)
+    # create the characteristic sections of a moving section 'CSs' dependent on the paths attributes
+    CSs = Vector{Dict}()
+    s_csStart = path.sections[1][:s_start]          # first position (in m)
 
-    return (characteristicSections, pointsOfInterest)
+    for row in 2:length(path.sections)
+        previousSection = path.sections[row-1]
+        currentSection = path.sections[row]
+
+        speedLimitIsDifferent = min(previousSection[:v_limit], train.v_limit) != min(currentSection[:v_limit], train.v_limit)
+        pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
+        if speedLimitIsDifferent || pathResistanceIsDifferent
+            push!(CSs, CharacteristicSection(s_csStart, previousSection, min(previousSection[:v_limit], train.v_limit), train.length, pointsOfInterest))
+            s_csStart = currentSection[:s_start]
+        end #if
+    end #for
+    push!(CSs, CharacteristicSection(s_csStart, path.sections[end], min(path.sections[end][:v_limit], train.v_limit), train.length, pointsOfInterest))
+
+    # secure that the train is able to brake sufficiently and keeps speed limits
+    CSs = secureBrakingBehavior!(CSs, train.a_braking, settings.approxLevel)
+
+    return (CSs, pointsOfInterest)
 end #function determineCharacteristics

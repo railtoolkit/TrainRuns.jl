@@ -613,28 +613,6 @@ function Train(file, type = :YAML)
 
 end #function Train() # outer constructor
 
-## create the moving section's characteristic sections
-function CharacteristicSections(path::Path, v_trainLimit::Real, s_trainLength::Real, MS_poi::Vector{NamedTuple})
-    # create and return the characteristic sections of a moving section dependent on the paths attributes
-
-    CSs = Vector{Dict}()
-    s_csStart = path.sections[1][:s_start]          # first position (in m)
-    #csId = 1
-    for row in 2:length(path.sections)
-        previousSection = path.sections[row-1]
-        currentSection = path.sections[row]
-        speedLimitIsDifferent = min(previousSection[:v_limit], v_trainLimit) != min(currentSection[:v_limit], v_trainLimit)
-        pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
-        if speedLimitIsDifferent || pathResistanceIsDifferent
-            push!(CSs, CharacteristicSection(s_csStart, previousSection, min(previousSection[:v_limit], v_trainLimit), s_trainLength, MS_poi))
-            s_csStart = currentSection[:s_start]
-            #csId = csId+1
-        end #if
-    end #for
-    push!(CSs, CharacteristicSection(s_csStart, path.sections[end], min(path.sections[end][:v_limit], v_trainLimit), s_trainLength, MS_poi))
-
-    return CSs
-end #function CharacteristicSections
 
 ## create a characteristic section for a path section.
 function CharacteristicSection(s_entry::Real, section::Dict, v_limit::Real, s_trainLength::Real, MS_poi::Vector{NamedTuple})

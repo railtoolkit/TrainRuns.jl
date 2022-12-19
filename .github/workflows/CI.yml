@@ -45,9 +45,9 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6'
-          - '1.7'
-          - 'nightly'
+          - '1.6' # oldest
+          - '1.8' # current
+          - 'nightly' # dev
         os:
           - ubuntu-latest
           - macOS-latest
@@ -55,7 +55,7 @@ jobs:
         arch:
           # - x86
           - x64
-          # - aarch64
+          - aarch64
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1

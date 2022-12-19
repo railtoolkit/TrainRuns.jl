@@ -178,10 +178,11 @@ jobs:
     needs: publish_zenodo
     name: "Send toot about it to railtoolkit@fosstodon.org"
     runs-on: ubuntu-latest
-    - uses: cbrgm/mastodon-github-action@v1
-      with:
-        message: "The new version ${{ github.event.inputs.version }} of TrainRuns.jl is available! DOI: https://doi.org/${{needs.publish_zenodo.outputs.doi}}"
-        visibility: "public" # default: public
-      env:
-        MASTODON_URL: "https://fosstodon.org/"
-        MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }} # access token
+    steps:
+      - uses: cbrgm/mastodon-github-action@v1
+        with:
+          message: "The new version ${{ github.event.inputs.version }} of TrainRuns.jl is available! DOI: https://doi.org/${{needs.publish_zenodo.outputs.doi}}"
+          visibility: "public" # default: public
+        env:
+          MASTODON_URL: "https://fosstodon.org/"
+          MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }} # access token

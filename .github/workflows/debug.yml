@@ -1,0 +1,32 @@
+### github action to publish a debug
+##
+name: "debug"
+
+## Controls when the workflow will run
+on:
+  push:
+    branches: [ github-action ]
+
+  ## Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+## A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  debug:
+    # needs: create_package
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: "checkout"
+        # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+        uses: actions/checkout@v3
+
+        ## opening a debug console
+      - name: Setup upterm session
+        env:
+          ZENODO_SANDBOX_ACCESS_TOKEN: ${{ secrets.ZENODO_SANDBOX_ACCESS_TOKEN }}
+        uses: lhotari/action-upterm@v1
+        with:
+          limit-access-to-actor: true

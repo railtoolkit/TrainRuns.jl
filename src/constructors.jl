@@ -64,9 +64,7 @@ function Settings(
         settings = YAML.load(open(file))["settings"]
 
         ## validate the loaded file
-        try
-            validate(schema, settings)
-        catch err
+        if !isvalid(schema, settings)
             println("Could not load settings file '$file'.\n Format is not recognized - using default as fall back.")
             settings = Dict()
         end
@@ -112,17 +110,8 @@ function Path(file, type = :YAML)
     ## load from file
     if type == :YAML
 
-        data = YAML.load(open(file))
-        if data["schema"] != "https://railtoolkit.org/schema/running-path.json"
-            error("Could not load path file '$file'.\n
-                    YAML format is not recognized.
-                    Currently supported: railtoolkit/schema/running-path (2022.05)")
-        end
-        if data["schema_version"] != "2022.05"
-            error("Could not load path file '$file'.\n
-                    YAML format is not recognized.
-                    Currently supported: railtoolkit/schema/running-path (2022.05)")
-        end
+        ## error messages
+        format_error = "\n\tCould not parse file '$file'.\n\tNot a valide railtoolkit/schema format.\n\tCurrently supported version: 2022.05\n\tFor the format see: https://github.com/railtoolkit/schema"
 
         ## JSON schema for YAML-file validation
         railtoolkit_schema = Schema("""{
@@ -206,18 +195,13 @@ function Path(file, type = :YAML)
             }
         }""")
 
-        paths = data["paths"]
-        try
-            validate(railtoolkit_schema, paths)
-        catch err
-            error("Could not load path file '$file'.\n
-                    YAML format is not recognized.
-                    Currently supported: railtoolkit/schema/running-path (2022.05)")
-        end
-        if length(paths) > 1
-            println("WARNING: the loaded file contains more than one path. Using only the first!")
-        end
-        path = paths[1]
+        data = YAML.load(open(file))
+        data["schema"] == "https://railtoolkit.org/schema/running-path.json" ? nothing : throw(DomainError(data["schema"],format_error))
+        data["schema_version"] == "2022.05"                                  ? nothing : throw(DomainError(data["schema_version"],format_error))
+        isvalid(railtoolkit_schema, data["paths"])                           ? nothing : throw(DomainError(data["paths"],format_error))
+
+        length(data["paths"]) > 1 ? println("WARNING: the loaded file contains more than one path. Using only the first!") : nothing
+        path = data["paths"][1]
 
         ## set the variables in "path"
         # required
@@ -230,7 +214,7 @@ function Path(file, type = :YAML)
         haskey(path, "points_of_interest") ? tmp_points  = path["points_of_interest"] : nothing
 
     else
-        error("Unknown file type '$type'")
+        throw(DomainError("Unknown file type '$type'"))
     end #if type
 
     ## process characteristic sections
@@ -313,17 +297,8 @@ function Train(file, type = :YAML)
     ## load from file
     if type == :YAML
 
-        data = YAML.load(open(file))
-        if data["schema"] != "https://railtoolkit.org/schema/rolling-stock.json"
-            error("Could not load path file '$file'.\n
-                    YAML format is not recognized.
-                    Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
-        end
-        if data["schema_version"] != "2022.05"
-            error("Could not load path file '$file'.\n
-                    YAML format is not recognized.
-                    Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
-        end
+        ## error messages
+        format_error = "\n\tCould not parse file '$file'.\n\tNot a valide railtoolkit/schema format.\n\tCurrently supported version: 2022.05\n\tFor the format see: https://github.com/railtoolkit/schema"
 
         ## JSON schema for YAML-file validation
         railtoolkit_schema = Schema("""{
@@ -474,21 +449,19 @@ function Train(file, type = :YAML)
             }
         }""")
 
-        try
-            validate(railtoolkit_schema, data)
-        catch err
-            error("Could not load path file '$file'.\n
-                    YAML format is not recognized.
-                    Currently supported: railtoolkit/schema/rolling-stock (2022.05)")
-        end
+        ## validation
+        data = YAML.load(open(file))
+        data["schema"] == "https://railtoolkit.org/schema/rolling-stock.json" ? nothing : throw(DomainError(data["schema"],format_error))
+        data["schema_version"] == "2022.05"                                   ? nothing : throw(DomainError(data["schema_version"],format_error))
+        isvalid(railtoolkit_schema, data)                                     ? nothing : throw(DomainError(data,format_error))
 
     else
-        error("Unknown file type '$type'")
+        throw(DomainError("Unknown file type '$type'"))
     end #if type
 
     trains = data["trains"]
     Base.length(trains) > 1 ? println("WARNING: the loaded file contains more than one train. Using only the first!") : nothing
-    Base.length(trains) == 0 ? error("No train present in file '$file'") : nothing
+    Base.length(trains) == 0 ? throw(DomainError("No train present in file '$file'")) : nothing
     train = trains[1]
     used_vehicles = unique(train["formation"])
 
@@ -499,7 +472,7 @@ function Train(file, type = :YAML)
 
     ## test if all vehicles of the formation are avilable
     for vehicle in used_vehicles
-        vehicle ∉ included_vehicles ? error("'$vehicle' is not present in '$file'") : nothing
+        vehicle ∉ included_vehicles ? throw(DomainError("'$vehicle' is not present in '$file'")) : nothing
     end
 
     ## gather the count of vehicles and usage in the formation
@@ -544,7 +517,7 @@ function Train(file, type = :YAML)
     end
     Base.length(loco)  > 1 ? println("WARNING: the loaded file contains more than one traction unit or multiple unit. Using only the first!") : nothing
     loco[1].n     > 1 ? println("WARNING: the loaded file contains more than one traction unit or multiple unit. Using only one!") : nothing
-    Base.length(loco) == 0 ? error("No traction unit or multiple unit present in file '$file'") : nothing
+    Base.length(loco) == 0 ? throw(DomainError("No traction unit or multiple unit present in file '$file'")) : nothing
     loco = loco[1].data
     cars = vehicles
 

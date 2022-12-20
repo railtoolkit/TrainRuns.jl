@@ -92,21 +92,21 @@ Models for:
 * Breakaway (currently simple like acceleration)
 * braking (currently constant braking with a certain value)
 * inhomogeneous mass band (consider non-uniform mass distribution (cf. Wende, 2003 p. 96f.))
+* double traction
 
 More exact calculation of resistances for:
 * the track (e.g. including curves, switches, tunnels) 
 * for the train (e.g. there are vehicle resistance equations especially for high-speed trains, which are not yet considered in the tool (cf. Wende, 2003 p. 152 f.))
 
-Input/calculation of tractive force (currently only tractive force-speed pairs. This could be extended to include tractive force functions that apply to specific velocity ranges (cf. Brünger, et al., 2014 p. 69).
+* Input/calculation of tractive force (currently only tractive force-speed pairs. This could be extended to include tractive force functions that apply to specific velocity ranges (cf. Brünger, et al., 2014 p. 69).
 
-Calculation of energy, cf. (Wende, 2003 p. 324).
+* Calculation of energy, cf. (Wende, 2003 p. 324).
+* Energy-saving driving: https://doi.org/10.1016/j.ejor.2016.09.044
 
-switching between different step variables in one train run or implementation of variable step size (currently it is necessary to choose between s, t and v and to specify a step size that becomes smaller at intersections, but is otherwise constant)
+* switching between different step variables in one train run or implementation of variable step size (currently it is necessary to choose between s, t and v and to specify a step size that becomes smaller at intersections, but is otherwise constant)
 
-Driver behaviour, in order to be able to determine the driving behavior of the vehicles more realistically.
+* introduce a driving regime in trainrun() with a velocity > 0 at the starting point and a milage != 0 for the starting point
+  i.e. trainrun(train::Train, path::Path, regime=Regime()::Regime, settings=Settings()::Settings)
+  e.g. Regime((v1,milage1),(v2,milage2),...,(vX,milageX)) v=(Int,v_max,coasting,halt)
 
-Energy-saving driving.
-
-good plots would be nice
-
-Pluto notebook show case
+* good plots would be nice

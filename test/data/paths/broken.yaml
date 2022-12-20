@@ -1,0 +1,27 @@
+%YAML 1.2
+---
+schema: https://railtoolkit.org/schema/running-path.json
+schema_version: "2022.05"
+paths:
+  id: broken
+  UUID: 53778d7d-ee4f-4edb-9d17-5341dbd517f6
+  name: "broken test"
+  points_of_interest: 
+      -        
+        - 850.00        
+        - view_point           
+        - front 
+
+  characteristic_sections:
+    -
+      - 0.00
+      - 200.0
+      - 0.00
+    -
+      - 855.84
+      - 200.0
+      - -0.44
+    -
+      - 968.06
+      - 200.0
+      - -0.44

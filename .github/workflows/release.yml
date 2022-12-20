@@ -157,13 +157,12 @@ jobs:
       
       # 3. push the change back to main
       - name: push
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: EndBug/add-and-commit@v9
         with:
-          commit_message: "DOI updated to ${{needs.create_package.outputs.version}} (via github action)"
-          branch: main
-          file_pattern: CITATION.cff
-          commit_user_name: railtoolkit
-          commit_user_email: railtoolkit@ownx.net
+          message: "DOI updated to ${{needs.create_package.outputs.version}} (via github action)"
+          add: CITATION.cff
+          author_name: railtoolkit
+          author_email: railtoolkit@ownx.net
 
   register:
     needs: update_citation
@@ -175,15 +174,14 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  publish_twitter:
+  publish_mastodon:
     needs: publish_zenodo
-    name: "tweet about it"
+    name: "Send toot about it to railtoolkit@fosstodon.org"
     runs-on: ubuntu-latest
-    steps:
-    - uses: devigned/go-twitter-action@v1
+    - uses: cbrgm/mastodon-github-action@v1
       with:
         message: "The new version ${{ github.event.inputs.version }} of TrainRuns.jl is available! DOI: https://doi.org/${{needs.publish_zenodo.outputs.doi}}"
-        apiKey: ${{ secrets.TWITTER_API_KEY }}
-        apiKeySecret: ${{ secrets.TWITTER_API_SECRET }}
-        accessToken: ${{ secrets.TWITTER_ACCESS_TOKEN }}
-        accessTokenSecret: ${{ secrets.TWITTER_ACCESS_SECRET }}
+        visibility: "public" # default: public
+      env:
+        MASTODON_URL: "https://fosstodon.org/"
+        MASTODON_ACCESS_TOKEN: ${{ secrets.MASTODON_ACCESS_TOKEN }} # access token

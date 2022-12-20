@@ -9,6 +9,9 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+### Fixed
+* extended documentation strings for some functions
+* loading errors with illstructured path file
 
 ## Version [1.0.2] 2022-09-01
 

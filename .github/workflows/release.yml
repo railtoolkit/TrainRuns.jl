@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to register or component to bump (without leading 'v' e.g. '1.0.1')"
+        description: "Version to register (without leading 'v' and semantic versioning schema, e.g. '1.0.1')"
         required: true
 
 jobs:
@@ -23,12 +23,24 @@ jobs:
         id: version_test
         run: |
           VERSION=${{ github.event.inputs.version }}
+          echo "check if version follows the semantic version pattern"
+          SEM_VER_REGEX="^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$"
           STATUS=0
+          if [[ ! $VERSION =~ $SEM_VER_REGEX ]]; then
+            STATUS=1
+          fi
+          if [ $STATUS = 1 ]; then
+            echo "Version $VERSION does not follow the semantic versioning schema."
+            echo "Please see https://semver.org/ for further information."
+            exit 1
+          fi
+          echo "check if version was already used"
           grep -qs "Version \[$VERSION\]" CHANGELOG.md && STATUS=1
           if [ $STATUS = 1 ]; then
             echo "Version $VERSION is already present in CHANGELOG.md."
             exit 1
           fi
+          echo "check if version is an increment"
           VERSION_MAJOR=$(echo $VERSION | cut -d. -f1 )
           VERSION_MINOR=$(echo $VERSION | cut -d. -f2 )
           VERSION_PATCH=$(echo $VERSION | cut -d. -f3 )
@@ -36,14 +48,14 @@ jobs:
           PREVIOUS_VERSION_MAJOR=$(echo $PREVIOUS_VERSION | cut -d. -f1 )
           PREVIOUS_VERSION_MINOR=$(echo $PREVIOUS_VERSION | cut -d. -f2 )
           PREVIOUS_VERSION_PATCH=$(echo $PREVIOUS_VERSION | cut -d. -f3 )
-          if [ $VERSION_MAJOR = PREVIOUS_VERSION_MAJOR ]; then
-            if [ $VERSION_MINOR = PREVIOUS_VERSION_MINOR ]; then
+          if [[ $VERSION_MAJOR -eq PREVIOUS_VERSION_MAJOR ]]; then
+            if [[ $VERSION_MINOR -eq PREVIOUS_VERSION_MINOR ]]; then
               if [[ $(($VERSION_PATCH - 1)) -ne PREVIOUS_VERSION_PATCH ]]; then
                 STATUS=1
               fi
             else
-              if [[ $(($VERSION_MINOR - 1)) = PREVIOUS_VERSION_MINOR ]]; then
-                if [ $VERSION_PATCH -ne 0 ]; then
+              if [[ $(($VERSION_MINOR - 1)) -eq PREVIOUS_VERSION_MINOR ]]; then
+                if [[ $VERSION_PATCH -ne 0 ]]; then
                   STATUS=1
                 fi
               else
@@ -51,11 +63,11 @@ jobs:
               fi
             fi
           else
-            if [[ $(($VERSION_MAJOR - 1)) = PREVIOUS_VERSION_MAJOR ]]; then
-              if [ $VERSION_MINOR -ne 0 ]; then
+            if [[ $(($VERSION_MAJOR - 1)) -eq PREVIOUS_VERSION_MAJOR ]]; then
+              if [[ $VERSION_MINOR -ne 0 ]]; then
                 STATUS=1
               fi
-              if [ $VERSION_PATCH -ne 0 ]; then
+              if [[ $VERSION_PATCH -ne 0 ]]; then
                 STATUS=1
               fi
             else
@@ -64,24 +76,33 @@ jobs:
           fi
           if [ $STATUS = 1 ]; then
             echo "Version $VERSION skipped steps from the previous version $PREVIOUS_VERSION and thus does not follow the semantic versioning schema."
-            echo "Please see https://semver.org/spec/v2.0.0.html for further information."
+            echo "Please see https://semver.org/ for further information."
             exit 1
           fi
           echo "::set-output name=previous_version::$(version_test deposition show prereserved $PREVIOUS_VERSION)"
 
-      # 3. create release notes
-      - name: "create release notes"
+      # 3. create release note
+      - name: "create release note"
         run: |
           VERSION=${{ github.event.inputs.version }}
+          PREVIOUS_VERSION=${{ needs.create_package.outputs.previous_version }}
+          STATUS=0
+          echo "create release note"
           TOP=$(grep -n "## \[Unreleased\]" CHANGELOG.md | cut -d: -f1)
-          awk "NR>$TOP" CHANGELOG.md > release-note.tmp.md
-          BOTTOM=$(grep -n -m 1 "## Version \[*.*.*\]" release-note.tmp.md | cut -d: -f1)
-          BOTTOM=$(( $TOP + $BOTTOM ))
-          BOTTOM=$(( $BOTTOM - 2 ))
           TOP=$(( $TOP + 1 ))
+          BOTTOM=$(grep -n -m 1 "## Version \[$PREVIOUS_VERSION\]" CHANGELOG.md | cut -d: -f1)
+          BOTTOM=$(( $BOTTOM - 1 ))
           awk "NR>$TOP&&NR<$BOTTOM" CHANGELOG.md > release-note-v$VERSION.md
           sed -i -- "s/###/##/g" release-note-v$VERSION.md
-          rm release-note.tmp.md
+          echo "check if release note is empty"
+          WORD_COUNT=$(wc -w release-note-v$VERSION.md | awk '{print $1}')
+          if [[ $WORD_COUNT -lt 4 ]]; then
+            STATUS=1
+          fi
+          if [ $STATUS = 1 ]; then
+            echo "Please provide a meaningful CHANGELOG.md for the new version $VERSION"
+            exit 1
+          fi
 
       # 4. Update zenodo metadata.json
       - name: "Update zenodo metadata.json"
@@ -90,7 +111,8 @@ jobs:
           sed -i".backup" -e"s/\"version\": \"%%\[SCRIPT\]\"/\"version\": \"$VERSION\"/g" .github/zenodo/metadata.json
 
       # 5. create release archive
-      - uses: papeloto/action-zip@v1
+      - name: "create release archive"
+        uses: papeloto/action-zip@v1
         with:
           files: docs src test README.md LICENSE Project.toml
           recursive: false
@@ -193,7 +215,7 @@ jobs:
           VERSION=${{ github.event.inputs.version }}
           DOI=${{ needs.publish_zenodo.outputs.doi }}
           echo "find lines in CITATION.cff"
-          VERSION_LINE=$(grep -n 'version: [0-9][0-9][0-9][0-9].[0-1][0-9]' CITATION.cff | cut -d: -f1)
+          VERSION_LINE=$(grep -n '^version:' CITATION.cff | cut -d: -f1)
           DATE_LINE=$(grep -n 'date-released:' CITATION.cff | cut -d: -f1)
           echo "select the second DOI"
           DOI_LINE=$(grep -n 'type: doi' CITATION.cff | cut -d: -f1 | awk "NR==2")
@@ -210,7 +232,7 @@ jobs:
           VERSION=${{ github.event.inputs.version }}
           URL="https://github.com/railtoolkit/TrainRuns.jl/compare"
           PREVIOUS_VERSION=${{ needs.create_package.outputs.previous_version }}
-          echo "update CHANGELOG.md"
+          echo "increment CHANGELOG.md"
           sed -i -- "/## \[Unreleased\]/a\\\n\n## Version [$VERSION] $DATE" CHANGELOG.md
           sed -i -- "s|^\[Unreleased\]: .*$|\[Unreleased\]: $URL/v$VERSION...main\n\[$VERSION\]: $URL/v$PREVIOUS_VERSION...v$VERSION|" CHANGELOG.md
       

@@ -57,7 +57,7 @@ jobs:
         arch:
           # - x86
           - x64
-          - aarch64
+          # - aarch64
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1

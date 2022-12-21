@@ -12,7 +12,7 @@ TrainRuns.jl is a step towards open science and open data in railway engineering
 
 # Installation
 
-Use the package manager provided by julia:
+Use the package manager provided by [julia](https://julialang.org):
 ```julia
 julia> # use the ] key
 (@v1.x) pkg> add TrainRuns
@@ -39,6 +39,14 @@ runtime = trainrun(train, path)[end,:t]
 
 println("The train needs $runtime seconds for the running path.")
 ```
+
+------------
+
+# Further Information
+
+Visit the repository [TrainRuns.jl-Tutorials](https://github.com/railtoolkit/TrainRuns.jl-Tutorials) for tutorials in either Jupyther Notebooks or Pluto Notebooks. There you can find, for instance, a [basic tutorial](https://github.com/railtoolkit/TrainRuns.jl-Tutorials/blob/main/basic.ipynb).
+
+Please refer to the automated [documentation](https://www.railtoolkit.org/TrainRuns.jl/) for technical details of the used functions.
 
 ------------
 

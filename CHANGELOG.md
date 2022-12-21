@@ -9,9 +9,12 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+### Added
+* documentation strings for functions in formulary.jl, output.jl, and behavior.jl
+
 ### Fixed
-* extended documentation strings for some functions
-* loading errors with illstructured path file
+* loading errors with ill-structured path file
+
 
 ## Version [1.0.2] 2022-09-01
 

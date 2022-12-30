@@ -153,42 +153,6 @@ jobs:
           if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
       - run: echo "- providing ZIP-Archive and release notes for other jobs :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
-  publish_github:
-    needs: [create_package, version]
-    name: "publish on github"
-    outputs:
-      url: ${{ steps.create_release.outputs.url }}
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Publishing package on Github:" >> $GITHUB_STEP_SUMMARY
-      # 1. download artifact in folder artifact/
-      - uses: actions/download-artifact@v3
-      - run: echo "- getting ZIP-Archive and release notes :white_check_mark:" >> $GITHUB_STEP_SUMMARY
-
-      # 2. creating a new release
-      - uses: softprops/action-gh-release@v1
-        id: create_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        with:
-          draft: false
-          prerelease: false
-          body_path: artifact/release-note-v${{ needs.version.outputs.new }}.md
-          files: artifact/TrainRuns.jl-v${{ needs.version.outputs.new }}.zip
-          name: Release v${{ needs.version.outputs.new }}
-      - run: echo "- drafting new release :white_check_mark:" >> $GITHUB_STEP_SUMMARY
-
-      # 3. publish release on github
-      - name: "publish release"
-        uses: StuYarrow/publish-release@v1.1.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          id: ${{ steps.create_release.outputs.id }}
-      - run: echo "- publish release at ${{ steps.create_release.outputs.html_url }} :white_check_mark:" >> $GITHUB_STEP_SUMMARY
-
   zenodo:
     needs: [create_package, version]
     name: "publish on zenodo"
@@ -311,13 +275,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   publish_mastodon:
-    needs: [zenodo, version, publish_github]
-    name: "Send toot about it to fosstodon.org"
+    needs: [zenodo, version]
+    name: "Toot about it on fosstodon.org"
     runs-on: ubuntu-latest
     steps:
       - uses: cbrgm/mastodon-github-action@v1
         with:
-          message: "The new version ${{ needs.version.outputs.new }} of TrainRuns.jl is available! DOI: https://doi.org/${{ needs.zenodo.outputs.doi }} Further information at ${{ needs.publish_github.outputs.url }}."
+          message: "The new version ${{ needs.version.outputs.new }} of TrainRuns.jl is available! DOI: https://doi.org/${{ needs.zenodo.outputs.doi }}."
           visibility: "public" # default: public
         env:
           MASTODON_URL: "https://fosstodon.org/"

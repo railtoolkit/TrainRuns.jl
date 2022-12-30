@@ -6,8 +6,8 @@ DocMeta.setdocmeta!(TrainRuns, :DocTestSetup, :(using TrainRuns); recursive=true
 makedocs(;
     modules=[TrainRuns],
     authors="Max Kannenberg, Martin Scheidt, and contributors",
-    repo="https://www.railtoolkit.org/TrainRuns.jl//blob/{commit}{path}#{line}",
-    sitename="TrainRuns.jl",
+    repo="https://github.com/railtoolkit/TrainRuns.jl/blob/{commit}{path}#{line}",
+    sitename="TrainRuns.jl Documentation",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://www.railtoolkit.org/TrainRuns.jl",

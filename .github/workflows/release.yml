@@ -156,6 +156,8 @@ jobs:
   publish_github:
     needs: [create_package, version]
     name: "publish on github"
+    outputs:
+      url: ${{ steps.create_release.outputs.url }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -243,8 +245,8 @@ jobs:
           ## =================================
           ## provide variables for subsequent jobs
           ## ---------------------------------
-          echo "doi=$DOI" >> $GITHUB_OUTPUT
-          echo "- publish release at zenodo with DOI: $DOI :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "doi=10.5281/zenodo.$DOI" >> $GITHUB_OUTPUT
+          echo "- publish release at zenodo with DOI: 10.5281/zenodo.$DOI :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
   update_repository:
     needs: [zenodo, version]
@@ -309,13 +311,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   publish_mastodon:
-    needs: [zenodo, version, create_package]
+    needs: [zenodo, version, publish_github]
     name: "Send toot about it to fosstodon.org"
     runs-on: ubuntu-latest
     steps:
       - uses: cbrgm/mastodon-github-action@v1
         with:
-          message: "The new version ${{ needs.version.outputs.new }} of TrainRuns.jl is available! DOI: https://doi.org/${{ needs.publish_zenodo.outputs.doi }} Further information at at ${{ needs.create_release.outputs.html_url }}."
+          message: "The new version ${{ needs.version.outputs.new }} of TrainRuns.jl is available! DOI: https://doi.org/${{ needs.zenodo.outputs.doi }} Further information at ${{ needs.publish_github.outputs.url }}."
           visibility: "public" # default: public
         env:
           MASTODON_URL: "https://fosstodon.org/"

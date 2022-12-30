@@ -9,6 +9,9 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+
+## Version [1.0.3] 2022-12-30
+
 ### Added
 * documentation strings for functions in formulary.jl, output.jl, and behavior.jl
 
@@ -217,7 +220,8 @@ Modules and variables were renamed.
 Proof of concept and master thesis submission.
 
 
-[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.2...main
+[Unreleased]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.3...main
+[1.0.3]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/railtoolkit/TrainRuns.jl/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/railtoolkit/TrainRuns.jl/compare/v0.8...v1.0.0

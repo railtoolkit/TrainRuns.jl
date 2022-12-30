@@ -4,57 +4,62 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to register (without leading 'v' and semantic versioning schema, e.g. '1.0.1')"
+        description: "Version to register (semantic versioning schema, e.g. '1.0.1'):"
         required: true
 
 jobs:
-  create_package:
-    name: "create package"
+  version:
+    name: ":triangular_flag_on_post: check submitted version - "
     runs-on: ubuntu-latest
     outputs:
-      previous_version: ${{ steps.version_test.outputs.previous_version }}
+      current: ${{ steps.version_check.outputs.current }}
+      new: ${{ steps.version_check.outputs.new }}
     steps:
-      # 1. checkout the repo
       - name: "checkout"
         uses: actions/checkout@v3
 
-      # 2. test if provided version number fits in semantic versioning schema
-      - name: "test version number"
-        id: version_test
+      - name: "check version number"
+        id: version_check
         run: |
           VERSION=${{ github.event.inputs.version }}
-          echo "check if version follows the semantic version pattern"
+          echo "Version to register '$VERSION':"  >> $GITHUB_STEP_SUMMARY
+          ## =================================
+          ## check if version follows the semantic version pattern
+          ## ---------------------------------
+          #remove a trailing 'v' if it exists
+          if [[ ${VERSION:0:1} -eq "v" ]]; then
+            VERSION=${VERSION:1}
+          fi
+          # check with regular expressions
           SEM_VER_REGEX="^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$"
           STATUS=0
           if [[ ! $VERSION =~ $SEM_VER_REGEX ]]; then
             STATUS=1
           fi
           if [ $STATUS = 1 ]; then
-            echo "Version $VERSION does not follow the semantic versioning schema."
-            echo "Please see https://semver.org/ for further information."
+            echo "- :no_entry_sign: format does not follow the semantic versioning schema" >> $GITHUB_STEP_SUMMARY
+            echo ":warning: Please see https://semver.org/ for further information." >> $GITHUB_STEP_SUMMARY
             exit 1
+          else
+            echo "- format follows the semantic versioning schema :white_check_mark:" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "check if version was already used"
-          grep -qs "Version \[$VERSION\]" CHANGELOG.md && STATUS=1
-          if [ $STATUS = 1 ]; then
-            echo "Version $VERSION is already present in CHANGELOG.md."
-            exit 1
-          fi
-          echo "check if version is an increment"
+          ## =================================
+          ## check if version is an increment
+          ## ---------------------------------
           VERSION_MAJOR=$(echo $VERSION | cut -d. -f1 )
           VERSION_MINOR=$(echo $VERSION | cut -d. -f2 )
           VERSION_PATCH=$(echo $VERSION | cut -d. -f3 )
-          PREVIOUS_VERSION=$(grep -n -m 1 "## Version \[*.*.*\]" CHANGELOG.md | cut -d[ -f2 | cut -d] -f1)
-          PREVIOUS_VERSION_MAJOR=$(echo $PREVIOUS_VERSION | cut -d. -f1 )
-          PREVIOUS_VERSION_MINOR=$(echo $PREVIOUS_VERSION | cut -d. -f2 )
-          PREVIOUS_VERSION_PATCH=$(echo $PREVIOUS_VERSION | cut -d. -f3 )
-          if [[ $VERSION_MAJOR -eq PREVIOUS_VERSION_MAJOR ]]; then
-            if [[ $VERSION_MINOR -eq PREVIOUS_VERSION_MINOR ]]; then
-              if [[ $(($VERSION_PATCH - 1)) -ne PREVIOUS_VERSION_PATCH ]]; then
+          CURRENT_VERSION=$(grep -n -m 1 "## Version \[*.*.*\]" CHANGELOG.md | cut -d[ -f2 | cut -d] -f1)
+          CURRENT_VERSION_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1 )
+          CURRENT_VERSION_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2 )
+          CURRENT_VERSION_PATCH=$(echo $CURRENT_VERSION | cut -d. -f3 )
+          if [[ $VERSION_MAJOR -eq CURRENT_VERSION_MAJOR ]]; then
+            if [[ $VERSION_MINOR -eq CURRENT_VERSION_MINOR ]]; then
+              if [[ $(($VERSION_PATCH - 1)) -ne CURRENT_VERSION_PATCH ]]; then
                 STATUS=1
               fi
             else
-              if [[ $(($VERSION_MINOR - 1)) -eq PREVIOUS_VERSION_MINOR ]]; then
+              if [[ $(($VERSION_MINOR - 1)) -eq CURRENT_VERSION_MINOR ]]; then
                 if [[ $VERSION_PATCH -ne 0 ]]; then
                   STATUS=1
                 fi
@@ -63,7 +68,7 @@ jobs:
               fi
             fi
           else
-            if [[ $(($VERSION_MAJOR - 1)) -eq PREVIOUS_VERSION_MAJOR ]]; then
+            if [[ $(($VERSION_MAJOR - 1)) -eq CURRENT_VERSION_MAJOR ]]; then
               if [[ $VERSION_MINOR -ne 0 ]]; then
                 STATUS=1
               fi
@@ -75,68 +80,88 @@ jobs:
             fi
           fi
           if [ $STATUS = 1 ]; then
-            echo "Version $VERSION skipped steps from the previous version $PREVIOUS_VERSION and thus does not follow the semantic versioning schema."
-            echo "Please see https://semver.org/ for further information."
+            echo "- :no_entry_sign: Version skipped steps from the previous version $CURRENT_VERSION and thus does not follow the semantic versioning schema." >> $GITHUB_STEP_SUMMARY
+            echo "- :warning: Please see https://semver.org/ for further information." >> $GITHUB_STEP_SUMMARY
             exit 1
+          else
+            echo "- is an increment from the previous version :white_check_mark:" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "::set-output name=previous_version::$(version_test deposition show prereserved $PREVIOUS_VERSION)"
+          ## =================================
+          ## provide variables for subsequent jobs
+          ## ---------------------------------
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "new=$VERSION" >> $GITHUB_OUTPUT
 
-      # 3. create release note
+  create_package:
+    name: "create package"
+    needs: [version]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Creating package and release note for '${{ needs.version.outputs.new }}':" >> $GITHUB_STEP_SUMMARY
+
+      # 1. checkout the repo
+      - name: "checkout"
+        uses: actions/checkout@v3
+
+      # 2. create release note
       - name: "create release note"
         run: |
-          VERSION=${{ github.event.inputs.version }}
-          PREVIOUS_VERSION=${{ needs.create_package.outputs.previous_version }}
+          VERSION=${{ needs.version.outputs.new }}
+          CURRENT_VERSION=${{ needs.version.outputs.current }}
           STATUS=0
-          echo "create release note"
+          ## =================================
+          ## create release note
+          ## ---------------------------------
           TOP=$(grep -n "## \[Unreleased\]" CHANGELOG.md | cut -d: -f1)
-          TOP=$(( $TOP + 1 ))
-          BOTTOM=$(grep -n -m 1 "## Version \[$PREVIOUS_VERSION\]" CHANGELOG.md | cut -d: -f1)
-          BOTTOM=$(( $BOTTOM - 1 ))
+          BOTTOM=$(grep -n -m 1 "## Version \[$CURRENT_VERSION\]" CHANGELOG.md | cut -d: -f1)
           awk "NR>$TOP&&NR<$BOTTOM" CHANGELOG.md > release-note-v$VERSION.md
           sed -i -- "s/###/##/g" release-note-v$VERSION.md
-          echo "check if release note is empty"
+          ## =================================
+          ## check if release note is empty
+          ## ---------------------------------
           WORD_COUNT=$(wc -w release-note-v$VERSION.md | awk '{print $1}')
           if [[ $WORD_COUNT -lt 4 ]]; then
             STATUS=1
           fi
           if [ $STATUS = 1 ]; then
-            echo "Please provide a meaningful CHANGELOG.md for the new version $VERSION"
+            echo "- :no_entry_sign: 'Unreleased' section in CHANGELOG.md is empty" >> $GITHUB_STEP_SUMMARY
+            echo ":warning: Please provide a meaningful CHANGELOG.md for the new version $VERSION"." >> $GITHUB_STEP_SUMMARY
             exit 1
+          else
+            echo "- 'Unreleased' section in CHANGELOG.md has content :white_check_mark:" >> $GITHUB_STEP_SUMMARY
           fi
+          ## =================================
+          ## remove empty lines from top and bottom
+          ## ---------------------------------
+          sed -i -- -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' release-note-v$VERSION.md
 
-      # 4. Update zenodo metadata.json
-      - name: "Update zenodo metadata.json"
-        run: |
-          VERSION=${{ github.event.inputs.version }}
-          sed -i".backup" -e"s/\"version\": \"%%\[SCRIPT\]\"/\"version\": \"$VERSION\"/g" .github/zenodo/metadata.json
-
-      # 5. create release archive
+      # 3. create release archive
       - name: "create release archive"
         uses: papeloto/action-zip@v1
         with:
           files: docs src test README.md LICENSE Project.toml
           recursive: false
-          dest: TrainRuns.jl-v${{ github.event.inputs.version }}.zip
+          dest: TrainRuns.jl-v${{ needs.version.outputs.new }}.zip
+      - run: echo "- creating ZIP-Archive for the new release :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
-      # 6. upload artifact to share it with other jobs
+      # 4. upload artifact to share it with other jobs
       - uses: actions/upload-artifact@v3
         with:
           path: |
-            release-note-v${{ github.event.inputs.version }}.md
-            TrainRuns.jl-v${{ github.event.inputs.version }}.zip
+            release-note-v${{ needs.version.outputs.new }}.md
+            TrainRuns.jl-v${{ needs.version.outputs.new }}.zip
           if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
-      - uses: actions/upload-artifact@v3
-        with:
-          path: .github/zenodo/metadata.json
-          if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+      - run: echo "- providing ZIP-Archive and release notes for other jobs :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
   publish_github:
-    needs: create_package
+    needs: [create_package, version]
     name: "publish on github"
     runs-on: ubuntu-latest
     steps:
+      - run: echo "Publishing package on Github:" >> $GITHUB_STEP_SUMMARY
       # 1. download artifact in folder artifact/
       - uses: actions/download-artifact@v3
+      - run: echo "- getting ZIP-Archive and release notes :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
       # 2. creating a new release
       - name: "create release"
@@ -147,9 +172,10 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body_path: artifact/release-note-v${{ github.event.inputs.version }}.md
+          body_path: artifact/release-note-v${{ needs.version.outputs.new }}.md
           draft: false
           prerelease: false
+      - run: echo "- drafting new release :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
       # 3. upload package to new release
       - name: "upload release asset"
@@ -158,9 +184,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifact/TrainRuns.jl-v${{ github.event.inputs.version }}.zip
-          asset_name: TrainRuns.jl-v${{ github.event.inputs.version }}.zip
+          asset_path: artifact/TrainRuns.jl-v${{ needs.version.outputs.new }}.zip
+          asset_name: TrainRuns.jl-v${{ needs.version.outputs.new }}.zip
           asset_content_type: application/zip
+      - run: echo "- upload release asset :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
       # 4. publish release on github
       - name: "publish release"
@@ -169,50 +196,83 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           id: ${{ steps.create_release.outputs.id }}
+      - run: echo "- publish release at ${{ steps.create_release.outputs.html_url }} :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
-  publish_zenodo:
-    needs: create_package
+  zenodo:
+    needs: [create_package, version]
     name: "publish on zenodo"
     outputs:
       doi: ${{ steps.zenodraft.outputs.doi }}
     runs-on: ubuntu-latest
     steps:
+      - run: echo "Archiving package on zenodo to get a DOI:" >> $GITHUB_STEP_SUMMARY
       # 1. download artifact in folder artifact/ and move it one level up
       - uses: actions/download-artifact@v3
       - run: |
-          mv ./artifact/TrainRuns.jl-v${{ github.event.inputs.version }}.zip ./
+          mv ./artifact/TrainRuns.jl-v${{ needs.version.outputs.new }}.zip ./
+          echo "- getting ZIP-Archive and release notes :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
       # 2. install zenodraft
       - name: "install zenodraft"
-        run: npm install -g zenodraft
+        env:
+          URL: "https://zenodo.org/"
+        run: |
+          STATUS=0
+          npm install -g zenodraft
+          echo "- installing zenodraft :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          if ! curl --output /dev/null --silent --head --fail "$URL"; then
+            STATUS=1
+          fi
+          if [ $STATUS = 1 ]; then
+            echo "- :no_entry_sign: $URL is not reachable" >> $GITHUB_STEP_SUMMARY
+            echo ":warning: Please re-run action later!" >> $GITHUB_STEP_SUMMARY
+            echo ":warning: Please remove github release manually!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "- $URL is reachable :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          fi
 
-      # 3. upload new release to zenodo
+      # 3. Update zenodo metadata.json
+      - name: "Update zenodo metadata.json"
+        run: |
+          VERSION=${{ needs.version.outputs.new }}
+          sed -i".backup" -e"s/\"version\": \"%%\[SCRIPT\]\"/\"version\": \"$VERSION\"/g" .github/zenodo/metadata.json
+          echo "- updating zenodo metadata :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+
+      # 4. upload new release to zenodo
       - name: "uploading to zenodo"
         id: zenodraft
         env:
           ZENODO_ACCESS_TOKEN: ${{ secrets.ZENODO_ACCESS_TOKEN }}
           COLLECTION: 6448563
         run: |
-          ID=$(zenodraft deposition create version $COLLECTION)
-          zenodraft file add $ID TrainRuns.jl-v*.zip
-          zenodraft metadata update $ID artifact/metadata.json
-          zenodraft deposition publish $ID
-          echo "::set-output name=doi::$(zenodraft deposition show prereserved $ID)"
+          DOI=$(zenodraft deposition create version $COLLECTION)
+          zenodraft file add $DOI TrainRuns.jl-v*.zip
+          zenodraft metadata update $DOI .github/zenodo/metadata.json
+          zenodraft deposition publish $DOI
+          ## =================================
+          ## provide variables for subsequent jobs
+          ## ---------------------------------
+          echo "doi=$DOI" >> $GITHUB_OUTPUT
+          echo "- publish release at zenodo with DOI: $DOI :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
-  update_repo:
-    needs: publish_zenodo
+  update_repository:
+    needs: [zenodo, version]
     name: "updating CITATION.cff and CHANGELOG.md"
     runs-on: ubuntu-latest
     steps:
+      - run: echo "Updating CITATION.cff and CHANGELOG.md:" >> $GITHUB_STEP_SUMMARY
       # 1. checkout the repo
       - name: "checkout"
         uses: actions/checkout@v3
-      
-      # 2. update CITATION.cff
+        # with:
+        #   ref: main
+
+          # 2. update CITATION.cff
       - name: "update CITATION.cff"
         run: |
           DATE=$(date "+%Y-%m-%d")
-          VERSION=${{ github.event.inputs.version }}
+          VERSION=${{ needs.version.outputs.new }}
           DOI=${{ needs.publish_zenodo.outputs.doi }}
           echo "find lines in CITATION.cff"
           VERSION_LINE=$(grep -n '^version:' CITATION.cff | cut -d: -f1)
@@ -224,30 +284,33 @@ jobs:
           sed -i -- "${VERSION_LINE}s|.*|version: $VERSION|" CITATION.cff
           sed -i -- "${DATE_LINE}s|.*|date-released: ${DATE}|" CITATION.cff
           sed -i -- "${DOI_LINE}s|.*|    value: $DOI|" CITATION.cff
-      
+          echo "- updated CITATION.cff :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+
       # 3. update CHANGELOG.md
       - name: "update CHANGELOG.md"
         run: |
           DATE=$(date "+%Y-%m-%d")
-          VERSION=${{ github.event.inputs.version }}
+          VERSION=${{ needs.version.outputs.new }}
           URL="https://github.com/railtoolkit/TrainRuns.jl/compare"
-          PREVIOUS_VERSION=${{ needs.create_package.outputs.previous_version }}
+          CURRENT_VERSION=${{ needs.version.outputs.current }}
           echo "increment CHANGELOG.md"
           sed -i -- "/## \[Unreleased\]/a\\\n\n## Version [$VERSION] $DATE" CHANGELOG.md
-          sed -i -- "s|^\[Unreleased\]: .*$|\[Unreleased\]: $URL/v$VERSION...main\n\[$VERSION\]: $URL/v$PREVIOUS_VERSION...v$VERSION|" CHANGELOG.md
-      
+          sed -i -- "s|^\[Unreleased\]: .*$|\[Unreleased\]: $URL/v$VERSION...main\n\[$VERSION\]: $URL/v$CURRENT_VERSION...v$VERSION|" CHANGELOG.md
+          echo "- updated CHANGELOG.md :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+
       # 4. push the change back to main
       - name: push
         uses: EndBug/add-and-commit@v9
         with:
-          message: "DOI updated to ${{ github.event.inputs.version }} (via github action)"
+          message: "updated to ${{ needs.version.outputs.new }} (via github action)"
           add: CITATION.cff CHANGELOG.md
           author_name: railtoolkit
           author_email: railtoolkit@ownx.net
+      - run: echo "- updated repository with new CITATION.cff and CHANGELOG.md :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
-  register:
-    needs: update_repo
-    name: "publish in JuliaRegistries"
+  register_julia:
+    needs: [update_repository]
+    name: ":checkered_flag: publish in JuliaRegistries"
     runs-on: ubuntu-latest
     steps:
       # 1. register new release at JuliaRegistries
@@ -256,13 +319,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   publish_mastodon:
-    needs: publish_zenodo
-    name: "Send toot about it to railtoolkit@fosstodon.org"
+    needs: [zenodo, version, create_package]
+    name: ":checkered_flag: Send toot about it to railtoolkit@fosstodon.org"
     runs-on: ubuntu-latest
     steps:
       - uses: cbrgm/mastodon-github-action@v1
         with:
-          message: "The new version ${{ github.event.inputs.version }} of TrainRuns.jl is available! DOI: https://doi.org/${{needs.publish_zenodo.outputs.doi}}"
+          message: "The new version ${{ needs.version.outputs.new }} of TrainRuns.jl is available! DOI: https://doi.org/${{ needs.publish_zenodo.outputs.doi }} Further information at at ${{ needs.create_release.outputs.html_url }}."
           visibility: "public" # default: public
         env:
           MASTODON_URL: "https://fosstodon.org/"

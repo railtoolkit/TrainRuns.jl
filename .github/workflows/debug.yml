@@ -12,21 +12,58 @@ on:
 
 ## A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  debug:
-    # needs: create_package
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+  debug:
+    name: "debug"
+    outputs:
+    runs-on: ubuntu-latest
     steps:
       - name: "checkout"
         # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
         uses: actions/checkout@v3
 
-        ## opening a debug console
-      - name: Setup upterm session
-        env:
-          ZENODO_SANDBOX_ACCESS_TOKEN: ${{ secrets.ZENODO_SANDBOX_ACCESS_TOKEN }}
-        uses: lhotari/action-upterm@v1
-        with:
-          limit-access-to-actor: true
+  #       ## opening a debug console
+  #     - name: Setup upterm session
+  #       env:
+  #         ZENODO_SANDBOX_ACCESS_TOKEN: ${{ secrets.ZENODO_SANDBOX_ACCESS_TOKEN }}
+  #       uses: lhotari/action-upterm@v1
+  #       with:
+  #         limit-access-to-actor: true
+
+  # debug1:
+  #   name: "debug 1"
+  #   outputs:
+  #     output_variable: ${{ steps.set_variable.outputs.output_variable }}
+  #   runs-on: ubuntu-latest
+  #   # Steps represent a sequence of tasks that will be executed as part of the job
+  #   steps:
+  #     - name: "use the variable from previous step 'create variable'"
+  #       id: use_variable
+  #       run: |
+  #         echo "1. Current values:" >> $GITHUB_STEP_SUMMARY
+  #         echo "output variable: '${{ env.output_variable }}'" >> $GITHUB_STEP_SUMMARY
+
+  #     - name: "overwrite variable"
+  #       id: set_variable
+  #       run: |
+  #         echo "2. set varibales!" >> $GITHUB_STEP_SUMMARY
+  #         echo "output_variable=output" >> $GITHUB_OUTPUT # set variable
+
+  #     - name: "use the variable from previous step 'create variable'"
+  #       id: use_variable_step
+  #       run: |
+  #         echo "3. use the variable from previous step" >> $GITHUB_STEP_SUMMARY
+  #         echo "output variable (via environment): '${{ env.output_variable }}'" >> $GITHUB_STEP_SUMMARY
+  #         echo "output variable (via output): '${{ steps.set_variable.outputs.output_variable }}'" >> $GITHUB_STEP_SUMMARY
+
+  # debug2:
+  #   name: "debug 2"
+  #   needs: debug1
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: "use the variable from previous job 'debug 1'"
+  #       id: use_variable_job
+  #       run: |
+  #         echo "4. use the variable from previous job" >> $GITHUB_STEP_SUMMARY
+  #         echo "output variable (via environment): '${{ env.output_variable }}'" >> $GITHUB_STEP_SUMMARY
+  #         echo "output variable (via output): '${{ needs.debug1.outputs.output_variable }}'" >> $GITHUB_STEP_SUMMARY

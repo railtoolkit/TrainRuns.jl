@@ -15,20 +15,19 @@ jobs:
 
   debug:
     name: "debug"
-    outputs:
     runs-on: ubuntu-latest
     steps:
       - name: "checkout"
         # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
         uses: actions/checkout@v3
 
-  #       ## opening a debug console
-  #     - name: Setup upterm session
-  #       env:
-  #         ZENODO_SANDBOX_ACCESS_TOKEN: ${{ secrets.ZENODO_SANDBOX_ACCESS_TOKEN }}
-  #       uses: lhotari/action-upterm@v1
-  #       with:
-  #         limit-access-to-actor: true
+        ## opening a debug console
+      - name: Setup upterm session
+        env:
+          ZENODO_SANDBOX_ACCESS_TOKEN: ${{ secrets.ZENODO_SANDBOX_ACCESS_TOKEN }}
+        uses: lhotari/action-upterm@v1
+        with:
+          limit-access-to-actor: true
 
   # debug1:
   #   name: "debug 1"

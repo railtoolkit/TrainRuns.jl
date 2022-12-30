@@ -17,6 +17,7 @@ on:
       - '.github/workflows/release.yml'
       - '.github/workflows/TagBot.yml'
       - '.github/zenodo/*'
+      - 'docs'
   pull_request:
     branches: [ main, development ]
     paths-ignore:
@@ -34,6 +35,7 @@ on:
       - '.github/workflows/release.yml'
       - '.github/workflows/TagBot.yml'
       - '.github/zenodo/*'
+      - 'docs'
   workflow_dispatch:
 
 concurrency:

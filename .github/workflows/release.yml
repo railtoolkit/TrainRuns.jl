@@ -137,7 +137,7 @@ jobs:
 
       # 3. create release archive
       - name: "create release archive"
-        uses: papeloto/action-zip@v1
+        uses: papeloto/action-zip@v1.1
         with:
           files: docs src test README.md LICENSE Project.toml
           recursive: false
@@ -156,6 +156,8 @@ jobs:
   publish_github:
     needs: [create_package, version]
     name: "publish on github"
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - run: echo "Publishing package on Github:" >> $GITHUB_STEP_SUMMARY
@@ -164,34 +166,21 @@ jobs:
       - run: echo "- getting ZIP-Archive and release notes :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
       # 2. creating a new release
-      - name: "create release"
+      - uses: softprops/action-gh-release@v1
         id: create_release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body_path: artifact/release-note-v${{ needs.version.outputs.new }}.md
           draft: false
           prerelease: false
+          body_path: artifact/release-note-v${{ needs.version.outputs.new }}.md
+          files: artifact/TrainRuns.jl-v${{ needs.version.outputs.new }}.zip
+          name: Release v${{ needs.version.outputs.new }}
       - run: echo "- drafting new release :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
-      # 3. upload package to new release
-      - name: "upload release asset"
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifact/TrainRuns.jl-v${{ needs.version.outputs.new }}.zip
-          asset_name: TrainRuns.jl-v${{ needs.version.outputs.new }}.zip
-          asset_content_type: application/zip
-      - run: echo "- upload release asset :white_check_mark:" >> $GITHUB_STEP_SUMMARY
-
-      # 4. publish release on github
+      # 3. publish release on github
       - name: "publish release"
-        uses: StuYarrow/publish-release@v1
+        uses: StuYarrow/publish-release@v1.1.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -206,7 +195,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Archiving package on zenodo to get a DOI:" >> $GITHUB_STEP_SUMMARY
-      # 1. download artifact in folder artifact/ and move it one level up
+      # 1. download artifact in folder artifact/ and move it one level up and checkout the repo
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
       - run: |
           mv ./artifact/TrainRuns.jl-v${{ needs.version.outputs.new }}.zip ./

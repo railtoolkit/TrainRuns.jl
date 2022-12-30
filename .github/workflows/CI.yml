@@ -12,6 +12,7 @@ on:
       - '.github/workflows/cffvalidation.yml'
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/debug.yml'
+      - '.github/workflows/documenter.yml'
       - '.github/workflows/JuliaRegister.yml'
       - '.github/workflows/release.yml'
       - '.github/workflows/TagBot.yml'
@@ -28,6 +29,7 @@ on:
       - '.github/workflows/cffvalidation.yml'
       - '.github/workflows/CompatHelper.yml'
       - '.github/workflows/debug.yml'
+      - '.github/workflows/documenter.yml'
       - '.github/workflows/JuliaRegister.yml'
       - '.github/workflows/release.yml'
       - '.github/workflows/TagBot.yml'
@@ -59,7 +61,7 @@ jobs:
           - x64
           # - aarch64
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
@@ -67,22 +69,3 @@ jobs:
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-  docs:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: julia-actions/setup-julia@v1
-        with:
-          version: '1'
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-docdeploy@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
-      - run: |
-          julia --project=docs -e '
-            using Documenter: DocMeta, doctest
-            using TrainRuns
-            DocMeta.setdocmeta!(TrainRuns, :DocTestSetup, :(using TrainRuns); recursive=true)
-            doctest(TrainRuns)'

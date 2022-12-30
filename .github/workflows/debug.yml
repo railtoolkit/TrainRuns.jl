@@ -13,14 +13,14 @@ on:
 ## A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
 
-  # debug:
-  #   name: "debug"
-  #   outputs:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: "checkout"
-  #       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-  #       uses: actions/checkout@v3
+  debug:
+    name: "debug"
+    outputs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "checkout"
+        # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+        uses: actions/checkout@v3
 
   #       ## opening a debug console
   #     - name: Setup upterm session

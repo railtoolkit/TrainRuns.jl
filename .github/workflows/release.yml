@@ -9,7 +9,7 @@ on:
 
 jobs:
   version:
-    name: ":triangular_flag_on_post: check submitted version - "
+    name: "check submitted version"
     runs-on: ubuntu-latest
     outputs:
       current: ${{ steps.version_check.outputs.current }}
@@ -41,7 +41,7 @@ jobs:
             echo ":warning: Please see https://semver.org/ for further information." >> $GITHUB_STEP_SUMMARY
             exit 1
           else
-            echo "- format follows the semantic versioning schema :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+            echo "- follows the semantic versioning schema format :white_check_mark:" >> $GITHUB_STEP_SUMMARY
           fi
           ## =================================
           ## check if version is an increment
@@ -310,7 +310,7 @@ jobs:
 
   register_julia:
     needs: [update_repository]
-    name: ":checkered_flag: publish in JuliaRegistries"
+    name: "register in JuliaRegistries"
     runs-on: ubuntu-latest
     steps:
       # 1. register new release at JuliaRegistries
@@ -320,7 +320,7 @@ jobs:
 
   publish_mastodon:
     needs: [zenodo, version, create_package]
-    name: ":checkered_flag: Send toot about it to railtoolkit@fosstodon.org"
+    name: "Send toot about it to fosstodon.org"
     runs-on: ubuntu-latest
     steps:
       - uses: cbrgm/mastodon-github-action@v1

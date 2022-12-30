@@ -125,7 +125,7 @@ jobs:
           fi
           if [ $STATUS = 1 ]; then
             echo "- :no_entry_sign: 'Unreleased' section in CHANGELOG.md is empty" >> $GITHUB_STEP_SUMMARY
-            echo ":warning: Please provide a meaningful CHANGELOG.md for the new version $VERSION"." >> $GITHUB_STEP_SUMMARY
+            echo ":warning: Please provide a meaningful CHANGELOG.md for the new version $VERSION." >> $GITHUB_STEP_SUMMARY
             exit 1
           else
             echo "- 'Unreleased' section in CHANGELOG.md has content :white_check_mark:" >> $GITHUB_STEP_SUMMARY

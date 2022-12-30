@@ -106,7 +106,7 @@ jobs:
       # 2. create release note
       - name: "create release note"
         run: |
-          VERSION=${{ needs.version.outputs.new }}
+          NEW_VERSION=${{ needs.version.outputs.new }}
           CURRENT_VERSION=${{ needs.version.outputs.current }}
           STATUS=0
           ## =================================
@@ -114,18 +114,18 @@ jobs:
           ## ---------------------------------
           TOP=$(grep -n "## \[Unreleased\]" CHANGELOG.md | cut -d: -f1)
           BOTTOM=$(grep -n -m 1 "## Version \[$CURRENT_VERSION\]" CHANGELOG.md | cut -d: -f1)
-          awk "NR>$TOP&&NR<$BOTTOM" CHANGELOG.md > release-note-v$VERSION.md
-          sed -i -- "s/###/##/g" release-note-v$VERSION.md
+          awk "NR>$TOP&&NR<$BOTTOM" CHANGELOG.md > release-note-v$NEW_VERSION.md
+          sed -i -- "s/###/##/g" release-note-v$NEW_VERSION.md
           ## =================================
           ## check if release note is empty
           ## ---------------------------------
-          WORD_COUNT=$(wc -w release-note-v$VERSION.md | awk '{print $1}')
+          WORD_COUNT=$(wc -w release-note-v$NEW_VERSION.md | awk '{print $1}')
           if [[ $WORD_COUNT -lt 4 ]]; then
             STATUS=1
           fi
           if [ $STATUS = 1 ]; then
             echo "- :no_entry_sign: 'Unreleased' section in CHANGELOG.md is empty" >> $GITHUB_STEP_SUMMARY
-            echo ":warning: Please provide a meaningful CHANGELOG.md for the new version $VERSION." >> $GITHUB_STEP_SUMMARY
+            echo ":warning: Please provide a meaningful CHANGELOG.md for the new version $NEW_VERSION." >> $GITHUB_STEP_SUMMA
             exit 1
           else
             echo "- 'Unreleased' section in CHANGELOG.md has content :white_check_mark:" >> $GITHUB_STEP_SUMMARY
@@ -133,7 +133,7 @@ jobs:
           ## =================================
           ## remove empty lines from top and bottom
           ## ---------------------------------
-          sed -i -- -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' release-note-v$VERSION.md
+          sed -i -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' release-note-v$NEW_VERSION.md
 
       # 3. create release archive
       - name: "create release archive"

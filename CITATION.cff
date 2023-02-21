@@ -38,3 +38,16 @@ keywords:
 license: ISC
 version: 1.0.3
 date-released: 2022-12-30
+preferred-citation:
+  authors:
+    - family-names: Scheidt
+      given-names: Martin
+      orcid: https://orcid.org/0000-0002-9384-8945
+    - family-names: Kannenberg
+      given-names: Max
+  doi: 10.2495/cr220221
+  title: 'TrainRuns.jl: An Open-Source Tool for Running Time Estimation'
+  type: proceedings
+  year: 2022
+  publisher:
+    name: 'WIT Transactions on The Built Environment, Vol 213, WIT Press'

@@ -4,30 +4,32 @@
 
 ------------
 
-# About
+## About
 
 TrainRuns.jl is a step towards open science and open data in railway engineering. Its modular design offers the possibility to serve as a basis for future optimization and development. TrainRuns.jl is suitable for qualitative calculations to compare different trains, and it is publicly available, and we invite others to collaborate.
 
 ------------
 
-# Installation
+## Installation
 
 Use the package manager provided by [julia](https://julialang.org):
+
 ```julia
 julia> # use the ] key
-(@v1.x) pkg> add TrainRuns
-(@v1.x) pkg> # use backspace
+pkg> add TrainRuns
+pkg> # use backspace
 julia> using TrainRuns
 ```
 
 The required julia packages are
-  - YAML.jl
-  - JSONSchema.jl
-  - DataFrames.jl
+
+- YAML.jl
+- JSONSchema.jl
+- DataFrames.jl
 
 ------------
 
-# Minimal working example
+## Minimal working example
 
 ```julia
 using TrainRuns
@@ -42,7 +44,7 @@ println("The train needs $runtime seconds for the running path.")
 
 ------------
 
-# Further Information
+## Further Information
 
 Visit the repository [TrainRuns.jl-Tutorials](https://github.com/railtoolkit/TrainRuns.jl-Tutorials) for tutorials in either Jupyther Notebooks or Pluto Notebooks. There you can find, for instance, a [basic tutorial](https://github.com/railtoolkit/TrainRuns.jl-Tutorials/blob/main/basic.ipynb).
 
@@ -50,13 +52,13 @@ Please refer to the automated [documentation](https://www.railtoolkit.org/TrainR
 
 ------------
 
-# Acknowledgement
+## Acknowledgement
 
 This work was supervised by South Westphalia University of Applied Sciences and Technical University Braunschweig.
 
 ------------
 
-# License
+## License
 
 [![Open Source Initiative Approved License logo](https://opensource.org/files/OSIApproved_100X125.png "Open Source Initiative Approved License logo")](https://opensource.org)
 

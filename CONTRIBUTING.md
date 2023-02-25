@@ -8,30 +8,34 @@ Please note we have a code of conduct, please follow it in all your interactions
 ## Julia Development Environment
 
 Link your local git repository to Julia:
+
 ```console
-$ ln -s ~/path/to/TrainRuns.jl ~/.julia/dev/TrainRuns 
+ln -s ~/path/to/TrainRuns.jl ~/.julia/dev/TrainRuns 
 ```
 
 Have a look how to develop Julia packages: https://github.com/ShozenD/julia-pkg-dev
 You might want to use `Revise.jl` as well:
+
 ```julia
 Pkg.add("Revise")
 ```
+
 and then just load with `using Revise` (preferably by putting it in the `~/.julia/config/startup.jl` file).
 
 You can overide the standard TrainRuns package with the local development branch (see linking above) with:
+
 ```julia
 julia> # use the ] key
-(@v1.x) pkg> develop TrainRuns
-(@v1.x) pkg> # use backspace
+pkg> develop TrainRuns
+pkg> # use backspace
 julia> using TrainRuns # local development branch will be loaded
 ```
 
 If you want to add a dependency use:
+
 ```julia
 julia> # use the ] key
-(@v1.x) pkg> activate TrainRuns
-(TrainRuns) pkg>
+pkg> activate TrainRuns
 ```
 
 ## Files in TrainRuns
@@ -89,19 +93,21 @@ TODO
 ## Contribution Ideas
 
 Models for:
+
 * Breakaway (currently simple like acceleration)
 * braking (currently constant braking with a certain value)
 * inhomogeneous mass band (consider non-uniform mass distribution (cf. Wende, 2003 p. 96f.))
 * double traction
 
 More exact calculation of resistances for:
+
 * the track (e.g. including curves, switches, tunnels) 
 * for the train (e.g. there are vehicle resistance equations especially for high-speed trains, which are not yet considered in the tool (cf. Wende, 2003 p. 152 f.))
 
 * Input/calculation of tractive force (currently only tractive force-speed pairs. This could be extended to include tractive force functions that apply to specific velocity ranges (cf. Brünger, et al., 2014 p. 69).
 
 * Calculation of energy, cf. (Wende, 2003 p. 324).
-* Energy-saving driving: https://doi.org/10.1016/j.ejor.2016.09.044
+* Energy-saving driving: [https://doi.org/10.1016/j.ejor.2016.09.044]
 
 * switching between different step variables in one train run or implementation of variable step size (currently it is necessary to choose between s, t and v and to specify a step size that becomes smaller at intersections, but is otherwise constant)
 

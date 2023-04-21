@@ -14,7 +14,7 @@ Modules = [TrainRuns]
 Private = false
 ```
 
-## Privat Functions
+## Private Functions
 
 ```@autodocs
 Modules = [TrainRuns]

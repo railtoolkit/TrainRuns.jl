@@ -59,4 +59,11 @@ function trainrun(train::Train, path::Path, settings=Settings()::Settings)
     return output
 end # function trainrun
 
+"""
+    Alias for swaped arguments.
+"""
+function trainrun(path::Path, train::Train, settings=Settings()::Settings)
+    trainrun(train, path, settings)
+end # function trainrun alias
+
 end # module TrainRuns

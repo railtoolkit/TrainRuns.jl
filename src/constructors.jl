@@ -254,6 +254,80 @@ function Path(file, type = :YAML)
 end #function Path() # outer constructor
 
 """
+    Path(characteristic_sections::DataFrame)
+
+Path is a datastruture for calculation context.
+The function Path() will create a running path for the train.
+Optional arguments:
+    poi::DataFrame # Points of interest
+    name::String
+    id::String
+    uuid::UUID
+
+characteristic_sections DataFrame needs the following columns:
+    * :position,
+    * :speed,
+    * :resistance
+points_of_interest (poi) DataFrame needs the following columns:
+    * :position,
+    * :label,
+    * :measure
+
+# Example
+```
+julia> my_path = Path(characteristic_sections) # will generate a path from a DataFrame.
+Path(variables)
+```
+"""
+function Path(
+            characteristic_sections::DataFrame;
+            poi::DataFrame = DataFrame(position=Real[], label=String[], measure=String[]),
+            name::String   = "",
+            id::String     = "",
+            uuid::UUID     = UUIDs.uuid4()
+        )
+
+    ## points_of_interest
+    poi_out       = []
+    for elem in eachrow(select(poi, [:position,:label,:measure]))
+        station = elem[:position] # station in m
+        label   = elem[:label]    # name
+        measure = elem[:measure]  # front or rear
+        #
+        point = Dict(:station => station,
+                     :label   => label,
+                     :measure => measure)
+        push!(poi_out, point)
+    end #for elem in poi
+  
+    ## characteristic_sections
+    cs = select(characteristic_sections, [:position,:speed,:resistance])
+    # create s_end
+    sort!(cs, [:position])
+    next_position = circshift(cs[!,:position],-1)
+    next_position = convert(Vector{Union{Missing, Real}}, next_position)
+    next_position[end] = missing
+    allowmissing!(cs)
+    cs.next_position = next_position
+    #
+    sections  = []
+    for elem in eachrow(dropmissing(cs))
+        s_start = elem[:position]      # first point of the section (in m)
+        s_end   = elem[:next_position] # first point of the next section (in m)
+        v_limit = elem[:speed]         # paths speed limt (in m/s)
+        f_Rp    = elem[:resistance]    # specific path resistance of the section (in ‰)
+        #
+        section = Dict(:s_start => s_start,
+                       :s_end   => s_end,
+                       :v_limit => v_limit,
+                       :f_Rp    => f_Rp)
+        push!(sections, section)
+    end #for elem in cs
+    
+    return Path(name, id, uuid, poi_out, sections)
+end #function Path() # outer constructor
+
+"""
     Train(file, type = :YAML)
 
 Train is a datastruture for calculation context.

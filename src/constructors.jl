@@ -259,10 +259,14 @@ end #function Path() # outer constructor
 Path is a datastruture for calculation context.
 The function Path() will create a running path for the train.
 Optional arguments:
-    poi::DataFrame # Points of interest
-    name::String
-    id::String
-    uuid::UUID
+    * points_of_interest::DataFrame # Points of interest
+
+    Path(characteristic_sections::DataFrame, points_of_interest::DataFrame)
+
+Keyword Arguments:
+    * name::String
+    * id::String
+    * uuid::UUID
 
 characteristic_sections DataFrame needs the following columns:
     * :position,
@@ -280,16 +284,16 @@ Path(variables)
 ```
 """
 function Path(
-            characteristic_sections::DataFrame;
-            poi::DataFrame = DataFrame(position=Real[], label=String[], measure=String[]),
+            characteristic_sections::DataFrame,
+            points_of_interest::DataFrame = DataFrame(position=Real[], label=String[], measure=String[]);
             name::String   = "",
             id::String     = "",
             uuid::UUID     = UUIDs.uuid4()
         )
 
     ## points_of_interest
-    poi_out       = []
-    for elem in eachrow(select(poi, [:position,:label,:measure]))
+    poi       = []
+    for elem in eachrow(select(points_of_interest, [:position,:label,:measure]))
         station = elem[:position] # station in m
         label   = elem[:label]    # name
         measure = elem[:measure]  # front or rear
@@ -297,7 +301,7 @@ function Path(
         point = Dict(:station => station,
                      :label   => label,
                      :measure => measure)
-        push!(poi_out, point)
+        push!(poi, point)
     end #for elem in poi
   
     ## characteristic_sections
@@ -324,7 +328,7 @@ function Path(
         push!(sections, section)
     end #for elem in cs
     
-    return Path(name, id, uuid, poi_out, sections)
+    return Path(name, id, uuid, poi, sections)
 end #function Path() # outer constructor
 
 """

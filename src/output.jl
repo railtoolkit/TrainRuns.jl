@@ -30,7 +30,7 @@ julia> createOutput(settings_poi, drivingCourse_longdistance, pointsOfInterest_p
    5 │ clearing_point_1  braking       9203.37  24.443  266.426  -0.375  0.0        30176.2     0.0      7389.44   22786.8
 ```
 """
-function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfInterest::Vector{NamedTuple})
+function createOutput(settings::Settings, drivingCourse::Vector{Dict}, poi_positions::Vector{Any})
     if settings.outputDetail == :running_time
         output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 
@@ -38,18 +38,13 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, pointsOfI
         # get only the driving course's support points with POI labels
         # if there is no point with POI label return the information of departure and arrival (first and last points)
         output = Dict[]
-        if isempty(pointsOfInterest)
+        if isempty(poi_positions)
             push!(output, drivingCourse[1])
             push!(output, drivingCourse[end])
         else
-            supportPoint = 1
-            for POI in 1:length(pointsOfInterest)
-                while supportPoint <= length(drivingCourse)
-                    if pointsOfInterest[POI][:s] == drivingCourse[supportPoint][:s]
-                        push!(output, drivingCourse[supportPoint])
-                        break
-                    end
-                    supportPoint += 1
+            for supportPoint in drivingCourse
+                if supportPoint[:s] in poi_positions
+                    push!(output, supportPoint)
                 end
             end
         end

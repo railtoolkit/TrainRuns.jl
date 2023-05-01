@@ -46,7 +46,7 @@ xxx.xx # in seconds
 """
 function trainrun(train::Train, path::Path, settings=Settings()::Settings)
     # prepare the input data
-    (characteristicSections, pointsOfInterest) = determineCharacteristics(path, train, settings)
+    (characteristicSections, poi_positions) = determineCharacteristics(path, train, settings)
         # TODO settings.outputDetail == :verbose && println("The characteristics haven been determined.")
 
     # calculate the train run with the minimum running time
@@ -54,9 +54,16 @@ function trainrun(train::Train, path::Path, settings=Settings()::Settings)
         # TODO settings.outputDetail == :verbose && println("The driving course for the shortest running time has been calculated.")
 
     # accumulate data and create an output dictionary
-    output = createOutput(settings, drivingCourse, pointsOfInterest)
+    output = createOutput(settings, drivingCourse, poi_positions)
 
     return output
 end # function trainrun
+
+"""
+    Alias for swaped arguments.
+"""
+function trainrun(path::Path, train::Train, settings=Settings()::Settings)
+    trainrun(train, path, settings)
+end # function trainrun alias
 
 end # module TrainRuns

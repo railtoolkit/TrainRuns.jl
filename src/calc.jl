@@ -10,6 +10,9 @@
 function calculateMinimumRunningTime(CSs::Vector{Dict}, settings::Settings, train::Train)
    startingPoint = SupportPoint()
    startingPoint[:s] = CSs[1][:s_entry]
+   if !isempty(CSs[1][:pointsOfInterest]) && CSs[1][:pointsOfInterest][1][:s] == CSs[1][:s_entry]
+       startingPoint[:label] =  CSs[1][:pointsOfInterest][1][:label]
+   end
    calculateForces!(startingPoint, CSs, 1, "default", train, settings.massModel) # traction effort and resisting forces (in N)
    drivingCourse::Vector{Dict} = [startingPoint]    # List of support points
 
@@ -310,6 +313,7 @@ end #function getNextPointOfInterest
 ## create vectors with the moving section's points of interest and with the characteristic sections with secured braking and accelerating behavior
 function determineCharacteristics(path::Path, train::Train, settings::Settings)
     # determine the positions of the points of interest depending on the interesting part of the train (front/rear) and the train's length
+    poi_positions = []
     pointsOfInterest = NamedTuple[]
     if !isempty(path.poi)
         for POI in path.poi
@@ -318,6 +322,7 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
                 s_poi += train.length
             end
             push!(pointsOfInterest, (s = s_poi, label = POI[:label]) )
+            push!(poi_positions,s_poi)
         end
         sort!(pointsOfInterest, by = x -> x[:s])
     end
@@ -342,5 +347,5 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
     # secure that the train is able to brake sufficiently and keeps speed limits
     CSs = secureBrakingBehavior!(CSs, train.a_braking, settings.approxLevel)
 
-    return (CSs, pointsOfInterest)
+    return (CSs, poi_positions)
 end #function determineCharacteristics

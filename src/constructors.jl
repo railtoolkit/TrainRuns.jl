@@ -680,7 +680,7 @@ function CharacteristicSection(s_entry::Real, section::Dict, v_limit::Real, s_tr
     if !isempty(MS_poi)
         for POI in MS_poi
             s_poi = POI[:s]
-            if s_entry < s_poi && s_poi <= s_exit
+            if s_entry <= s_poi && s_poi <= s_exit
                 push!(CS_poi, POI)
             end
         end

@@ -9,6 +9,12 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+### Added
+* DataFrame as input for Path()
+
+### Fixed
+* poi label for startingPoint was not considered
+* no poi output if a poi is outside of path existed
 
 ## Version [1.0.3] 2022-12-30
 

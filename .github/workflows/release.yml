@@ -229,7 +229,7 @@ jobs:
         run: |
           DATE=$(date "+%Y-%m-%d")
           VERSION=${{ needs.version.outputs.new }}
-          DOI=${{ needs.publish_zenodo.outputs.doi }}
+          DOI=${{ needs.zenodo.outputs.doi }}
           echo "find lines in CITATION.cff"
           VERSION_LINE=$(grep -n '^version:' CITATION.cff | cut -d: -f1)
           DATE_LINE=$(grep -n 'date-released:' CITATION.cff | cut -d: -f1)

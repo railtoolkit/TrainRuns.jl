@@ -31,12 +31,11 @@ include("output.jl")
 
 ## main function
 """
-    trainrun(train::Train, path::Path, settings::Settings)
+    trainrun(train::Train, path::Path[, settings::Settings])
 
-Calculate the running time of a `train` on a `path`.
-The `settings` provides the choice of models for the calculation.
-`settings` can be omitted. If so, a default is used.
-The running time will be return in seconds.
+Calculate the running time of a [`Train`](@ref) on a [`Path`](@ref) in seconds.
+
+See also [`Settings`](@ref).
 
 # Examples
 ```julia-repl
@@ -60,7 +59,9 @@ function trainrun(train::Train, path::Path, settings=Settings()::Settings)
 end # function trainrun
 
 """
-    Alias for swaped arguments.
+    trainrun(path::Path, train::Train[, settings::Settings])
+
+Alias of [`trainrun(train::Train, path::Path)`](@ref) with swapped arguments.
 """
 function trainrun(path::Path, train::Train, settings=Settings()::Settings)
     trainrun(train, path, settings)

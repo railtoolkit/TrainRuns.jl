@@ -5,16 +5,23 @@
 # __license__       = "ISC"
 
 """
-    Settings(file)
+    Settings([file::String]; <keyword arguments>)
 
-Settings is a datastruture for calculation context.
-The function Settings() will create a set of settings for the train run calculation.
-`file` is optinal may be used to load settings in the YAML format.
+Create a settings object for [`trainrun`](@ref).
+
+`file` may be used to load settings in YAML format.
+
+# Arguments
+- `massModel::Symbol` model of train mass. `:mass_point`_(default)_ or `:homogeneous_strip`
+- `stepVariable::Symbol`: step method `:distance`_(default)_, `:time` or `:velocity`
+- `stepSize::Number=20`: unit depends on `stepVariable` - (_meter_, _seconds_ or _meter/second_)
+- `approxLevel::Number=3`: used when rounding or iterating.
+- `outputDetail:Symbol`: `:running_time`_(default)_, `:points_of_interest`, `:data_points` or `:driving_course`
+- `outputFormat::Symbol`: `:dataframe`_(default)_ or `:vector`
 
 # Example
-```
-julia> my_settings = Settings() # will generate default settings
-# massModel, stepVariable, stepSize, approxLevel, outputDetail, outputFormat
+```julia-repl
+julia> my_settings = Settings()
 Settings(:mass_point, :distance, 20, 3, :running_time, :dataframe)
 ```
 """
@@ -83,15 +90,16 @@ function Settings(
 end #function Settings() # outer constructor
 
 """
-    Path(file, type = :YAML)
+    Path(file, type=:YAML)
 
-Path is a datastruture for calculation context.
-The function Path() will create a running path for the train.
-Supported formats are: railtoolkit/schema (2022.05)
+Create a running path object for [`trainrun`](@ref).
+
+Supported formats are: [railtoolkit/schema (2022.05)](https://doi.org/10.5281/zenodo.6522824).
+As of now only `:YAML` is supported as filetype.
 
 # Example
-```
-julia> my_path = Path("file.yaml") # will generate a path from a YAML file.
+```julia-repl
+julia> my_path = Path("file.yaml")
 Path(variables)
 ```
 """
@@ -254,32 +262,30 @@ function Path(file, type = :YAML)
 end #function Path() # outer constructor
 
 """
-    Path(characteristic_sections::DataFrame)
+    Path(characteristic_sections::DataFrame[, points_of_interest::DataFrame]; <keyword arguments>)
 
-Path is a datastruture for calculation context.
-The function Path() will create a running path for the train.
-Optional arguments:
-    * points_of_interest::DataFrame # Points of interest
+Create a running path object for [`trainrun`](@ref).
 
-    Path(characteristic_sections::DataFrame, points_of_interest::DataFrame)
+# Arguments
+- `name::String`: name or description
+- `id::String`: short string as identifier
+- `uuid::UUID`: unique identifier
 
-Keyword Arguments:
-    * name::String
-    * id::String
-    * uuid::UUID
 
-characteristic_sections DataFrame needs the following columns:
-    * :position,
-    * :speed,
-    * :resistance
-points_of_interest (poi) DataFrame needs the following columns:
-    * :position,
-    * :label,
-    * :measure
+`characteristic_sections` DataFrame needs the columns:
+- :position
+- :speed
+- :resistance
+
+
+`points_of_interest` DataFrame needs the columns:
+- :position
+- :label
+- :measure
 
 # Example
-```
-julia> my_path = Path(characteristic_sections) # will generate a path from a DataFrame.
+```julia-repl
+julia> my_path = Path(characteristic_sections)
 Path(variables)
 ```
 """
@@ -332,15 +338,16 @@ function Path(
 end #function Path() # outer constructor
 
 """
-    Train(file, type = :YAML)
+    Train(file, type=:YAML)
 
-Train is a datastruture for calculation context.
-The function Train() will create a train to use in calculations.
-Supported formats for the YAML files are: railtoolkit/schema (2022.05)
+Create a train object for [`trainrun`](@ref).
+
+Supported formats are: [railtoolkit/schema (2022.05)](https://doi.org/10.5281/zenodo.6522824).
+As of now only `:YAML` is supported as filetype.
 
 # Example
-```
-julia> my_train = Train("file.yaml") # will generate a train from a YAML file.
+```julia-repl
+julia> my_train = Train("file.yaml")
 Train(variables)
 ```
 """

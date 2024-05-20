@@ -13,7 +13,7 @@ Link your local git repository to Julia:
 ln -s ~/path/to/TrainRuns.jl ~/.julia/dev/TrainRuns 
 ```
 
-Have a look how to develop Julia packages: [https://github.com/ShozenD/julia-pkg-dev]
+Have a look at how to develop Julia packages: [https://github.com/ShozenD/julia-pkg-dev]
 You might want to use `Revise.jl` as well:
 
 ```julia
@@ -22,7 +22,7 @@ Pkg.add("Revise")
 
 and then just load with `using Revise` (preferably by putting it in the `~/.julia/config/startup.jl` file).
 
-You can overide the standard TrainRuns package with the local development branch (see linking above) with:
+You can override the standard TrainRuns package with the local development branch (see linking above) with:
 
 ```julia
 julia> # use the ] key
@@ -45,7 +45,7 @@ pkg> activate TrainRuns
 | TrainRuns.jl    | main file and function         |
 | types.jl        | special TrainRuns types        |
 | constructors.jl | type constructors              |
-| formulary.jl    | formulars from literature      |
+| formulary.jl    | formulas from literature       |
 | output.jl       | transformation into DataFrames |
 
 ## Reporting Issues
@@ -65,16 +65,16 @@ TODO
 
 * Avoid working from the `main` branch of your fork, creating a new branch will make it
   easier if TrainRuns.jl `main` branch changes and you need to update your pull request;
-* All PRs and issues should be opened against the `main` branch not against the current release;
+* All PRs and issues should be opened against the `main` branch, not against the current release;
 * Run tests of your code before sending any commit to GitHub. Only push changes when
-  the tests of the change are passing locally. In particular note that it is not a problem
+  the tests of the change are passing locally. In particular, note that it is not a problem
   if you send several commits in one push command to GitHub as CI will be run only once then;
 * If any conflicts arise due to changes in TrainRuns.jl `main` branch, prefer updating your pull
   request branch with `git rebase` (rather than `git merge`), since the latter will introduce a merge
   commit that might confuse GitHub when displaying the diff of your PR, which makes your changes more
-  difficult to review. Alternatively use conflict resolution tool available at GitHub;
+  difficult to review. Alternatively, use the conflict resolution tool available at GitHub;
 * Please try to use descriptive commit messages to simplify the review process;
-* Using `git add -p` or `git add -i` can be useful to avoid accidently committing unrelated changes;
+* Using `git add -p` or `git add -i` can be useful to avoid accidentally committing unrelated changes;
 * Maintainers get notified of all changes made on GitHub. However, what is useful is writing a short
   message after a sequence of changes is made summarizing what has changed and that the PR is ready
   for a review;
@@ -115,4 +115,13 @@ More exact calculation of resistances for:
   i.e. trainrun(train::Train, path::Path, regime=Regime()::Regime, settings=Settings()::Settings)
   e.g. Regime((v1,milage1),(v2,milage2),...,(vX,milageX)) v=(Int,v_max,coasting,halt)
 
+Export
+
 * good plots would be nice
+
+Documentation
+
+* there is always a way to improve the documentation
+
+## Add yourself as a contributor
+To add yourself to the table of contributors, follow the [bot usage instructions](https://allcontributors.org/docs/en/bot/usage).

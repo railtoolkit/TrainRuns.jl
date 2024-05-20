@@ -1,6 +1,6 @@
 # TrainRuns
 
- [![License: ISC][license-img]][license-url] [![DOI][zenodo-img]][zenodo-url] [![Build Status][ci-img]][ci-url] [![SQAaaS badge][SQAaaS-img]][SQAaaS-url]
+ [![License: ISC][license-img]][license-url] [![DOI][zenodo-img]][zenodo-url] [![Build Status][ci-img]][ci-url] [![SQAaaS badge][SQAaaS-img]][SQAaaS-url] [![All Contributors][Contributors-img]][Contributors-url]
 
 ------------
 
@@ -64,6 +64,19 @@ This work was supervised by South Westphalia University of Applied Sciences and 
 
 ------------
 
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+------------
+
 ## License
 
 [![Open Source Initiative Approved License logo](https://149753425.v2.pressablecdn.com/wp-content/uploads/2009/06/OSIApproved_100X125.png "Open Source Initiative Approved License logo")](https://opensource.org)
@@ -87,3 +100,6 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 
 [SQAaaS-img]: https://img.shields.io/badge/sqaaas%20software-silver-lightgrey
 [SQAaaS-url]: https://api.eu.badgr.io/public/assertions/qXPM75OnSLmDxbEQlcuzxw "SQAaaS silver badge achieved"
+
+[Contributors-img]: https://img.shields.io/github/all-contributors/railtoolkit/TrainRuns.jl?color=ee8449&style=flat-square
+[Contributors-url]: #Contributors

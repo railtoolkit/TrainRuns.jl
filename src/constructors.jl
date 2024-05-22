@@ -18,6 +18,7 @@ Create a settings object for [`trainrun`](@ref).
 - `approxLevel::Number=3`: used when rounding or iterating.
 - `outputDetail:Symbol`: `:running_time`_(default)_, `:points_of_interest`, `:data_points` or `:driving_course`
 - `outputFormat::Symbol`: `:dataframe`_(default)_ or `:vector`
+- `verbosity::Symbol`: `:unset`_(default)_, `:info`, `:debug`, `:warn`, or `:error`
 
 # Example
 ```julia-repl
@@ -32,7 +33,8 @@ function Settings(
             stepSize::Number     = 20,
             approxLevel::Number  = 3,
             outputDetail::Symbol = :running_time,
-            outputFormat::Symbol = :dataframe
+            outputFormat::Symbol = :dataframe,
+            verbosity::Symbol    = :unset
         )
     ## load from file
     if file != "DEFAULT"
@@ -64,6 +66,11 @@ function Settings(
                     "description": "Output format",
                     "type": "string",
                     "enum": [ "dataframe", "vector" ]
+                },
+                "verbosity": {
+                    "description": "Output format",
+                    "type": "string",
+                    "enum": [ "unset", "debug", "info", "warn", "error" ]
                 }
             }
         }""")
@@ -83,9 +90,10 @@ function Settings(
         haskey(settings, "approxLevel")  ? approxLevel  =        settings["approxLevel"]   : nothing
         haskey(settings, "outputDetail") ? outputDetail = Symbol(settings["outputDetail"]) : nothing
         haskey(settings, "outputFormat") ? outputFormat = Symbol(settings["outputFormat"]) : nothing
+        haskey(settings, "verbosity")    ? verbosity    = Symbol(settings["verbosity"])    : nothing
     end
 
-    Settings(massModel, stepVariable, stepSize, approxLevel, outputDetail, outputFormat)
+    Settings(massModel, stepVariable, stepSize, approxLevel, outputDetail, outputFormat, verbosity)
 
 end #function Settings() # outer constructor
 

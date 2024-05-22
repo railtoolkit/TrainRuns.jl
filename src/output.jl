@@ -131,3 +131,29 @@ function createDataFrame(output_vector::Vector{Dict}, outputDetail::Symbol, appr
 
     return dataFrame
 end #createDataFrame
+
+function set_log_level(settings::Settings)
+    if settings.verbosity != :unset
+        current_logger = global_logger()
+        current_level = lowercase(String(Symbol(current_logger.min_level)))
+        new_level = String(settings.verbosity)
+        if current_level != new_level
+            @info "Changing log level from `$current_level` to `$new_level`."
+            if settings.verbosity == :info
+                new_logger = ConsoleLogger(stderr, Logging.Info)
+                global_logger(new_logger)
+            elseif settings.verbosity == :debug
+                new_logger = ConsoleLogger(stderr, Logging.Debug)
+                global_logger(new_logger)
+            elseif settings.verbosity == :warn
+                new_logger = ConsoleLogger(stderr, Logging.Warn)
+                global_logger(new_logger)
+            elseif settings.verbosity == :error
+                new_logger = ConsoleLogger(stderr, Logging.Error)
+                global_logger(new_logger)
+            else
+                @warn "Did not recognize the log level `$new_level`." "Log level was not changed!"
+            end
+        end
+    end
+end

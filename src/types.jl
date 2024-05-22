@@ -13,6 +13,7 @@ struct Settings
     outputDetail::Symbol # single Float() ":running_time", Vector() of ":points_of_interest", Vector() of ":data_points"
                          # or complete Vector() ":driving_course"
     outputFormat::Symbol # output as ":dataframe" or as ":vector".
+    verbosity::Symbol    # logging levels  debug, info, warn, and error
 
 end #struct Settings
 

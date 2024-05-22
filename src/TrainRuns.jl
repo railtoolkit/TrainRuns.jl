@@ -8,7 +8,7 @@ __precompile__(true)
 module TrainRuns
 
 ## loading standard library packages
-using UUIDs, Dates, Statistics
+using UUIDs, Dates, Statistics, Logging
 ## loading external packages
 using YAML, JSONSchema, DataFrames
 
@@ -44,6 +44,9 @@ xxx.xx # in seconds
 ```
 """
 function trainrun(train::Train, path::Path, settings=Settings()::Settings)
+    
+    set_log_level(settings)
+
     # prepare the input data
     (characteristicSections, poi_positions) = determineCharacteristics(path, train, settings)
         # TODO settings.outputDetail == :verbose && println("The characteristics haven been determined.")

@@ -14,11 +14,12 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/95709892?v=4",
       "profile": "https://github.com/MaxKannenberg",
       "contributions": [
-        "research"
+        "research",
+        "code"
       ]
     },
-	{
-	  "login": "kaat0",
+    {
+      "login": "kaat0",
       "name": "Martin Scheidt",
       "avatar_url": "https://avatars.githubusercontent.com/u/142348?v=4",
       "profile": "https://github.com/kaat0",
@@ -26,6 +27,6 @@
         "mentoring",
         "code"
       ]
-	}
+    }
   ]
 }

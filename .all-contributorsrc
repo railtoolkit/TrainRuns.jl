@@ -36,6 +36,15 @@
         "maintenance",
         "ideas"
       ]
+    },
+    {
+      "login": "apriljunge",
+      "name": "Gregor",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10660618?v=4",
+      "profile": "https://github.com/apriljunge",
+      "contributions": [
+        "question"
+      ]
     }
   ]
 }

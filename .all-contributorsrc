@@ -45,7 +45,8 @@
       "contributions": [
         "question",
         "ideas",
-        "doc"
+        "doc",
+        "bug"
       ]
     }
   ]

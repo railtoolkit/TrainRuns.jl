@@ -8,4 +8,4 @@
 using TrainRuns, Test
 
 include("logging_test.jl")
-include("macro_test.jl")
+include("highlevel_test.jl")

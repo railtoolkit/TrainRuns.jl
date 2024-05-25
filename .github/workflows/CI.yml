@@ -3,6 +3,7 @@ on:
   push:
     branches: [ main, development ]
     paths-ignore:
+      - '.all-contributorsrc'
       - 'CHANGELOG.md'
       - 'CITATION.cff'
       - 'CODE_OF_CONDUCT.md'
@@ -21,6 +22,7 @@ on:
   pull_request:
     branches: [ main, development ]
     paths-ignore:
+      - '.all-contributorsrc'
       - 'CHANGELOG.md'
       - 'CITATION.cff'
       - 'CODE_OF_CONDUCT.md'

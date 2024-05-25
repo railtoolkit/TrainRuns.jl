@@ -14,7 +14,39 @@
       "avatar_url": "https://avatars.githubusercontent.com/u/95709892?v=4",
       "profile": "https://github.com/MaxKannenberg",
       "contributions": [
-        "research"
+        "research",
+        "code",
+        "ideas",
+        "maintenance"
+      ]
+    },
+    {
+      "login": "kaat0",
+      "name": "Martin Scheidt",
+      "avatar_url": "https://avatars.githubusercontent.com/u/142348?v=4",
+      "profile": "https://github.com/kaat0",
+      "contributions": [
+        "mentoring",
+        "tutorial",
+        "code",
+        "test",
+        "tool",
+        "research",
+        "data",
+        "maintenance",
+        "ideas"
+      ]
+    },
+    {
+      "login": "apriljunge",
+      "name": "Gregor",
+      "avatar_url": "https://avatars.githubusercontent.com/u/10660618?v=4",
+      "profile": "https://github.com/apriljunge",
+      "contributions": [
+        "question",
+        "ideas",
+        "doc",
+        "bug"
       ]
     }
   ]

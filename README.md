@@ -72,7 +72,9 @@ This work was supervised by South Westphalia University of Applied Sciences and 
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/MaxKannenberg"><img src="https://avatars.githubusercontent.com/u/95709892?v=4?s=100" width="100px;" alt="Max Kannenberg"/><br /><sub><b>Max Kannenberg</b></sub></a><br /><a href="#research-MaxKannenberg" title="Research">🔬</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/MaxKannenberg"><img src="https://avatars.githubusercontent.com/u/95709892?v=4?s=100" width="100px;" alt="Max Kannenberg"/><br /><sub><b>Max Kannenberg</b></sub></a><br /><a href="#research-MaxKannenberg" title="Research">🔬</a> <a href="#code-MaxKannenberg" title="Code">💻</a> <a href="#ideas-MaxKannenberg" title="Ideas, Planning, & Feedback">🤔</a> <a href="#maintenance-MaxKannenberg" title="Maintenance">🚧</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kaat0"><img src="https://avatars.githubusercontent.com/u/142348?v=4?s=100" width="100px;" alt="Martin Scheidt"/><br /><sub><b>Martin Scheidt</b></sub></a><br /><a href="#mentoring-kaat0" title="Mentoring">🧑‍🏫</a> <a href="#tutorial-kaat0" title="Tutorials">✅</a> <a href="#code-kaat0" title="Code">💻</a> <a href="#test-kaat0" title="Tests">⚠️</a> <a href="#tool-kaat0" title="Tools">🔧</a> <a href="#research-kaat0" title="Research">🔬</a> <a href="#data-kaat0" title="Data">🔣</a> <a href="#maintenance-kaat0" title="Maintenance">🚧</a> <a href="#ideas-kaat0" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/apriljunge"><img src="https://avatars.githubusercontent.com/u/10660618?v=4?s=100" width="100px;" alt="Gregor"/><br /><sub><b>Gregor</b></sub></a><br /><a href="#question-apriljunge" title="Answering Questions">💬</a> <a href="#ideas-apriljunge" title="Ideas, Planning, & Feedback">🤔</a> <a href="#doc-apriljunge" title="Documentation">📖</a> <a href="#bug-apriljunge" title="Bug reports">🐛</a></td>
     </tr>
   </tbody>
 </table>

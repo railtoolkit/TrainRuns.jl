@@ -34,7 +34,7 @@ function Settings(
             approxLevel::Number  = 3,
             outputDetail::Symbol = :running_time,
             outputFormat::Symbol = :dataframe,
-            verbosity::Symbol    = :unset
+            verbosity::Symbol    = :info
         )
     ## load from file
     if file != "DEFAULT"
@@ -70,7 +70,7 @@ function Settings(
                 "verbosity": {
                     "description": "Output format",
                     "type": "string",
-                    "enum": [ "unset", "debug", "info", "warn", "error" ]
+                    "enum": [ "debug", "info", "warn", "error" ]
                 }
             }
         }""")

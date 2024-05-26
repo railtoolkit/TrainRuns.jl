@@ -59,7 +59,8 @@ pkg> activate TrainRuns
 
 ## Style Guidelines
 
-TODO
+* using [SciMLStyle](https://github.com/SciML/SciMLStyle) for Coding Style
+* documentation schould follow the [Diátaxis Framework](https://diataxis.fr/)
 
 ## Git Recommendations For Pull Requests
 
@@ -122,6 +123,7 @@ Export
 Documentation
 
 * there is always a way to improve the documentation
+* follow the [Diátaxis Framework](https://diataxis.fr/)
 
 ## Add yourself as a contributor
 To add yourself to the table of contributors, follow the [bot usage instructions](https://allcontributors.org/docs/en/bot/usage).

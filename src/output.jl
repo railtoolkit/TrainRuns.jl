@@ -132,20 +132,33 @@ function createDataFrame(output_vector::Vector{Dict}, outputDetail::Symbol, appr
     return dataFrame
 end #createDataFrame
 
-function set_log_level(settings::Settings)::AbstractLogger
-    log_level = settings.verbosity
-    @debug "Changing log level to `$log_level`."
-    if     log_level == :info
-        logger = ConsoleLogger(stderr, Logging.Info)
-    elseif log_level == :debug
-        logger = ConsoleLogger(stderr, Logging.Debug)
-    elseif log_level == :warn
-        logger = ConsoleLogger(stderr, Logging.Warn)
-    elseif log_level == :error
-        logger = ConsoleLogger(stderr, Logging.Error)
+function get_loglevel(settings::Settings)::LogLevel
+    current_logger = global_logger()
+    if settings.verbosity != :unset
+        current_level = lowercase(String(Symbol(current_logger.min_level)))
+        new_level = String(settings.verbosity)
+        if current_level != new_level
+            @debug "Changing log level from `$current_level` to `$new_level`."
+            if settings.verbosity == :trace
+                loglevel = Trace
+            elseif settings.verbosity == :debug
+                loglevel = Logging.Debug
+            elseif settings.verbosity == :info
+                loglevel = Logging.Info
+            elseif settings.verbosity == :warn
+                loglevel = Logging.Warn
+            elseif settings.verbosity == :error
+                loglevel = Logging.Error
+            elseif settings.verbosity == :fatal
+                loglevel = Fatal
+            else
+                @warn "Did not recognize the log level `$new_level`." "Log level was not changed!"
+            end
+        else
+            loglevel = current_logger.min_level
+        end
     else
-        @warn "Did not recognize the log level `$new_level`." "Log level was set to :info!"
-        logger = ConsoleLogger(stderr, Logging.Info)
+        loglevel = current_logger.min_level
     end
-    return logger
+    return loglevel
 end

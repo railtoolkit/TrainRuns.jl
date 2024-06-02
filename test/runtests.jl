@@ -7,5 +7,5 @@
 
 using TrainRuns, Test
 
-include("logging_test.jl")
+include("logging_levels.jl")
 include("highlevel_test.jl")

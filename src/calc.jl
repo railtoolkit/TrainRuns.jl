@@ -107,10 +107,14 @@ function calculateMinimumRunningTime(CSs::Vector{Dict}, settings::Settings, trai
 
            # for testing:   # TODO
            if drivingCourse[end][:s] != CS[:s_exit]
-               println("ERROR: In CS", csId," the train run ends at s=",drivingCourse[end][:s]," and not s_exit=",CS[:s_exit])
+                pos1 = drivingCourse[end][:s]
+                pos2 = CS[:s_exit]
+                @warn "In CS $csId the train run ends at s=$pos1 and not s_exit=$pos2" drivingCourse CS
            end
            if drivingCourse[end][:v] > CS[:v_exit]
-               println("ERROR: In CS", csId," the train run ends with v=",drivingCourse[end][:v]," and not with v_exit=",CS[:v_exit])
+                speed1 = drivingCourse[end][:v]
+                speed2 = CS[:v_exit]
+                @warn "In CS $csId the train run ends with v=$speed1 and not with v_exit=$speed2" drivingCourse CS
            end
    end #for
 
@@ -142,7 +146,7 @@ julia> calculateTractiveEffort(30.0, [(0.0, 180000), (20.0, 100000), (40.0, 6000
 """
 function calculateTractiveEffort(v::AbstractFloat, tractiveEffortVelocityPairs::Array{})
     if v < 0.0
-        #println("v=",v)
+        @debug "v=$v"
         return 0.0
     end
 

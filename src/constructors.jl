@@ -18,7 +18,7 @@ Create a settings object for [`trainrun`](@ref).
 - `approxLevel::Number=3`: used when rounding or iterating.
 - `outputDetail:Symbol`: `:running_time`_(default)_, `:points_of_interest`, `:data_points` or `:driving_course`
 - `outputFormat::Symbol`: `:dataframe`_(default)_ or `:vector`
-- `verbosity::Symbol`: `:unset`_(default)_, `:info`, `:debug`, `:warn`, or `:error`
+- `verbosity::Symbol`: `:unset`_(default)_, `:trace`, `:debug`, `:info`, `:warn`, `:error`, or `:fatal`
 
 # Example
 ```julia-repl
@@ -34,7 +34,7 @@ function Settings(
             approxLevel::Number  = 3,
             outputDetail::Symbol = :running_time,
             outputFormat::Symbol = :dataframe,
-            verbosity::Symbol    = :info
+            verbosity::Symbol    = :unset
         )
     ## load from file
     if file != "DEFAULT"
@@ -70,7 +70,7 @@ function Settings(
                 "verbosity": {
                     "description": "Output format",
                     "type": "string",
-                    "enum": [ "debug", "info", "warn", "error" ]
+                    "enum": [ "unset", "trace", "debug", "info", "warn", "error", "fatal" ]
                 }
             }
         }""")
@@ -79,7 +79,7 @@ function Settings(
 
         ## validate the loaded file
         if !isvalid(schema, settings)
-            println("Could not load settings file '$file'.\n Format is not recognized - using default as fall back.")
+            @warn "Could not load settings file '$file'. Format is not recognized!" "Using default as fall back."
             settings = Dict()
         end
 
@@ -127,7 +127,7 @@ function Path(file, type = :YAML)
     if type == :YAML
 
         ## error messages
-        format_error = "\n\tCould not parse file '$file'.\n\tNot a valide railtoolkit/schema format.\n\tCurrently supported version: 2022.05\n\tFor the format see: https://github.com/railtoolkit/schema"
+        error_msg_format = "\n\tCould not parse file '$file'.\n\tNot a valide railtoolkit/schema format.\n\tCurrently supported version: 2022.05\n\tFor the format see: https://github.com/railtoolkit/schema"
 
         ## JSON schema for YAML-file validation
         railtoolkit_schema = Schema("""{
@@ -212,11 +212,11 @@ function Path(file, type = :YAML)
         }""")
 
         data = YAML.load(open(file))
-        data["schema"] == "https://railtoolkit.org/schema/running-path.json" ? nothing : throw(DomainError(data["schema"],format_error))
-        data["schema_version"] == "2022.05"                                  ? nothing : throw(DomainError(data["schema_version"],format_error))
-        isvalid(railtoolkit_schema, data["paths"])                           ? nothing : throw(DomainError(data["paths"],format_error))
+        data["schema"] == "https://railtoolkit.org/schema/running-path.json" ? nothing : throw(DomainError(data["schema"],error_msg_format))
+        data["schema_version"] == "2022.05"                                  ? nothing : throw(DomainError(data["schema_version"],error_msg_format))
+        isvalid(railtoolkit_schema, data["paths"])                           ? nothing : throw(DomainError(data["paths"],error_msg_format))
 
-        length(data["paths"]) > 1 ? println("WARNING: the loaded file contains more than one path. Using only the first!") : nothing
+        length(data["paths"]) > 1 ? (@warn "The loaded file contains more than one path. Using only the first!") : nothing
         path = data["paths"][1]
 
         ## set the variables in "path"
@@ -391,7 +391,7 @@ function Train(file, type = :YAML)
     if type == :YAML
 
         ## error messages
-        format_error = "\n\tCould not parse file '$file'.\n\tNot a valide railtoolkit/schema format.\n\tCurrently supported version: 2022.05\n\tFor the format see: https://github.com/railtoolkit/schema"
+        error_msg_format = "\n\tCould not parse file '$file'.\n\tNot a valide railtoolkit/schema format.\n\tCurrently supported version: 2022.05\n\tFor the format see: https://github.com/railtoolkit/schema"
 
         ## JSON schema for YAML-file validation
         railtoolkit_schema = Schema("""{
@@ -544,16 +544,16 @@ function Train(file, type = :YAML)
 
         ## validation
         data = YAML.load(open(file))
-        data["schema"] == "https://railtoolkit.org/schema/rolling-stock.json" ? nothing : throw(DomainError(data["schema"],format_error))
-        data["schema_version"] == "2022.05"                                   ? nothing : throw(DomainError(data["schema_version"],format_error))
-        isvalid(railtoolkit_schema, data)                                     ? nothing : throw(DomainError(data,format_error))
+        data["schema"] == "https://railtoolkit.org/schema/rolling-stock.json" ? nothing : throw(DomainError(data["schema"],error_msg_format))
+        data["schema_version"] == "2022.05"                                   ? nothing : throw(DomainError(data["schema_version"],error_msg_format))
+        isvalid(railtoolkit_schema, data)                                     ? nothing : throw(DomainError(data,error_msg_format))
 
     else
         throw(DomainError("Unknown file type '$type'"))
     end #if type
 
     trains = data["trains"]
-    Base.length(trains) > 1 ? println("WARNING: the loaded file contains more than one train. Using only the first!") : nothing
+    Base.length(trains) > 1 ? (@warn "The loaded file contains more than one train. Using only the first!") : nothing
     Base.length(trains) == 0 ? throw(DomainError("No train present in file '$file'")) : nothing
     train = trains[1]
     used_vehicles = unique(train["formation"])
@@ -608,8 +608,8 @@ function Train(file, type = :YAML)
             deleteat!(vehicles, i)
         end
     end
-    Base.length(loco)  > 1 ? println("WARNING: the loaded file contains more than one traction unit or multiple unit. Using only the first!") : nothing
-    loco[1].n     > 1 ? println("WARNING: the loaded file contains more than one traction unit or multiple unit. Using only one!") : nothing
+    Base.length(loco)  > 1 ? (@warn "The loaded file contains more than one traction unit or multiple unit. Using only the first!") : nothing
+    loco[1].n          > 1 ? (@warn "The loaded file contains more than one traction unit or multiple unit. Using only one!") : nothing
     Base.length(loco) == 0 ? throw(DomainError("No traction unit or multiple unit present in file '$file'")) : nothing
     loco = loco[1].data
     cars = vehicles

@@ -3,7 +3,7 @@
 using TrainRuns
 
 train = Train("test/data/trains/freight.yaml")
-path  = Path("test/data/paths/const.yaml")
+path = Path("test/data/paths/const.yaml")
 
 runtime = trainrun(train, path)[end, :t]
 

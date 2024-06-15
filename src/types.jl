@@ -5,30 +5,24 @@
 # __license__       = "ISC"
 
 struct Settings
-
     massModel::Symbol    # model type of train mass ":mass_point" or ":homogeneous_strip".
     stepVariable::Symbol # variable of the linear multistep method: ":distance", ":time" or ":velocity".
     stepSize::Real       # step size, unit depends on stepVariable - :distance in meter, time in seconds and velocity in meter/second.
     approxLevel::Int     # value for approximation; used when rounding or iterating.
-    outputDetail::Symbol # single Float() ":running_time", Vector() of ":points_of_interest", Vector() of ":data_points"
-                         # or complete Vector() ":driving_course"
+    outputDetail::Symbol # single Float() ":running_time", Vector() of ":points_of_interest", Vector() of ":data_points" or complete Vector() ":driving_course"
     outputFormat::Symbol # output as ":dataframe" or as ":vector".
     verbosity::Symbol    # logging levels :unset (default), :trace, :debug, :info, :warn, :error, and :fatal
-
 end #struct Settings
 
 struct Path
-
     name::String     # a name or description of the path
     id::String       # a short string as identifier
     uuid::UUID       # a unique identifier
     poi::Vector      # a vector of triples with points along the path
     sections::Vector # a vector of the characteristic sections
-
 end #struct Path
 
 struct Train
-
     name::String            # a name or description of the train
     id::String              # a short string as identifier
     uuid::UUID              # a unique identifier
@@ -57,5 +51,4 @@ struct Train
 
     # tractive effort as pairs of speed and tractive effort
     tractiveEffort::Vector{Tuple{Real, Real}}   # [v in m/s, F_T in N]
-
 end #struct Train

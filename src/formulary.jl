@@ -27,7 +27,7 @@
 ## }
 #########################
 
-v00 = 100/3.6     # velocity factor (in m/s)
+v00 = 100 / 3.6     # velocity factor (in m/s)
 
 ## calculate forces:
 
@@ -50,15 +50,16 @@ function tractionUnitResistance(v::AbstractFloat, train::Train)
     # equation is based on [Wende:2003, page 151]
     f_Rtd0 = train.f_Rtd0 # coefficient for basic resistance due to the traction units driving axles (in ‰)
     f_Rtc0 = train.f_Rtc0 # coefficient for basic resistance due to the traction units carring axles (in ‰)
-    f_Rt2  = train.f_Rt2  # coefficient for air resistance of the traction unit (in ‰)
-    m_td   = train.m_td   # mass on the traction unit's driving axles (in kg)
-    m_tc   = train.m_tc   # mass on the traction unit's carrying axles (in kg)
+    f_Rt2 = train.f_Rt2  # coefficient for air resistance of the traction unit (in ‰)
+    m_td = train.m_td   # mass on the traction unit's driving axles (in kg)
+    m_tc = train.m_tc   # mass on the traction unit's carrying axles (in kg)
 
-    F_R_tractionUnit = f_Rtd0/1000 * m_td * g + f_Rtc0/1000 * m_tc * g + f_Rt2/1000 * (m_td+m_tc) * g * ((v + Δv_air) /v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
+    F_R_tractionUnit = f_Rtd0 / 1000 * m_td * g +
+                       f_Rtc0 / 1000 * m_tc * g +
+                       f_Rt2 / 1000 * (m_td + m_tc) * g * ((v + Δv_air) / v00)^2   # vehicle resistance of the traction unit (in N)   # /1000 because of the unit ‰
 
     return F_R_tractionUnit
 end #function tractionUnitResistance
-
 
 """
     freightWagonsResistance(v, train)
@@ -77,14 +78,13 @@ julia> freightWagonsResistance(15.0, freight_train)
 """
 function freightWagonsResistance(v::AbstractFloat, train::Train)
     # equation is based on the equation of Strahl [Wende:2003, page 153]
-    f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
-    f_Rw2  = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
-    m_w    = train.m_w    # mass of the set of wagons (consist)  (in kg)
+    f_Rw0 = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
+    f_Rw2 = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
+    m_w = train.m_w    # mass of the set of wagons (consist)  (in kg)
 
-    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw2/1000 * (v /v00)^2)     # vehicle resistance of freight wagons (in N) with Strahl      # /1000 because of the unit ‰
+    F_R_wagons = m_w * g * (f_Rw0 / 1000 + f_Rw2 / 1000 * (v / v00)^2)     # vehicle resistance of freight wagons (in N) with Strahl      # /1000 because of the unit ‰
     return F_R_wagons
 end #function calcWagonsResistance
-
 
 """
     passengerWagonsResistance(v, train)
@@ -103,12 +103,15 @@ julia> passengerWagonsResistance(15.0, longdistance_passenger_train)
 """
 function passengerWagonsResistance(v::AbstractFloat, train::Train)
     # equation is based on the equations of Sauthoff [Wende:2003, page 153]
-    f_Rw0  = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
-    f_Rw1  = train.f_Rw1  # coefficient for the consists resistance to rolling (in ‰)
-    f_Rw2  = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
-    m_w    = train.m_w    # mass of the set of wagons (consist)  (in kg)
+    f_Rw0 = train.f_Rw0  # coefficient for basic resistance of the set of wagons (consist)  (in ‰)
+    f_Rw1 = train.f_Rw1  # coefficient for the consists resistance to rolling (in ‰)
+    f_Rw2 = train.f_Rw2  # coefficient fo the consistsr air resistance (in ‰)
+    m_w = train.m_w    # mass of the set of wagons (consist)  (in kg)
 
-    F_R_wagons = m_w *g *(f_Rw0/1000 + f_Rw1/1000 *v /v00 + f_Rw2/1000 * ((v + Δv_air) /v00)^2)     # vehicle resistance of passenger wagons (in N) with Sauthoff      # /1000 because of the unit ‰
+    F_R_wagons = m_w *
+                 g *
+                 (f_Rw0 / 1000 + f_Rw1 / 1000 * v / v00 +
+                  f_Rw2 / 1000 * ((v + Δv_air) / v00)^2)     # vehicle resistance of passenger wagons (in N) with Sauthoff      # /1000 because of the unit ‰
 
     return F_R_wagons
 end #function calcWagonsResistance
@@ -127,11 +130,9 @@ julia> forceFromCoefficient(1.5, 68000.0)
 function forceFromCoefficient(f::Real, m::Real)
     # equation is based on [Wende:2003, page 8]
 
-    F = f /1000 *m *g     # force (in N)  # /1000 because of the unit ‰
+    F = f / 1000 * m * g     # force (in N)  # /1000 because of the unit ‰
     return F
 end #function forceFromCoefficient
-
-
 
 ## calculate acceleration:
 
@@ -155,10 +156,9 @@ julia> acceleration(94400.0, 1700.0, 88000.0, 1.08)
 function acceleration(F_T::Real, F_R::Real, m_train::Real, ξ_train::Real)
     # equation is based on [Bruenger:2014, page 72] with a=dv/dt
 
-    a = (F_T - F_R) /m_train /ξ_train      # acceleration (in m/s^2)
+    a = (F_T - F_R) / m_train / ξ_train      # acceleration (in m/s^2)
     return a
 end #function acceleration
-
 
 ## calculate step sizes:
 
@@ -178,10 +178,9 @@ julia> Δs_with_Δt(3.0, 0.5, 25.0)
 function Δs_with_Δt(Δt::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
-    Δs = Δt * (2*v_prev + Δt*a_prev) /2        # step size (in m)
+    Δs = Δt * (2 * v_prev + Δt * a_prev) / 2        # step size (in m)
     return Δs
 end #function Δs_with_Δt
-
 
 """
     Δs_with_Δv(Δv, a_prev, v_prev)
@@ -199,10 +198,9 @@ julia> Δs_with_Δv(1.0, 0.5, 25.0)
 function Δs_with_Δv(Δv::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
-    Δs = ((v_prev + Δv)^2 - v_prev^2) /2 /a_prev      # step size (in m)
+    Δs = ((v_prev + Δv)^2 - v_prev^2) / 2 / a_prev      # step size (in m)
     return Δs
 end #function Δs_with_Δv
-
 
 """
     Δt_with_Δs(Δs, a_prev, v_prev)
@@ -220,10 +218,9 @@ julia> Δt_with_Δs(10.0, 0.5, 25.0)
 function Δt_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
-    Δt = sign(a_prev) *sqrt((v_prev /a_prev)^2 + 2 *Δs /a_prev) - v_prev /a_prev       # step size (in s)
+    Δt = sign(a_prev) * sqrt((v_prev / a_prev)^2 + 2 * Δs / a_prev) - v_prev / a_prev       # step size (in s)
     return Δt
 end #function Δt_with_Δs
-
 
 """
     Δt_with_Δv(Δv, a_prev)
@@ -241,10 +238,9 @@ julia> Δt_with_Δv(1.0, 0.5)
 function Δt_with_Δv(Δv::Real, a_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
-    Δt = Δv /a_prev        # step size (in s)
+    Δt = Δv / a_prev        # step size (in s)
     return Δt
 end #function Δt_with_Δv
-
 
 """
     Δt_with_constant_v(Δs, v)
@@ -262,10 +258,9 @@ julia> Δt_with_constant_v(10.0, 25.0)
 function Δt_with_constant_v(Δs::Real, v::Real)
     # equation is based on [Wende:2003, page 37]
 
-    Δt = Δs /v        # step size (in s)
+    Δt = Δs / v        # step size (in s)
     return Δt
 end #function Δt_with_constant_v
-
 
 """
     Δv_with_Δs(Δs, a_prev, v_prev)
@@ -283,10 +278,9 @@ julia> Δv_with_Δs(10.0, 0.5, 25.0)
 function Δv_with_Δs(Δs::Real, a_prev::Real, v_prev::Real)
     # equation is based on [Wende:2003, page 37]
 
-    Δv = sqrt(v_prev^2 + 2*Δs*a_prev) - v_prev      # step size (in m/s)
+    Δv = sqrt(v_prev^2 + 2 * Δs * a_prev) - v_prev      # step size (in m/s)
     return Δv
 end #function Δv_with_Δs
-
 
 """
     Δv_with_Δt(Δt, a_prev, v_prev)
@@ -307,8 +301,6 @@ function Δv_with_Δt(Δt::Real, a_prev::Real)
     Δv = Δt * a_prev        # step size (in m/s)
     return Δv
 end #function Δv_with_Δt
-
-
 
 ## calculate values for braking
 
@@ -334,8 +326,8 @@ julia> brakingDistance(25.0, 15.0, -0.4253, 3)
 function brakingDistance(v_start::Real, v_end::Real, a_braking::Real, approxLevel::Integer)
     # equation is based on [Wende:2003, page 37]
 
-    s_braking = (v_end^2 - v_start^2) /2 /a_braking             # braking distance (in m)
-    return max(0.0, ceil(s_braking, digits= approxLevel +1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
+    s_braking = (v_end^2 - v_start^2) / 2 / a_braking             # braking distance (in m)
+    return max(0.0, ceil(s_braking, digits = approxLevel + 1))         # ceil is used to be sure that the train stops at s_exit in spite of rounding errors
 end #function brakingDistance
 
 """
@@ -357,13 +349,17 @@ julia> brakingStartVelocity(15.0, -0.4253, 500, 3)
 25.4656
 ```
 """
-function brakingStartVelocity(v_end::Real, a_braking::Real, s_braking::Real, approxLevel::Integer)
+function brakingStartVelocity(
+        v_end::Real,
+        a_braking::Real,
+        s_braking::Real,
+        approxLevel::Integer
+)
     # equation is based on [Wende:2003, page 37]
 
-    v_start = sqrt(v_end^2 - 2*a_braking *s_braking)          # braking start velocity (in m/s)
-    return floor(v_start, digits= approxLevel +1)
+    v_start = sqrt(v_end^2 - 2 * a_braking * s_braking)          # braking start velocity (in m/s)
+    return floor(v_start, digits = approxLevel + 1)
 end #function brakingStartVelocity
-
 
 """
     brakingAcceleration(v_start, v_end, s_braking)
@@ -381,6 +377,6 @@ julia> brakingAcceleration(25.0, 15.0, 500)
 function brakingAcceleration(v_start::Real, v_end::Real, s_braking::Real)
     # equation is based on [Wende:2003, page 37]
 
-    a_braking = (v_end^2 - v_start^2) /2 /s_braking       # constant braking acceleration (in m/s^2)
+    a_braking = (v_end^2 - v_start^2) / 2 / s_braking       # constant braking acceleration (in m/s^2)
     return a_braking
 end #function brakingAcceleration

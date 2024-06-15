@@ -8,73 +8,183 @@
 
 # calculate a train run focussing on using the minimum possible running time
 function calculateMinimumRunningTime(CSs::Vector{Dict}, settings::Settings, train::Train)
-   startingPoint = SupportPoint()
-   startingPoint[:s] = CSs[1][:s_entry]
-   if !isempty(CSs[1][:pointsOfInterest]) && CSs[1][:pointsOfInterest][1][:s] == CSs[1][:s_entry]
-       startingPoint[:label] =  CSs[1][:pointsOfInterest][1][:label]
-   end
-   calculateForces!(startingPoint, CSs, 1, "default", train, settings.massModel) # traction effort and resisting forces (in N)
-   drivingCourse::Vector{Dict} = [startingPoint]    # List of support points
+    startingPoint = SupportPoint()
+    startingPoint[:s] = CSs[1][:s_entry]
+    if !isempty(CSs[1][:pointsOfInterest]) &&
+       CSs[1][:pointsOfInterest][1][:s] == CSs[1][:s_entry]
+        startingPoint[:label] = CSs[1][:pointsOfInterest][1][:label]
+    end
+    calculateForces!(startingPoint, CSs, 1, "default", train, settings.massModel) # traction effort and resisting forces (in N)
+    drivingCourse::Vector{Dict} = [startingPoint]    # List of support points
 
-   for csId in 1:length(CSs)
-       CS = CSs[csId]
-       # determine the different flags for switching between the states for creating moving phases
-       s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
-       calculateForces!(drivingCourse[end], CSs, csId, "default", train, settings.massModel)     # tractive effort and resisting forces (in N)
+    for csId in 1:length(CSs)
+        CS = CSs[csId]
+        # determine the different flags for switching between the states for creating moving phases
+        s_braking = brakingDistance(
+            drivingCourse[end][:v],
+            CS[:v_exit],
+            train.a_braking,
+            settings.approxLevel
+        )
+        calculateForces!(
+            drivingCourse[end],
+            CSs,
+            csId,
+            "default",
+            train,
+            settings.massModel
+        )     # tractive effort and resisting forces (in N)
 
-       previousSpeedLimitReached = false
-       stateFlags = Dict(:endOfCSReached => drivingCourse[end][:s] > CS[:s_exit],
-                         :brakingStartReached => drivingCourse[end][:s] + s_braking == CS[:s_exit],
-                         :tractionDeficit => drivingCourse[end][:F_T] < drivingCourse[end][:F_R], # or add another flag for equal forces?
-                         :resistingForceNegative => drivingCourse[end][:F_R] < 0.0,
-                         :previousSpeedLimitReached => false,
-                         :speedLimitReached => drivingCourse[end][:v] > CS[:v_limit],
-                         :error => false)
+        previousSpeedLimitReached = false
+        stateFlags = Dict(
+            :endOfCSReached => drivingCourse[end][:s] > CS[:s_exit],
+            :brakingStartReached => drivingCourse[end][:s] + s_braking == CS[:s_exit],
+            :tractionDeficit => drivingCourse[end][:F_T] < drivingCourse[end][:F_R], # or add another flag for equal forces?
+            :resistingForceNegative => drivingCourse[end][:F_R] < 0.0,
+            :previousSpeedLimitReached => false,
+            :speedLimitReached => drivingCourse[end][:v] > CS[:v_limit],
+            :error => false
+        )
 
         # determine the behavior sections for this characteristic section. It has to be at least one of those BS: "breakFree", "clearing", "accelerating", "cruising", "diminishing", "coasting", "braking" or "halt")
         while !stateFlags[:endOfCSReached] # s < s_exit
             if stateFlags[:error]
-                error("ERROR in calc in CS",csId,":  BS=",drivingCourse[end][:behavior],"  s=",drivingCourse[end][:s],"  s_braking=",s_braking,"  v_limit=",CS[:v_limit],"  v=",drivingCourse[end][:v],"  v_exit=",CS[:v_exit]," with the flags:  endOfCS: ",stateFlags[:endOfCSReached],"    brakingStart: ",stateFlags[:brakingStartReached],"  F_T<F_R: ",stateFlags[:tractionDeficit],"  F_R<0: ",stateFlags[:resistingForceNegative]," v_previousLimit: ",stateFlags[:previousSpeedLimitReached]," v_limit: ",stateFlags[:speedLimitReached]," error: ",stateFlags[:error])
+                error(
+                    "ERROR in calc in CS",
+                    csId,
+                    ":  BS=",
+                    drivingCourse[end][:behavior],
+                    "  s=",
+                    drivingCourse[end][:s],
+                    "  s_braking=",
+                    s_braking,
+                    "  v_limit=",
+                    CS[:v_limit],
+                    "  v=",
+                    drivingCourse[end][:v],
+                    "  v_exit=",
+                    CS[:v_exit],
+                    " with the flags:  endOfCS: ",
+                    stateFlags[:endOfCSReached],
+                    "    brakingStart: ",
+                    stateFlags[:brakingStartReached],
+                    "  F_T<F_R: ",
+                    stateFlags[:tractionDeficit],
+                    "  F_R<0: ",
+                    stateFlags[:resistingForceNegative],
+                    " v_previousLimit: ",
+                    stateFlags[:previousSpeedLimitReached],
+                    " v_limit: ",
+                    stateFlags[:speedLimitReached],
+                    " error: ",
+                    stateFlags[:error]
+                )
             end
 
             if !stateFlags[:brakingStartReached] # s+s_braking < s_exit
                 if !stateFlags[:tractionDeficit]
-                    if drivingCourse[end][:F_T] >  drivingCourse[end][:F_R] && drivingCourse[end][:v] == 0.0
-                        (drivingCourse, stateFlags) = addBreakFreeSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
+                    if drivingCourse[end][:F_T] > drivingCourse[end][:F_R] &&
+                       drivingCourse[end][:v] == 0.0
+                        (drivingCourse, stateFlags) = addBreakFreeSection!(
+                            drivingCourse,
+                            stateFlags,
+                            CSs,
+                            csId,
+                            settings,
+                            train
+                        )
 
                     elseif stateFlags[:previousSpeedLimitReached]
-                        (drivingCourse, stateFlags) = addClearingSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
+                        (drivingCourse, stateFlags) = addClearingSection!(
+                            drivingCourse,
+                            stateFlags,
+                            CSs,
+                            csId,
+                            settings,
+                            train
+                        )
 
-                    elseif drivingCourse[end][:F_T] > drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached]
-                        (drivingCourse, stateFlags) = addAcceleratingSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
+                    elseif drivingCourse[end][:F_T] > drivingCourse[end][:F_R] &&
+                           !stateFlags[:speedLimitReached]
+                        (drivingCourse, stateFlags) = addAcceleratingSection!(
+                            drivingCourse,
+                            stateFlags,
+                            CSs,
+                            csId,
+                            settings,
+                            train
+                        )
 
-                    elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] && !stateFlags[:speedLimitReached]
+                    elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] &&
+                           !stateFlags[:speedLimitReached]
                         # cruise only one step
                         if settings.stepVariable == :distance
                             s_cruising = settings.stepSize
                         elseif settings.stepVariable == time
-                            s_cruising = Δs_with_Δt(settings.stepSize, drivingCourse[end][:a], drivingCourse[end][:v])
+                            s_cruising = Δs_with_Δt(
+                                settings.stepSize,
+                                drivingCourse[end][:a],
+                                drivingCourse[end][:v]
+                            )
                         elseif settings.stepVariable == velocity
-                            s_cruising = train.length/(10.0) # TODO which step size should be used?
+                            s_cruising = train.length / (10.0) # TODO which step size should be used?
                         end
-                        (drivingCourse, stateFlags) = addCruisingSection!(drivingCourse, stateFlags, CSs, csId, settings, train, "cruising",  s_cruising)
+                        (drivingCourse, stateFlags) = addCruisingSection!(
+                            drivingCourse,
+                            stateFlags,
+                            CSs,
+                            csId,
+                            settings,
+                            train,
+                            "cruising",
+                            s_cruising
+                        )
 
-                    elseif  drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
-                        s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
+                    elseif drivingCourse[end][:F_R] < 0 && stateFlags[:speedLimitReached]
+                        s_braking = brakingDistance(
+                            drivingCourse[end][:v],
+                            CS[:v_exit],
+                            train.a_braking,
+                            settings.approxLevel
+                        )
                         s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
                         if s_cruising > 0.0
-                            (drivingCourse, stateFlags) = addCruisingSection!(drivingCourse, stateFlags, CSs, csId, settings, train, "downhillBraking",  s_cruising)
+                            (drivingCourse, stateFlags) = addCruisingSection!(
+                                drivingCourse,
+                                stateFlags,
+                                CSs,
+                                csId,
+                                settings,
+                                train,
+                                "downhillBraking",
+                                s_cruising
+                            )
                         else
                             stateFlags[:brakingStartReached] = true
                         end
 
-                    elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] || stateFlags[:speedLimitReached]
-                        s_braking = brakingDistance(drivingCourse[end][:v], CS[:v_exit], train.a_braking, settings.approxLevel)
+                    elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R] ||
+                           stateFlags[:speedLimitReached]
+                        s_braking = brakingDistance(
+                            drivingCourse[end][:v],
+                            CS[:v_exit],
+                            train.a_braking,
+                            settings.approxLevel
+                        )
                         s_cruising = CS[:s_exit] - drivingCourse[end][:s] - s_braking
 
-                        if s_cruising > 1/10^(settings.approxLevel) # TODO: define another minimum cruising length?
-                            (drivingCourse, stateFlags) = addCruisingSection!(drivingCourse, stateFlags, CSs, csId, settings, train, "cruising",  s_cruising)
+                        if s_cruising > 1 / 10^(settings.approxLevel) # TODO: define another minimum cruising length?
+                            (drivingCourse, stateFlags) = addCruisingSection!(
+                                drivingCourse,
+                                stateFlags,
+                                CSs,
+                                csId,
+                                settings,
+                                train,
+                                "cruising",
+                                s_cruising
+                            )
                         else
                             stateFlags[:brakingStartReached] = true
                         end
@@ -82,18 +192,32 @@ function calculateMinimumRunningTime(CSs::Vector{Dict}, settings::Settings, trai
                         error()
                     end
                 elseif stateFlags[:tractionDeficit]
-                    (drivingCourse, stateFlags) = addDiminishingSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
+                    (drivingCourse, stateFlags) = addDiminishingSection!(
+                        drivingCourse,
+                        stateFlags,
+                        CSs,
+                        csId,
+                        settings,
+                        train
+                    )
 
                 else
-                     error()
+                    error()
                 end
             else#if !stateFlags[:endOfCSReached] # s < s_exit
-                (drivingCourse, stateFlags) = addBrakingSection!(drivingCourse, stateFlags, CSs, csId, settings, train)
-            #else
-            #   error()
+                (drivingCourse, stateFlags) = addBrakingSection!(
+                    drivingCourse,
+                    stateFlags,
+                    CSs,
+                    csId,
+                    settings,
+                    train
+                )
+                #else
+                #   error()
             end
 
-            if CS[:s_exit] - drivingCourse[end][:s] < 1/10^(settings.approxLevel)
+            if CS[:s_exit] - drivingCourse[end][:s] < 1 / 10^(settings.approxLevel)
                 drivingCourse[end][:s] = CS[:s_exit] # round s up to CS[:s_exit]
 
                 # set state flag
@@ -104,25 +228,23 @@ function calculateMinimumRunningTime(CSs::Vector{Dict}, settings::Settings, trai
         #    halt
         #end
 
+        # for testing:   # TODO
+        if drivingCourse[end][:s] != CS[:s_exit]
+            pos1 = drivingCourse[end][:s]
+            pos2 = CS[:s_exit]
+            @warn "In CS $csId the train run ends at s=$pos1 and not s_exit=$pos2" drivingCourse CS
+        end
+        if drivingCourse[end][:v] > CS[:v_exit]
+            speed1 = drivingCourse[end][:v]
+            speed2 = CS[:v_exit]
+            @warn "In CS $csId the train run ends with v=$speed1 and not with v_exit=$speed2" drivingCourse CS
+        end
+    end #for
 
-           # for testing:   # TODO
-           if drivingCourse[end][:s] != CS[:s_exit]
-                pos1 = drivingCourse[end][:s]
-                pos2 = CS[:s_exit]
-                @warn "In CS $csId the train run ends at s=$pos1 and not s_exit=$pos2" drivingCourse CS
-           end
-           if drivingCourse[end][:v] > CS[:v_exit]
-                speed1 = drivingCourse[end][:v]
-                speed2 = CS[:v_exit]
-                @warn "In CS $csId the train run ends with v=$speed1 and not with v_exit=$speed2" drivingCourse CS
-           end
-   end #for
+    drivingCourse = addHalt!(drivingCourse, CSs, length(CSs), settings, train)
 
-   drivingCourse = addHalt!(drivingCourse, CSs, length(CSs), settings, train)
-
-   return drivingCourse
+    return drivingCourse
 end #function calculateMinimumRunningTime
-
 
 """
     calculateTractiveEffort(v, tractiveEffortVelocityPairs)
@@ -152,37 +274,48 @@ function calculateTractiveEffort(v::AbstractFloat, tractiveEffortVelocityPairs::
 
     for row in 1:length(tractiveEffortVelocityPairs)
         nextPair = tractiveEffortVelocityPairs[row]
-        if  nextPair[1] == v
+        if nextPair[1] == v
             return nextPair[2]
         elseif nextPair[1] > v
             # interpolate for a straight line between the two surrounding points with the formula: F=(v-v_(row-1))*(F_row-F_(row-1))/(v_row-v_(row-1))+F_(row-1)
-            previousPair = tractiveEffortVelocityPairs[row-1]
-            F_T_interpolation = (v-previousPair[1]) * (nextPair[2]-previousPair[2]) / (nextPair[1]-previousPair[1]) + previousPair[2]
+            previousPair = tractiveEffortVelocityPairs[row - 1]
+            F_T_interpolation = (v - previousPair[1]) * (nextPair[2] - previousPair[2]) /
+                                (nextPair[1] - previousPair[1]) + previousPair[2]
             return F_T_interpolation
         end #if
     end #for
     # if v gets higher than the velocities in tractiveEffortVelocityPairs the last tractive effort will be used
-        # TODO: also an extrapolation could be used
+    # TODO: also an extrapolation could be used
     return tractiveEffortVelocityPairs[end][2]
 end #function calculateTractiveEffort
-
 
 """
 calculate and return the path resistance dependend on the trains position and mass model
 """
-function calculatePathResistance(CSs::Vector{Dict}, csId::Integer, s::Real, massModel, train::Train)
-
+function calculatePathResistance(
+        CSs::Vector{Dict},
+        csId::Integer,
+        s::Real,
+        massModel,
+        train::Train
+)
     if massModel == :mass_point
         pathResistance = forceFromCoefficient(CSs[csId][:r_path], train.m_train_full)
     elseif massModel == :homogeneous_strip
         pathResistance = 0.0
         s_rear = s - train.length     # position of the rear of the train
         while csId > 0 && s_rear < CSs[csId][:s_exit]
-            pathResistance = pathResistance + (min(s, CSs[csId][:s_exit]) - max(s_rear, CSs[csId][:s_entry])) / train.length * forceFromCoefficient(CSs[csId][:r_path], train.m_train_full)
-            csId = csId-1
+            pathResistance = pathResistance +
+                             (min(s, CSs[csId][:s_exit]) -
+                              max(s_rear, CSs[csId][:s_entry])) /
+                             train.length *
+                             forceFromCoefficient(CSs[csId][:r_path], train.m_train_full)
+            csId = csId - 1
             if csId == 0
                 # TODO: currently for values  < s_trainrun_start the values of s_trainrun_start  will be used
-                return pathResistance + (CSs[1][:s_entry] - s_rear) / train.length * forceFromCoefficient(CSs[1][:r_path], train.m_train_full)
+                return pathResistance +
+                       (CSs[1][:s_entry] - s_rear) / train.length *
+                       forceFromCoefficient(CSs[1][:r_path], train.m_train_full)
             end #if
         end #while
     end #if
@@ -190,11 +323,17 @@ function calculatePathResistance(CSs::Vector{Dict}, csId::Integer, s::Real, mass
     return pathResistance
 end #function calculatePathResistance
 
-
 """
 calculate and return tractive and resisting forces for a support point
 """
-function calculateForces!(supportPoint::Dict,  CSs::Vector{Dict}, csId::Integer, bsType::String, train::Train, massModel)
+function calculateForces!(
+        supportPoint::Dict,
+        CSs::Vector{Dict},
+        csId::Integer,
+        bsType::String,
+        train::Train,
+        massModel
+)
     # calculate resisting forces
     supportPoint[:R_traction] = tractionUnitResistance(supportPoint[:v], train)
     if train.transportType == :freight
@@ -203,21 +342,24 @@ function calculateForces!(supportPoint::Dict,  CSs::Vector{Dict}, csId::Integer,
         supportPoint[:R_wagons] = passengerWagonsResistance(supportPoint[:v], train)
     end
     supportPoint[:R_train] = supportPoint[:R_traction] + supportPoint[:R_wagons]
-    supportPoint[:R_path] = calculatePathResistance(CSs, csId, supportPoint[:s], massModel, train)
+    supportPoint[:R_path] = calculatePathResistance(
+        CSs, csId, supportPoint[:s], massModel, train)
     supportPoint[:F_R] = supportPoint[:R_train] + supportPoint[:R_path]
 
     # calculate tractive effort
     if bsType == "braking" || bsType == "coasting" || bsType == "halt"
         supportPoint[:F_T] = 0.0
     elseif bsType == "cruising"
-        supportPoint[:F_T] = min(max(0.0, supportPoint[:F_R]), calculateTractiveEffort(supportPoint[:v], train.tractiveEffort))
+        supportPoint[:F_T] = min(
+            max(0.0, supportPoint[:F_R]),
+            calculateTractiveEffort(supportPoint[:v], train.tractiveEffort)
+        )
     else # bsType == "accelerating" || bsType == "diminishing" || 'default'
         supportPoint[:F_T] = calculateTractiveEffort(supportPoint[:v], train.tractiveEffort)
     end
 
     return supportPoint
 end #function calculateForces!
-
 
 """
 TODO
@@ -235,17 +377,45 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
         Δs = stepSize                                                    # step size (in m)
         if previousPoint[:a] == 0.0
             if previousPoint[:v] == 0.0
-                error("ERROR: The train tries to cruise at v=0.0 m/s at s=",previousPoint[:s]," in CS",csId,".")
+                error(
+                    "ERROR: The train tries to cruise at v=0.0 m/s at s=",
+                    previousPoint[:s],
+                    " in CS",
+                    csId,
+                    "."
+                )
             end
-           Δt = Δt_with_constant_v(Δs, previousPoint[:v])    # step size (in s)
-           Δv = 0.0                                                          # step size (in m/s)
+            Δt = Δt_with_constant_v(Δs, previousPoint[:v])    # step size (in s)
+            Δv = 0.0                                                          # step size (in m/s)
         else
             # check if the parts of the following square roots will be <0.0 in the functions Δt_with_Δs and Δv_with_Δs
-            squareRootPartIsNegative = (previousPoint[:v]/previousPoint[:a])^2+2*Δs/previousPoint[:a] < 0.0 || previousPoint[:v]^2+2*Δs*previousPoint[:a] < 0.0
+            squareRootPartIsNegative = (previousPoint[:v] / previousPoint[:a])^2 +
+                                       2 * Δs / previousPoint[:a] <
+                                       0.0 ||
+                                       previousPoint[:v]^2 + 2 * Δs * previousPoint[:a] <
+                                       0.0
             if previousPoint[:a] < 0.0 && squareRootPartIsNegative
-                error("ERROR: The train stops during the accelerating section in CS",csId," because the tractive effort is lower than the resistant forces.",
-                "       Before the stop the last point has the values s=",previousPoint[:s]," m,  v=",previousPoint[:v]," m/s,  a=",previousPoint[:a]," m/s^2,",
-                "       F_T=",previousPoint[:F_T]," N,  R_traction=",previousPoint[:R_traction]," N,  R_wagons=",previousPoint[:R_wagons]," N,  R_path=",previousPoint[:R_path]," N.")
+                error(
+                    "ERROR: The train stops during the accelerating section in CS",
+                    csId,
+                    " because the tractive effort is lower than the resistant forces.",
+                    "       Before the stop the last point has the values s=",
+                    previousPoint[:s],
+                    " m,  v=",
+                    previousPoint[:v],
+                    " m/s,  a=",
+                    previousPoint[:a],
+                    " m/s^2,",
+                    "       F_T=",
+                    previousPoint[:F_T],
+                    " N,  R_traction=",
+                    previousPoint[:R_traction],
+                    " N,  R_wagons=",
+                    previousPoint[:R_wagons],
+                    " N,  R_path=",
+                    previousPoint[:R_path],
+                    " N."
+                )
             end
             Δt = Δt_with_Δs(Δs, previousPoint[:a], previousPoint[:v])        # step size (in s)
             Δv = Δv_with_Δs(Δs, previousPoint[:a], previousPoint[:v])        # step size (in m/s)
@@ -256,15 +426,21 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
         Δs = Δs_with_Δt(Δt, previousPoint[:a], previousPoint[:v])        # step size (in m)
         Δv = Δv_with_Δt(Δt, previousPoint[:a])                           # step size (in m/s)
 
-    elseif stepVariable  == :velocity                                                            # velocity step method
+    elseif stepVariable == :velocity                                                            # velocity step method
         if previousPoint[:a] == 0.0
             if previousPoint[:v] == 0.0
-                error("ERROR: The train tries to cruise at v=0.0 m/s at s=",previousPoint[:s]," in CS",csId,".")
+                error(
+                    "ERROR: The train tries to cruise at v=0.0 m/s at s=",
+                    previousPoint[:s],
+                    " in CS",
+                    csId,
+                    "."
+                )
             end
-           Δs = stepSize                                                     # step size (in m)
+            Δs = stepSize                                                     # step size (in m)
             # TODO what is the best default step size for constant v? define Δs or Δt?
-           Δt = Δt_with_constant_v(Δs, previousPoint[:v])    # step size (in s)
-           Δv = 0.0                                                          # step size (in m/s)
+            Δt = Δt_with_constant_v(Δs, previousPoint[:v])    # step size (in s)
+            Δv = 0.0                                                          # step size (in m/s)
         else
             Δv = stepSize * sign(previousPoint[:a])                                          # step size (in m/s)
             Δs = Δs_with_Δv(Δv, previousPoint[:a], previousPoint[:v])        # step size (in m)
@@ -279,27 +455,30 @@ function moveAStep(previousPoint::Dict, stepVariable::Symbol, stepSize::Real, cs
     return newPoint
 end #function moveAStep
 
-
 """
 # if the rear of the train is still located in a former characteristic section it has to be checked if its speed limit can be kept
 """
-function getLowestSpeedLimit(CSs::Vector{Dict}, csWithTrainHeadId::Integer, s::Real, trainLength::Real)
+function getLowestSpeedLimit(
+        CSs::Vector{Dict},
+        csWithTrainHeadId::Integer,
+        s::Real,
+        trainLength::Real
+)
     v_limit = CSs[csWithTrainHeadId][:v_limit]
     s_exit = CSs[csWithTrainHeadId][:s_exit]
-    if csWithTrainHeadId > 1 && s -trainLength < CSs[csWithTrainHeadId][:s_entry]
-        formerCsId = csWithTrainHeadId-1
-        while formerCsId > 0 && s -trainLength < CSs[formerCsId][:s_exit]
+    if csWithTrainHeadId > 1 && s - trainLength < CSs[csWithTrainHeadId][:s_entry]
+        formerCsId = csWithTrainHeadId - 1
+        while formerCsId > 0 && s - trainLength < CSs[formerCsId][:s_exit]
             if CSs[formerCsId][:v_limit] < v_limit    # TODO: is the position of the train's rear < s_trainrun_start, v_limit of the first CS is used
                 v_limit = CSs[formerCsId][:v_limit]
                 s_exit = CSs[formerCsId][:s_exit]
             end
-            formerCsId = formerCsId -1
+            formerCsId = formerCsId - 1
         end
     end
     lowestSpeedLimit = Dict(:v => v_limit, :s_end => s_exit + trainLength)
     return lowestSpeedLimit
 end #function getLowestSpeedLimit
-
 
 """
 TODO
@@ -310,9 +489,8 @@ function getNextPointOfInterest(pointsOfInterest::Vector{NamedTuple}, s::Real)
             return POI
         end
     end
-    error("ERROR in getNextPointOfInterest: There is no POI higher than s=",s," m.")
+    error("ERROR in getNextPointOfInterest: There is no POI higher than s=", s, " m.")
 end #function getNextPointOfInterest
-
 
 ## create vectors with the moving section's points of interest and with the characteristic sections with secured braking and accelerating behavior
 function determineCharacteristics(path::Path, train::Train, settings::Settings)
@@ -325,8 +503,8 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
             if POI[:measure] == "rear"
                 s_poi += train.length
             end
-            push!(pointsOfInterest, (s = s_poi, label = POI[:label]) )
-            push!(poi_positions,s_poi)
+            push!(pointsOfInterest, (s = s_poi, label = POI[:label]))
+            push!(poi_positions, s_poi)
         end
         sort!(pointsOfInterest, by = x -> x[:s])
     end
@@ -336,17 +514,36 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
     s_csStart = path.sections[1][:s_start]          # first position (in m)
 
     for row in 2:length(path.sections)
-        previousSection = path.sections[row-1]
+        previousSection = path.sections[row - 1]
         currentSection = path.sections[row]
 
-        speedLimitIsDifferent = min(previousSection[:v_limit], train.v_limit) != min(currentSection[:v_limit], train.v_limit)
+        speedLimitIsDifferent = min(previousSection[:v_limit], train.v_limit) !=
+                                min(currentSection[:v_limit], train.v_limit)
         pathResistanceIsDifferent = previousSection[:f_Rp] != currentSection[:f_Rp]
         if speedLimitIsDifferent || pathResistanceIsDifferent
-            push!(CSs, CharacteristicSection(s_csStart, previousSection, min(previousSection[:v_limit], train.v_limit), train.length, pointsOfInterest))
+            push!(
+                CSs,
+                CharacteristicSection(
+                    s_csStart,
+                    previousSection,
+                    min(previousSection[:v_limit], train.v_limit),
+                    train.length,
+                    pointsOfInterest
+                )
+            )
             s_csStart = currentSection[:s_start]
         end #if
     end #for
-    push!(CSs, CharacteristicSection(s_csStart, path.sections[end], min(path.sections[end][:v_limit], train.v_limit), train.length, pointsOfInterest))
+    push!(
+        CSs,
+        CharacteristicSection(
+            s_csStart,
+            path.sections[end],
+            min(path.sections[end][:v_limit], train.v_limit),
+            train.length,
+            pointsOfInterest
+        )
+    )
 
     # secure that the train is able to brake sufficiently and keeps speed limits
     CSs = secureBrakingBehavior!(CSs, train.a_braking, settings.approxLevel)

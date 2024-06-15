@@ -30,7 +30,11 @@ julia> createOutput(settings_poi, drivingCourse_longdistance, pointsOfInterest_p
    5 │ clearing_point_1  braking       9203.37  24.443  266.426  -0.375  0.0        30176.2     0.0      7389.44   22786.8
 ```
 """
-function createOutput(settings::Settings, drivingCourse::Vector{Dict}, poi_positions::Vector{Any})
+function createOutput(
+        settings::Settings,
+        drivingCourse::Vector{Dict},
+        poi_positions::Vector{Any}
+)
     if settings.outputDetail == :running_time
         output::Vector{Dict} = [Dict(:t => drivingCourse[end][:t])]
 
@@ -56,7 +60,8 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, poi_posit
         push!(output, drivingCourse[1])
 
         for supportPoint in 2:length(drivingCourse)
-            if drivingCourse[supportPoint-1][:behavior] != drivingCourse[supportPoint][:behavior]
+            if drivingCourse[supportPoint - 1][:behavior] !=
+               drivingCourse[supportPoint][:behavior]
                 push!(output, drivingCourse[supportPoint])
             end
         end
@@ -71,7 +76,6 @@ function createOutput(settings::Settings, drivingCourse::Vector{Dict}, poi_posit
         return output
     end
 end
-
 
 """
     createDataFrame(output_vector, outputDetail, approxLevel)
@@ -100,12 +104,17 @@ julia> createDataFrame(vector_pointsOfInterest, detail_data_points, approxLevel_
    5 │ clearing_point_1  braking       9203.37  24.443  266.426  -0.375  0.0        30176.2     0.0      7389.44   22786.8
 ```
 """
-function createDataFrame(output_vector::Vector{Dict}, outputDetail::Symbol, approxLevel::Int)
+function createDataFrame(
+        output_vector::Vector{Dict},
+        outputDetail::Symbol,
+        approxLevel::Int
+)
     if outputDetail == :running_time
         # create a DataFrame with running time information
-        dataFrame = DataFrame(t=[round(output_vector[end][:t], digits=approxLevel)])
+        dataFrame = DataFrame(t = [round(output_vector[end][:t], digits = approxLevel)])
     else # :points_of_interest, :data_points or :driving_course
-        columnSymbols = [:label, :behavior, :s, :v, :t, :a, :F_T, :F_R, :R_path, :R_traction, :R_wagons]
+        columnSymbols = [
+            :label, :behavior, :s, :v, :t, :a, :F_T, :F_R, :R_path, :R_traction, :R_wagons]
 
         allColumns = []
         for column in 1:length(columnSymbols)
@@ -120,14 +129,57 @@ function createDataFrame(output_vector::Vector{Dict}, outputDetail::Symbol, appr
                 for point in output_vector
                     push!(currentRealColumn, point[columnSymbols[column]])
                 end
-                currentRealColumn = round.(currentRealColumn, digits=approxLevel)
+                currentRealColumn = round.(currentRealColumn, digits = approxLevel)
                 push!(allColumns, currentRealColumn)
             end
         end # for
 
         # combine the columns in a data frame
-        dataFrame = DataFrame(label=allColumns[1], driving_mode=allColumns[2], s=allColumns[3], v=allColumns[4], t=allColumns[5], a=allColumns[6], F_T=allColumns[7], F_R=allColumns[8], R_path=allColumns[9], R_traction=allColumns[10], R_wagons=allColumns[11])
+        dataFrame = DataFrame(
+            label = allColumns[1],
+            driving_mode = allColumns[2],
+            s = allColumns[3],
+            v = allColumns[4],
+            t = allColumns[5],
+            a = allColumns[6],
+            F_T = allColumns[7],
+            F_R = allColumns[8],
+            R_path = allColumns[9],
+            R_traction = allColumns[10],
+            R_wagons = allColumns[11]
+        )
     end
 
     return dataFrame
 end #createDataFrame
+
+function get_loglevel(settings::Settings)::LogLevel
+    current_logger = global_logger()
+    if settings.verbosity != :unset
+        current_level = lowercase(String(Symbol(current_logger.min_level)))
+        new_level = String(settings.verbosity)
+        if current_level != new_level
+            @debug "Changing log level from `$current_level` to `$new_level`."
+            if settings.verbosity == :trace
+                loglevel = Trace
+            elseif settings.verbosity == :debug
+                loglevel = Logging.Debug
+            elseif settings.verbosity == :info
+                loglevel = Logging.Info
+            elseif settings.verbosity == :warn
+                loglevel = Logging.Warn
+            elseif settings.verbosity == :error
+                loglevel = Logging.Error
+            elseif settings.verbosity == :fatal
+                loglevel = Fatal
+            else
+                @warn "Did not recognize the log level `$new_level`." "Log level was not changed!"
+            end
+        else
+            loglevel = current_logger.min_level
+        end
+    else
+        loglevel = current_logger.min_level
+    end
+    return loglevel
+end

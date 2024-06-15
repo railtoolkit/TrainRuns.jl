@@ -8,18 +8,20 @@ __precompile__(true)
 module TrainRuns
 
 ## loading standard library packages
-using UUIDs, Dates, Statistics
+using UUIDs, Dates, Statistics, Logging
 ## loading external packages
-using YAML, JSONSchema, DataFrames
+using YAML, JSON, JSONSchema, DataFrames, LoggingExtras
 
-export
 ## Interface
-trainrun, Train, Path, Settings
+export trainrun, Train, Path, Settings
 
 ## global variables
-global g      = 9.80665  # acceleration due to gravity (in m/s^2)
-global μ      = 0.2      # friction as constant, TODO: implement as function
-global Δv_air = 15.0/3.6 # coefficient for velocitiy difference between train and outdoor air (in m/s)
+global g = 9.80665         # acceleration due to gravity (in m/s^2)
+global μ = 0.2             # friction as constant, TODO: implement as function
+global Δv_air = 15.0 / 3.6 # coefficient for velocitiy difference between train and outdoor air (in m/s)
+
+const Trace = Logging.LogLevel(-2000)
+const Fatal = Logging.LogLevel(3000)
 
 ## include package files
 include("types.jl")
@@ -43,19 +45,29 @@ julia> trainrun(train, path)[end,:t]
 xxx.xx # in seconds
 ```
 """
-function trainrun(train::Train, path::Path, settings=Settings()::Settings)
-    # prepare the input data
-    (characteristicSections, poi_positions) = determineCharacteristics(path, train, settings)
-        # TODO settings.outputDetail == :verbose && println("The characteristics haven been determined.")
+function trainrun(train::Train, path::Path, settings = Settings()::Settings)
+    loglevel = get_loglevel(settings)
+    logger = LoggingExtras.LevelOverrideLogger(loglevel, global_logger()) # Bug - Log messages below LogLevel(-1000) are ignored
+    # workaround:
+    Logging.disable_logging(loglevel - 1) # https://github.com/JuliaLang/julia/issues/52234
 
-    # calculate the train run with the minimum running time
-    drivingCourse = calculateMinimumRunningTime(characteristicSections, settings, train)
-        # TODO settings.outputDetail == :verbose && println("The driving course for the shortest running time has been calculated.")
+    with_logger(logger) do
+        @debug "" train
+        @debug "" path
+        @debug "" settings
 
-    # accumulate data and create an output dictionary
-    output = createOutput(settings, drivingCourse, poi_positions)
+        # prepare the input data
+        (characteristicSections, poi_positions) = determineCharacteristics(
+            path, train, settings)
 
-    return output
+        # calculate the train run with the minimum running time
+        drivingCourse = calculateMinimumRunningTime(characteristicSections, settings, train)
+
+        # accumulate data and create an output dictionary
+        output = createOutput(settings, drivingCourse, poi_positions)
+
+        return output
+    end
 end # function trainrun
 
 """
@@ -63,7 +75,7 @@ end # function trainrun
 
 Alias of [`trainrun(train::Train, path::Path)`](@ref) with swapped arguments.
 """
-function trainrun(path::Path, train::Train, settings=Settings()::Settings)
+function trainrun(path::Path, train::Train, settings = Settings()::Settings)
     trainrun(train, path, settings)
 end # function trainrun alias
 

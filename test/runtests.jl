@@ -5,6 +5,7 @@
 # __copyright__     = "2024"
 # __license__       = "ISC"
 
-using Test
+using TrainRuns, Test
 
-include("macro_test.jl")
+include("logging_levels.jl")
+include("highlevel_test.jl")

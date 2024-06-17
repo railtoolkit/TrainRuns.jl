@@ -17,7 +17,7 @@ function log_messages()
 end
 
 @testset "logging levels" begin
-    logger = ConsoleLogger(TrainRuns.get_loglevel(Settings(verbosity = :trace)))
+    logger = ConsoleLogger(min_level=TrainRuns.get_loglevel(Settings(verbosity = :trace)))
     # currently no macro for testing self defined loglevels
     # TODO: add @test_logs (:trace, "trace") (:fatal, "fatal")
     with_logger(logger) do

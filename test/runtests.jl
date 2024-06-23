@@ -9,3 +9,6 @@ using TrainRuns, Test
 
 include("logging_levels.jl")
 include("highlevel_test.jl")
+include("utils.jl")
+include("output.jl")
+include("calc.jl")

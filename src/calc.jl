@@ -10,10 +10,7 @@
 function calculateMinimumRunningTime(CSs::Vector{Dict}, settings::Settings, train::Train)
     startingPoint = SupportPoint()
     startingPoint[:s] = CSs[1][:s_entry]
-    if !isempty(CSs[1][:pointsOfInterest]) &&
-       CSs[1][:pointsOfInterest][1][:s] == CSs[1][:s_entry]
-        startingPoint[:label] = CSs[1][:pointsOfInterest][1][:label]
-    end
+
     calculateForces!(startingPoint, CSs, 1, "default", train, settings.massModel) # traction effort and resisting forces (in N)
     drivingCourse::Vector{Dict} = [startingPoint]    # List of support points
 
@@ -481,32 +478,38 @@ function getLowestSpeedLimit(
 end #function getLowestSpeedLimit
 
 """
-TODO
+    getNextPointOfInterest(poi_positions, s)
+
 """
-function getNextPointOfInterest(pointsOfInterest::Vector{NamedTuple}, s::Real)
-    for POI in pointsOfInterest
-        if POI[:s] > s
-            return POI
+function getNextPoiPosition(poi_positions::Vector{Real}, s::Real)
+    for position in poi_positions
+        if position > s
+            return position
         end
     end
     error("ERROR in getNextPointOfInterest: There is no POI higher than s=", s, " m.")
 end #function getNextPointOfInterest
 
-## create vectors with the moving section's points of interest and with the characteristic sections with secured braking and accelerating behavior
+"""
+    determineCharacteristics(path, train, settings)
+
+    create vectors with the moving section's points of interest and with the characteristic sections with secured braking and accelerating behavior
+"""
 function determineCharacteristics(path::Path, train::Train, settings::Settings)
     # determine the positions of the points of interest depending on the interesting part of the train (front/rear) and the train's length
-    poi_positions = []
-    pointsOfInterest = NamedTuple[]
-    if !isempty(path.poi)
-        for POI in path.poi
-            s_poi = POI[:station]
-            if POI[:measure] == "rear"
-                s_poi += train.length
-            end
-            push!(pointsOfInterest, (s = s_poi, label = POI[:label]))
-            push!(poi_positions, s_poi)
-        end
-        sort!(pointsOfInterest, by = x -> x[:s])
+
+    pois = DataFrame(path.poi)
+
+    if size(pois, 1) > 0
+        # calculate the relevant position on track for pois
+        # when measure is rear the train length is substracted
+        pois.s = ifelse.(
+            pois.measure .== "rear", pois.station .+ train.length, pois.station)
+
+        poi_positions = Vector{Any}(pois.s)
+        sort!(poi_positions)
+    else
+        poi_positions = Vector{Any}()
     end
 
     # create the characteristic sections of a moving section 'CSs' dependent on the paths attributes
@@ -527,8 +530,7 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
                     s_csStart,
                     previousSection,
                     min(previousSection[:v_limit], train.v_limit),
-                    train.length,
-                    pointsOfInterest
+                    poi_positions
                 )
             )
             s_csStart = currentSection[:s_start]
@@ -540,13 +542,12 @@ function determineCharacteristics(path::Path, train::Train, settings::Settings)
             s_csStart,
             path.sections[end],
             min(path.sections[end][:v_limit], train.v_limit),
-            train.length,
-            pointsOfInterest
+            poi_positions
         )
     )
 
     # secure that the train is able to brake sufficiently and keeps speed limits
     CSs = secureBrakingBehavior!(CSs, train.a_braking, settings.approxLevel)
 
-    return (CSs, poi_positions)
+    return (CSs, pois)
 end #function determineCharacteristics

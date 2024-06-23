@@ -22,7 +22,7 @@ See also [`addClearingSection!`](@ref), [`addAcceleratingSection!`](@ref), [`add
 # Examples
 ```julia-repl
 julia> addBreakFreeSection(drivingCourse_with_starting_point, stateFlags, CSs, 1, settings_default, train_longdistance)
-(Dict[Dict{Symbol, Any}(:label => "", :behavior => "breakFree", :F_T => 300000, :R_wagons => 7309.09433933, :R_path => 0.0, :s => 0, :v => 0.0, :R_train => 9505.53877308, :R_traction => 2196.44443375, :a => 0.6143175668391081, :t => 0.0, :F_R => 9505.53877308), Dict{Symbol, Any}(:label => "", :behavior => "breakFree", :F_T => 300000.0, :R_wagons => 8848.180631278232, :R_path => 0.0, :s => 20, :v => 4.957086107136361, :R_train => 11471.657638238565, :R_traction => 2623.4770069603337, :a => 0.6101597548372565, :t => 8.069256643013498, :F_R => 11471.657638238565)], Dict{Symbol, Bool}(:previousSpeedLimitReached => 0, :speedLimitReached => 0, :brakingStartReached => 0, :resistingForceNegative => 0, :endOfCSReached => 0, :tractionDeficit => 0, :error => 0))
+(Dict[Dict{Symbol, Any}(:behavior => "breakFree", :F_T => 300000, :R_wagons => 7309.09433933, :R_path => 0.0, :s => 0, :v => 0.0, :R_train => 9505.53877308, :R_traction => 2196.44443375, :a => 0.6143175668391081, :t => 0.0, :F_R => 9505.53877308), Dict{Symbol, Any}(:behavior => "breakFree", :F_T => 300000.0, :R_wagons => 8848.180631278232, :R_path => 0.0, :s => 20, :v => 4.957086107136361, :R_train => 11471.657638238565, :R_traction => 2623.4770069603337, :a => 0.6101597548372565, :t => 8.069256643013498, :F_R => 11471.657638238565)], Dict{Symbol, Bool}(:previousSpeedLimitReached => 0, :speedLimitReached => 0, :brakingStartReached => 0, :resistingForceNegative => 0, :endOfCSReached => 0, :tractionDeficit => 0, :error => 0))
 ```
 """
 function addBreakFreeSection!(
@@ -246,9 +246,9 @@ function addAcceleratingSection!(
                   !brakingStartReached &&
                   !previousSpeedLimitReached
             currentStepSize = settings.stepSize   # initialize the step size that can be reduced near intersections
-            nextPointOfInterest = getNextPointOfInterest(
+            nextPoiPosition = getNextPoiPosition(
                 CS[:pointsOfInterest], drivingCourse[end][:s])
-            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPoiPosition
 
             for cycle in 1:(settings.approxLevel + 1)   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 while !speedLimitReached &&
@@ -305,14 +305,14 @@ function addAcceleratingSection!(
 
                     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
                     speedLimitReached = drivingCourse[end][:v] >= CS[:v_limit]
-                    previousSpeedLimitReached = lowestSpeedLimit[:v] < CS[:v_limit] && (
-                        drivingCourse[end][:v] > lowestSpeedLimit[:v] || (
-                        drivingCourse[end][:v] == lowestSpeedLimit[:v] &&
-                        drivingCourse[end][:s] < lowestSpeedLimit[:s_end]
-                    )
-                    )
-                    pointOfInterestReached = drivingCourse[end][:s] >=
-                                             nextPointOfInterest[:s]   # POIs include s_exit as well
+                    previousSpeedLimitReached = lowestSpeedLimit[:v] < CS[:v_limit] &&
+                                                (drivingCourse[end][:v] >
+                                                 lowestSpeedLimit[:v] ||
+                                                 (drivingCourse[end][:v] ==
+                                                  lowestSpeedLimit[:v] &&
+                                                  drivingCourse[end][:s] <
+                                                  lowestSpeedLimit[:s_end]))
+                    pointOfInterestReached = drivingCourse[end][:s] >= nextPoiPosition   # POIs include s_exit as well
                     tractionSurplus = drivingCourse[end][:F_T] > drivingCourse[end][:F_R]
                 end #while
 
@@ -343,7 +343,7 @@ function addAcceleratingSection!(
                         drivingCourse[end][:s] +s_braking, " > s_exit=", CS[:s_exit]
                         currentStepSize = settings.stepSize / 10.0^cycle
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] > nextPoiPosition
                         @logmsg Trace "in CS",
                         csId,
                         " accelerating cycle",
@@ -351,9 +351,9 @@ function addAcceleratingSection!(
                         " case: s=",
                         drivingCourse[end][:s],
                         " > nextPOI=",
-                        nextPointOfInterest[:s]
+                        nextPoiPosition
                         if settings.stepVariable == :distance
-                            currentStepSize = nextPointOfInterest[:s] -
+                            currentStepSize = nextPoiPosition -
                                               drivingCourse[end - 1][:s]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle
@@ -399,7 +399,7 @@ function addAcceleratingSection!(
                         lowestSpeedLimit[:v]
                         break
 
-                    elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] == nextPoiPosition
                         @logmsg Trace "in CS",
                         csId,
                         " accelerating cycle",
@@ -407,7 +407,7 @@ function addAcceleratingSection!(
                         " case: s=",
                         drivingCourse[end][:s],
                         " == nextPOI=",
-                        nextPointOfInterest[:s]
+                        nextPoiPosition
                         break
 
                     else
@@ -424,7 +424,7 @@ function addAcceleratingSection!(
                         "   s+s_braking=",
                         drivingCourse[end][:s] +s_braking,
                         "   nextPOI=",
-                        nextPointOfInterest[:s]
+                        nextPoiPosition
                         @info "F_T=",
                         drivingCourse[end][:F_T],
                         "   F_R=",
@@ -486,16 +486,16 @@ function addAcceleratingSection!(
                             drivingCourse[end][:s] = CS[:s_exit] # round s down to CS[:s_exit]
                         end
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] > nextPoiPosition
                         @logmsg Trace "in CS",
                         csId,
                         " accelerating cycle",
                         cycle,
                         " case: s=",
                         drivingCourse[end][:s],
-                        " > nextPointOfInterest[:s]=",
-                        nextPointOfInterest[:s]
-                        drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
+                        " > nextPoiPosition=",
+                        nextPoiPosition
+                        drivingCourse[end][:s] = nextPoiPosition # round s down to nextPoiPosition
 
                     elseif drivingCourse[end][:F_T] <= drivingCourse[end][:F_R]
                         @logmsg Trace "in CS",
@@ -536,9 +536,6 @@ function addAcceleratingSection!(
 
             if drivingCourse[end][:s] == CS[:s_exit]
                 endOfCSReached = true
-            end
-            if drivingCourse[end][:s] == nextPointOfInterest[:s]
-                drivingCourse[end][:label] = nextPointOfInterest[:label]
             end
         end #while
     end
@@ -674,9 +671,9 @@ function addCruisingSection!(
                           (trainIsBrakingDownhill == resistingForceNegative)
                       ) # while clearing tractive or braking force can be used
                 currentStepSize = settings.stepSize
-                nextPointOfInterest = getNextPointOfInterest(
+                nextPoiPosition = getNextPoiPosition(
                     CS[:pointsOfInterest], drivingCourse[end][:s])
-                pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
+                pointOfInterestReached = drivingCourse[end][:s] >= nextPoiPosition
 
                 for cycle in 1:(settings.approxLevel + 1)   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                     while trainInPreviousCS &&
@@ -737,7 +734,7 @@ function addCruisingSection!(
 
                         # conditions for the next while cycle
                         pointOfInterestReached = drivingCourse[end][:s] >=
-                                                 nextPointOfInterest[:s]   # POIs include s_exit as well
+                                                 nextPoiPosition   # POIs include s_exit as well
                         tractionDeficit = drivingCourse[end][:F_T] <
                                           drivingCourse[end][:F_R]
                         targetPositionReached = drivingCourse[end][:s] >= targetPosition
@@ -757,9 +754,9 @@ function addCruisingSection!(
                         elseif trainIsBrakingDownhill && !resistingForceNegative
                             currentStepSize = settings.stepSize / 10.0^cycle
 
-                        elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                        elseif drivingCourse[end][:s] > nextPoiPosition
                             if settings.stepVariable == :distance
-                                currentStepSize = nextPointOfInterest[:s] -
+                                currentStepSize = nextPoiPosition -
                                                   drivingCourse[end - 1][:s]
                             else
                                 currentStepSize = settings.stepSize / 10.0^cycle
@@ -779,7 +776,7 @@ function addCruisingSection!(
                         elseif drivingCourse[end][:s] >= CS[:s_entry] + train.length
                             break
 
-                        elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
+                        elseif drivingCourse[end][:s] == nextPoiPosition
                             break
 
                         elseif !trainInPreviousCS
@@ -810,8 +807,8 @@ function addCruisingSection!(
                         resistingForceNegative = drivingCourse[end][:F_R] < 0.0
 
                     else # if the level of approximation is reached
-                        if drivingCourse[end][:s] > nextPointOfInterest[:s]
-                            drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
+                        if drivingCourse[end][:s] > nextPoiPosition
+                            drivingCourse[end][:s] = nextPoiPosition # round s down to nextPoiPosition
                         elseif drivingCourse[end][:s] > targetPosition
                             if drivingMode != "clearing"
                                 pop!(drivingCourse)
@@ -831,10 +828,6 @@ function addCruisingSection!(
                         end
                     end
                 end #for
-
-                if drivingCourse[end][:s] == nextPointOfInterest[:s]
-                    drivingCourse[end][:label] = nextPointOfInterest[:label]
-                end
             end #while
         end #if
 
@@ -843,13 +836,12 @@ function addCruisingSection!(
         tractionDeficit = drivingCourse[end][:F_T] < drivingCourse[end][:F_R]
         resistingForceNegative = drivingCourse[end][:F_R] < 0.0
 
-        while !targetPositionReached &&
-                  !tractionDeficit &&
+        while !targetPositionReached && !tractionDeficit &&
                   (trainIsClearing || (trainIsBrakingDownhill == resistingForceNegative)) # while clearing tractive or braking force can be used
-            nextPointOfInterest = getNextPointOfInterest(
+            nextPoiPosition = getNextPoiPosition(
                 CS[:pointsOfInterest], drivingCourse[end][:s])
-            if nextPointOfInterest[:s] > targetPosition
-                nextPointOfInterest = (s = targetPosition, label = "")
+            if nextPoiPosition > targetPosition
+                nextPoiPosition = targetPosition
             end
 
             # tractive effort (in N):
@@ -864,7 +856,7 @@ function addCruisingSection!(
 
             # calculate the remaining cruising way
             s_cruisingRemaining = min(
-                nextPointOfInterest[:s] - drivingCourse[end][:s],
+                nextPoiPosition - drivingCourse[end][:s],
                 targetPosition - drivingCourse[end][:s]
             )
 
@@ -874,9 +866,6 @@ function addCruisingSection!(
                 moveAStep(drivingCourse[end], :distance, s_cruisingRemaining, csId)
             )
             drivingCourse[end][:behavior] = drivingMode
-            if drivingCourse[end][:s] == nextPointOfInterest[:s]
-                drivingCourse[end][:label] = nextPointOfInterest[:label]
-            end
 
             calculateForces!(
                 drivingCourse[end],
@@ -983,9 +972,9 @@ function addDiminishingSection!(
                   !endOfCSReached &&
                   !brakingStartReached
             currentStepSize = settings.stepSize   # initialize the step size that can be reduced near intersections
-            nextPointOfInterest = getNextPointOfInterest(
+            nextPoiPosition = getNextPoiPosition(
                 CS[:pointsOfInterest], drivingCourse[end][:s])
-            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPoiPosition
 
             for cycle in 1:(settings.approxLevel + 1)   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 while tractionDeficit &&
@@ -1031,7 +1020,7 @@ function addDiminishingSection!(
 
                     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
                     pointOfInterestReached = drivingCourse[end][:s] >=
-                                             nextPointOfInterest[:s]
+                                             nextPoiPosition
                     targetSpeedReached = drivingCourse[end][:v] <= 0.0
                     tractionDeficit = drivingCourse[end][:F_T] < drivingCourse[end][:F_R]
                 end #while
@@ -1069,7 +1058,7 @@ function addDiminishingSection!(
                         drivingCourse[end][:s] +s_braking, " > s_exit=", CS[:s_exit]
                         currentStepSize = settings.stepSize / 10.0^cycle
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] > nextPoiPosition
                         @logmsg Trace "in CS",
                         csId,
                         " diminishing cycle",
@@ -1077,9 +1066,9 @@ function addDiminishingSection!(
                         " case: s=",
                         drivingCourse[end][:s],
                         " > nextPOI=",
-                        nextPointOfInterest[:s]
+                        nextPoiPosition
                         if settings.stepVariable == :distance
-                            currentStepSize = nextPointOfInterest[:s] -
+                            currentStepSize = nextPoiPosition -
                                               drivingCourse[end - 1][:s]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle
@@ -1098,7 +1087,7 @@ function addDiminishingSection!(
                         drivingCourse[end][:s] +s_braking, " == s_exit=", CS[:s_exit]
                         break
 
-                    elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] == nextPoiPosition
                         @logmsg Trace "in CS",
                         csId,
                         " diminishing cycle",
@@ -1106,7 +1095,7 @@ function addDiminishingSection!(
                         " case: s=",
                         drivingCourse[end][:s],
                         " == nextPOI=",
-                        nextPointOfInterest[:s]
+                        nextPoiPosition
                         break
 
                     elseif drivingCourse[end][:F_T] == drivingCourse[end][:F_R]
@@ -1210,16 +1199,16 @@ function addDiminishingSection!(
                         targetSpeedReached = false
                         tractionDeficit = true
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] > nextPoiPosition
                         @logmsg Trace "in CS",
                         csId,
                         " diminishing cycle",
                         cycle,
                         " case: s=",
                         drivingCourse[end][:s],
-                        " > nextPointOfInterest[:s]=",
-                        nextPointOfInterest[:s]
-                        drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
+                        " > nextPoiPosition=",
+                        nextPoiPosition
+                        drivingCourse[end][:s] = nextPoiPosition # round s down to nextPoiPosition
 
                     elseif drivingCourse[end][:F_T] >= drivingCourse[end][:F_R]
                         @logmsg Trace "in CS",
@@ -1256,17 +1245,14 @@ function addDiminishingSection!(
                         @logmsg Trace (
                             "     and s=",
                             drivingCourse[end][:s],
-                            " <= nextPointOfInterest[:s]=",
-                            nextPointOfInterest[:s]
+                            " <= nextPoiPosition=",
+                            nextPoiPosition
                         )
                     end #if
                 end #if
             end #for
 
             endOfCSReached = drivingCourse[end][:s] == CS[:s_exit]
-            if drivingCourse[end][:s] == nextPointOfInterest[:s]
-                drivingCourse[end][:label] = nextPointOfInterest[:label]
-            end
         end #while
     end
 
@@ -1335,9 +1321,9 @@ function addCoastingSection!(
 
         while !targetSpeedReached && !endOfCSReached && !brakingStartReached
             currentStepSize = settings.stepSize  # initialize the step size that can be reduced near intersections
-            nextPointOfInterest[:s] = getNextPointOfInterest(
+            nextPoiPosition = getNextPoiPosition(
                 CS[:pointsOfInterest], drivingCourse[end][:s])
-            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPoiPosition
 
             for cycle in 1:(settings.approxLevel + 1)   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 while !targetSpeedReached && !brakingStartReached && !pointOfInterestReached
@@ -1390,7 +1376,7 @@ function addCoastingSection!(
                     )
                     brakingStartReached = drivingCourse[end][:s] + s_braking >= CS[:s_exit]
                     pointOfInterestReached = drivingCourse[end][:s] >=
-                                             nextPointOfInterest[:s]
+                                             nextPoiPosition
                     targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit] ||
                                          drivingCourse[end][:v] > CS[:v_limit] ||
                                          lowestSpeedLimit[:v] < CS[:v_limit] && (
@@ -1421,17 +1407,17 @@ function addCoastingSection!(
                         drivingCourse[end][:s] +s_braking, " > s_exit=", CS[:s_exit]
                         currentStepSize = settings.stepSize / 10.0^cycle
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] > nextPoiPosition
                         @logmsg Trace "in CS",
                         csId,
                         " coasting cycle",
                         cycle,
                         " case: s=",
                         drivingCourse[end][:s],
-                        " > nextPointOfInterest[:s]=",
-                        nextPointOfInterest[:s]
+                        " > nextPoiPosition=",
+                        nextPoiPosition
                         if settings.stepVariable == :distance
-                            currentStepSize = nextPointOfInterest[:s] -
+                            currentStepSize = nextPoiPosition -
                                               drivingCourse[end - 1][:s]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle
@@ -1492,15 +1478,15 @@ function addCoastingSection!(
                         CS[:v_exit]
                         break
 
-                    elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] == nextPoiPosition
                         @logmsg Trace "in CS",
                         csId,
                         " coasting cycle",
                         cycle,
                         " case: s =",
                         drivingCourse[end][:s],
-                        " > nextPointOfInterest[:s]=",
-                        nextPointOfInterest[:s]
+                        " > nextPoiPosition=",
+                        nextPoiPosition
                         break
 
                     else
@@ -1561,8 +1547,8 @@ function addCoastingSection!(
                             speedLimitReached = true
                         end
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
-                        drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
+                    elseif drivingCourse[end][:s] > nextPoiPosition
+                        drivingCourse[end][:s] = nextPoiPosition # round s down to nextPoiPosition
                     else
                         # do nothing for example for drivingCourse[end][:s] + s_braking == CS[:s_exit]
                     end
@@ -1570,9 +1556,6 @@ function addCoastingSection!(
             end #for
 
             endOfCSReached = drivingCourse[end][:s] == CS[:s_exit]
-            if drivingCourse[end][:s] == nextPointOfInterest[:s]
-                drivingCourse[end][:label] = nextPointOfInterest[:label]
-            end
         end #while
     end
 
@@ -1633,9 +1616,9 @@ function addBrakingSection!(
 
         while !targetSpeedReached && !endOfCSReached
             currentStepSize = settings.stepSize  # initialize the step size that can be reduced near intersections
-            nextPointOfInterest = getNextPointOfInterest(
+            nextPoiPosition = getNextPoiPosition(
                 CS[:pointsOfInterest], drivingCourse[end][:s])
-            pointOfInterestReached = drivingCourse[end][:s] >= nextPointOfInterest[:s]
+            pointOfInterestReached = drivingCourse[end][:s] >= nextPoiPosition
 
             for cycle in 1:(settings.approxLevel + 1)   # first cycle with normal step size followed by cycles with reduced step size depending on the level of approximation
                 while !targetSpeedReached && !endOfCSReached && !pointOfInterestReached
@@ -1687,7 +1670,7 @@ function addBrakingSection!(
 
                     # conditions for the next while cycle
                     pointOfInterestReached = drivingCourse[end][:s] >=
-                                             nextPointOfInterest[:s]
+                                             nextPoiPosition
                     endOfCSReached = drivingCourse[end][:s] >= CS[:s_exit]
                     targetSpeedReached = drivingCourse[end][:v] <= CS[:v_exit]
                 end # while
@@ -1701,9 +1684,9 @@ function addBrakingSection!(
                             currentStepSize = settings.stepSize / 10.0^cycle
                         end
 
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] > nextPoiPosition
                         if settings.stepVariable == :distance
-                            currentStepSize = nextPointOfInterest[:s] -
+                            currentStepSize = nextPoiPosition -
                                               drivingCourse[end - 1][:s]
                         else
                             currentStepSize = settings.stepSize / 10.0^cycle
@@ -1731,7 +1714,7 @@ function addBrakingSection!(
                         targetSpeedReached = true
                         break
 
-                    elseif drivingCourse[end][:s] == nextPointOfInterest[:s]
+                    elseif drivingCourse[end][:s] == nextPoiPosition
                         break
                     end
 
@@ -1768,8 +1751,8 @@ function addBrakingSection!(
                         ) # for testing
                         drivingCourse[end][:s] = CS[:s_exit]
                         break
-                    elseif drivingCourse[end][:s] > nextPointOfInterest[:s]
-                        drivingCourse[end][:s] = nextPointOfInterest[:s] # round s down to nextPointOfInterest
+                    elseif drivingCourse[end][:s] > nextPoiPosition
+                        drivingCourse[end][:s] = nextPoiPosition # round s down to nextPoiPosition
                         break
                     elseif drivingCourse[end][:v] == CS[:v_exit] &&
                            drivingCourse[end][:s] == CS[:s_exit]
@@ -1824,14 +1807,10 @@ function addBrakingSection!(
                         targetSpeedReached = true
                         break
                     else
-                        # do nothing for example for drivingCourse[end][:s]==nextPointOfInterest[:s]
+                        # do nothing for example for drivingCourse[end][:s]==nextPoiPosition
                     end
                 end
             end #for
-
-            if drivingCourse[end][:s] == nextPointOfInterest[:s]
-                drivingCourse[end][:label] = nextPointOfInterest[:label]
-            end
         end #while
     end  # else: return the characteristic section without a braking section
 
@@ -1903,7 +1882,7 @@ Realculate the last step of the `drivingCourse` depending on new position and ve
 # Examples
 ```julia-repl
 julia> recalculateLastBrakingPoint(drivingCourse_with_two_points_near_5000m, 5000.0, 23.333333333333332)
-Dict{Symbol, Any}[Dict(:label => "", :behavior => "braking", :F_T => 0.0, :R_wagons => 21655.0, :R_path => 0.0, :s => 4999.999980000006, :v => 23.333333441372545, :R_train => 28640.8, :R_traction => 6985.8, :a => -0.126, :t => 235.16501930395856, :F_R => 28640.8), Dict(:label => "", :behavior => "braking", :F_T => 0.0, :R_wagons => 0.0, :R_path => 0.0, :s => 5000.0, :v => 23.333333333333332, :R_train => 0.0, :R_traction => 0.0, :a => 0.0, :t => 235.16502016110115, :F_R => 0.0)]
+Dict{Symbol, Any}[Dict(:behavior => "braking", :F_T => 0.0, :R_wagons => 21655.0, :R_path => 0.0, :s => 4999.999980000006, :v => 23.333333441372545, :R_train => 28640.8, :R_traction => 6985.8, :a => -0.126, :t => 235.16501930395856, :F_R => 28640.8), Dict(:behavior => "braking", :F_T => 0.0, :R_wagons => 0.0, :R_path => 0.0, :s => 5000.0, :v => 23.333333333333332, :R_train => 0.0, :R_traction => 0.0, :a => 0.0, :t => 235.16502016110115, :F_R => 0.0)]
 ```
 """
 function recalculateLastBrakingPoint!(

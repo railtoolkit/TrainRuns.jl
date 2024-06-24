@@ -1,4 +1,9 @@
-using TrainRuns, Test
+#!/usr/bin/env julia
+# -*- coding: UTF-8 -*-
+# __julia-version__ = 1.10.0
+# __author__        = "Gregor Wehrle"
+# __copyright__     = "2024"
+# __license__       = "ISC"
 
 @testset "getNextPoiPosition" begin
     positions::Vector{Real} = [10, 20, 30]

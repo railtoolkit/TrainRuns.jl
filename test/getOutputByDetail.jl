@@ -19,34 +19,34 @@ using DataFrames
 
     @testset "running_time" begin
         @test TrainRuns.getOutputByDetail(drivingCourse, pois, :running_time) ==
-                DataFrame(t = [30])
+              DataFrame(t = [30])
     end
 
     @testset "points_of_interest" begin
         @test TrainRuns.getOutputByDetail(drivingCourse, pois, :points_of_interest) ==
-                DataFrame(s = [10], t = [10], behavior = ["accelerating"],
+              DataFrame(s = [10], t = [10], behavior = ["accelerating"],
             label = ["signal"], nonstandard = [123])
         @test TrainRuns.getOutputByDetail(
             drivingCourse, pois_doublepos, :points_of_interest) ==
-                DataFrame(
+              DataFrame(
             s = [10, 10], t = [10, 10], behavior = ["accelerating", "accelerating"],
             label = ["signal1", "signal2"], nonstandard = [123, 456])
         @test TrainRuns.getOutputByDetail(
             drivingCourse, DataFrame(), :points_of_interest) ==
-                DataFrame(s = [0, 30], t = [0, 30],
+              DataFrame(s = [0, 30], t = [0, 30],
             behavior = ["breakFree", "halt"], label = ["", ""])
     end
 
     @testset "data_points" begin
         @test TrainRuns.getOutputByDetail(drivingCourse, pois, :data_points) ==
-                DataFrame(s = [0, 10, 30], t = [0, 10, 30],
+              DataFrame(s = [0, 10, 30], t = [0, 10, 30],
             behavior = ["breakFree", "accelerating", "halt"],
             label = ["", "signal", ""])
     end
 
     @testset "driving_course" begin
         @test TrainRuns.getOutputByDetail(drivingCourse, pois, :driving_course) ==
-                DataFrame(s = [0, 10, 20, 30], t = [0, 10, 20, 30],
+              DataFrame(s = [0, 10, 20, 30], t = [0, 10, 20, 30],
             behavior = ["breakFree", "accelerating", "accelerating", "halt"],
             label = ["", "signal", "", ""])
     end

@@ -8,4 +8,8 @@
 using TrainRuns, Test
 
 include("logging_levels.jl")
+include("df_2_vector.jl")
+include("getNextPoiPosition.jl")
+include("getOutputByDetail.jl")
 include("highlevel_test.jl")
+include("value_changes.jl")

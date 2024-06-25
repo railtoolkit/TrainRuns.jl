@@ -30,6 +30,7 @@ include("formulary.jl")
 include("calc.jl")
 include("behavior.jl")
 include("output.jl")
+include("utils.jl")
 
 ## main function
 """
@@ -57,14 +58,14 @@ function trainrun(train::Train, path::Path, settings = Settings()::Settings)
         @debug "" settings
 
         # prepare the input data
-        (characteristicSections, poi_positions) = determineCharacteristics(
+        (characteristicSections, pois) = determineCharacteristics(
             path, train, settings)
 
         # calculate the train run with the minimum running time
         drivingCourse = calculateMinimumRunningTime(characteristicSections, settings, train)
 
         # accumulate data and create an output dictionary
-        output = createOutput(settings, drivingCourse, poi_positions)
+        output = createOutput(settings, drivingCourse, pois)
 
         return output
     end

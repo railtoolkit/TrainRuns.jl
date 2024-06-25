@@ -53,8 +53,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6' # oldest
-          - '1.8' # current
+          - '1.8' # oldest
+          - '1' # current
           - 'nightly' # dev
         os:
           - ubuntu-latest

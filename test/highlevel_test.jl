@@ -5,6 +5,35 @@
 # __copyright__     = "2021"
 # __license__       = "ISC"
 
+using CSV, DataFrames
+
+"""
+    @df_snapshot_test(name, expr::Expr)
+
+Saves DataFrames to CSV and compares them.
+To renew snapshot delete the file named like the test.
+"""
+macro df_snapshot_test(name, expr::Expr)
+    return quote
+        filename = $(esc(name)) * ".csv"
+        filepath = joinpath(Base.source_dir(), "snapshots", filename)
+        df = $(esc(expr))
+
+        if !isfile(filepath)
+            if !isdir(dirname(filepath))
+                mkdir(dirname(filepath))
+            end
+
+            CSV.write(filepath, df, missingstring = "!missing!")
+            @warn "Snapshot file $filename created"
+        end
+
+        csv_df = DataFrame(CSV.File(filepath; missingstring = "!missing!"))
+
+        @test df == csv_df
+    end
+end
+
 trains = Dict()
 paths = Dict()
 settings = Dict()
@@ -72,6 +101,18 @@ anticipated = Dict(
             expected = anticipated[:default][Symbol(test_name)]
             # compare result to test data set
             @test isapprox(result, expected, rtol = 0.01)
+        end
+    end
+
+    @testset "POIs" begin
+        for test in tests
+            train = test[1]
+            path = test[2]
+            test_name::String = "poi_" * String(train[1]) * "_" * String(path[1])
+
+            @testset "$test_name" begin
+                @df_snapshot_test "$test_name" trainrun(train[2], path[2], settings["poi"])
+            end
         end
     end
 end

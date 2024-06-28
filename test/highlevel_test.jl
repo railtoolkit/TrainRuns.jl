@@ -39,30 +39,31 @@ paths = Dict()
 settings = Dict()
 
 @testset "load data" begin
-    @info "testing load train data"
-    push!(trains, :freight => @time Train("data/trains/freight.yaml"))
-    push!(trains, :local => @time Train("data/trains/local.yaml"))
-    push!(trains, :longdistance => @time Train("data/trains/longdistance.yaml"))
+    @testset "train" begin
+        push!(trains, :freight => Train("data/trains/freight.yaml"))
+        push!(trains, :local => Train("data/trains/local.yaml"))
+        push!(trains, :longdistance => Train("data/trains/longdistance.yaml"))
+    end
 
-    @info "testing load path data"
-    push!(paths, :const => @time Path("data/paths/const.yaml"))
-    push!(paths, :slope => @time Path("data/paths/slope.yaml"))
-    push!(paths, :speed => @time Path("data/paths/speed.yaml"))
-    push!(paths, :realworld => @time Path("data/paths/realworld.yaml"))
+    @testset "path" begin
+        push!(paths, :const => Path("data/paths/const.yaml"))
+        push!(paths, :slope => Path("data/paths/slope.yaml"))
+        push!(paths, :speed => Path("data/paths/speed.yaml"))
+        push!(paths, :realworld => Path("data/paths/realworld.yaml"))
+        @test_throws DomainError Path("data/paths/broken.yaml")
+        @test typeof(first(paths)[2]) == Path
+    end
 
-    @info "testing load settings data"
-    push!(settings, "default" => @time Settings())
-    push!(settings, "poi" => @time Settings("data/settings/points_of_interest.yaml"))
-    push!(settings, "drivingcourse" => @time Settings("data/settings/driving_course.yaml"))
-    push!(settings, "strip" => @time Settings("data/settings/strip.yaml"))
-    push!(settings, "time" => @time Settings("data/settings/time.yaml"))
-    push!(settings, "timestrip" => @time Settings("data/settings/time_strip.yaml"))
-    push!(settings, "velocity" => @time Settings("data/settings/velocity.yaml"))
-
-    @test typeof(first(paths)[2]) == Path
-    @test typeof(first(settings)[2]) == Settings
-
-    @test_throws DomainError Path("data/paths/broken.yaml")
+    @testset "settings" begin
+        push!(settings, "default" => Settings())
+        push!(settings, "poi" => Settings("data/settings/points_of_interest.yaml"))
+        push!(settings, "drivingcourse" => Settings("data/settings/driving_course.yaml"))
+        push!(settings, "strip" => Settings("data/settings/strip.yaml"))
+        push!(settings, "time" => Settings("data/settings/time.yaml"))
+        push!(settings, "timestrip" => Settings("data/settings/time_strip.yaml"))
+        push!(settings, "velocity" => Settings("data/settings/velocity.yaml"))
+        @test typeof(first(settings)[2]) == Settings
+    end
 end
 
 tests = Base.Iterators.product(trains, paths)
@@ -92,15 +93,19 @@ anticipated = Dict(
 ),
 )
 
-@testset "function trainrun()" begin
+@testset "trainrun()" begin
     @testset "Default settings" begin
         for test in tests
-            test_name = String(test[1][1]) * "_" * String(test[2][1])
-            @info "testing $test_name"
-            @time result = trainrun(test[1][2], test[2][2])[end, :t]
-            expected = anticipated[:default][Symbol(test_name)]
-            # compare result to test data set
-            @test isapprox(result, expected, rtol = 0.01)
+            train = test[1]
+            path = test[2]
+            test_name::String = String(train[1]) * "_" * String(path[1])
+
+            @testset "$test_name" begin
+                result = trainrun(test[1][2], test[2][2])[end, :t]
+                expected = anticipated[:default][Symbol(test_name)]
+                # compare result to test data set
+                @test isapprox(result, expected, rtol = 0.01)
+            end
         end
     end
 

@@ -8,7 +8,7 @@ __precompile__(true)
 module TrainRuns
 
 ## loading standard library packages
-using UUIDs, Dates, Statistics, Logging
+using UUIDs, Dates, Statistics, Logging, LazyArtifacts
 ## loading external packages
 using YAML, JSON, JSONSchema, DataFrames, LoggingExtras
 

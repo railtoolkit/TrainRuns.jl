@@ -8,4 +8,6 @@
 using TrainRuns, Test
 
 include("logging_levels.jl")
+include("artifact_schema_loading.jl")
+include("file_loading.jl")
 include("highlevel_test.jl")

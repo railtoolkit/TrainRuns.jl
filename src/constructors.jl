@@ -5,6 +5,117 @@
 # __license__       = "ISC"
 
 """
+    load([file::String])
+
+Loads data from a `file`. A schema must be specified in the file.
+The content of the `file` is then checked using the specified schema.
+
+Returns a Dict() for further processing by the type constructors.
+
+# Supported file formats and schemas
+## File formats
+* YAML
+* JSON
+
+## Schemas
+* [railtoolkit-schema](https://github.com/railtoolkit/schema)
+    * Version v2022.05
+
+# Example
+```julia-repl
+julia> load("data/variables.yaml")
+Dict{Any, Any} with data_variables
+```
+"""
+function load(file::String)::Dict
+    @debug "loading file - passed file: $file"
+    file_extension = lowercase(split(file, ".")[end])
+    @debug "loading file - detected file extension: $file_extension"
+    if file_extension == "yml" || file_extension == "yaml"
+        data = YAML.load(open(file))
+    elseif file_extension == "json"
+        data = JSON.parsefile(file)
+    #else #new file formats here
+        #
+    else
+        @info "The file format with the extension '$file_extension' is not supported."
+        @info "Supported file formats are: YAML and JSON."
+        @info "For a schema format see: https://github.com/railtoolkit/schema"
+        error("Can not load '$file'. Unsupported file extension!")
+    end
+
+    if !haskey(data, "schema")
+        error("Can not load '$file'. No attribute with 'schema' found!")
+    end
+    if !haskey(data, "schema_version")
+        error("Can not load '$file'. No attribute with 'schema_version' found!")
+    end
+
+    schema = get_schema(data)
+    if !JSONSchema.isvalid(schema, data)
+        @info "Could not parse file '$file'. Not a valide schema format."
+        @info "Currently supported schemas: railtoolkit/schema v2022.05"
+        @info "For the schema format see: https://github.com/railtoolkit/schema"
+        error("Can not load '$file'. Format not recognized!")
+    end
+
+    return data
+end
+
+"""
+    get_schema([data::Dict])
+
+Extracts the schema from a data dictionary.
+A schema and a schema version must be specified in the data dictionary.
+The schema name and a schema version are combined to a string which is dependend on Artifact.toml entry.
+
+Returns a JSONSchema.Schema type.
+
+# Example
+```julia-repl
+julia> get_schema(data)
+A JSONSchema
+```
+"""
+function get_schema(data::Dict)::Schema
+    ## assumption: schema come in the form of (http://)schema_name/schema_subtype
+
+    provided_schema = data["schema"]
+    @debug "loading file - detected schema: $provided_schema"
+    schema_version = lowercase(data["schema_version"])
+    @debug "loading file - detected schema version: $schema_version"
+
+    schema = lowercase(provided_schema)
+    if startswith(schema, "https://")
+        schema = replace(schema, r"https://" => "")
+    elseif startswith(schema, "http://")
+        schema = replace(schema, r"http://" => "")
+    end
+
+    schema = split(schema, "/")
+    schema_subtype = pop!(schema)
+    @debug "loading file - detected schema subtype: $schema_subtype"
+    
+    push!(schema, schema_version)
+    schema = join(schema, "-")
+    schema = replace(schema, r"\." => "-")
+    @debug "loading file - artifact string: $schema"
+
+    if schema == "railtoolkit-org-schema-2022-05"
+        artifact_path = artifact"railtoolkit-org-schema-2022-05" # definied by Artifacts.toml
+        schema_path = joinpath(artifact_path, "schema-2022.05", "src", schema_subtype) # depending on the loaded artifact
+    else
+        @info "The schema string '$schema' is not in the list of supported artifacts."
+        @info "Currently supported schemas: railtoolkit/schema v2022.05"
+        @info "For the schema format see: https://github.com/railtoolkit/schema"
+        error("The provided schema '$provided_schema' version '$schema_version' is not recognized!")
+    end
+    @debug "loading file - schema path: $schema_path"
+
+    return Schema(JSON.parsefile(schema_path))
+end
+
+"""
     Settings([file::String]; <keyword arguments>)
 
 Create a settings object for [`trainrun`](@ref).
@@ -123,7 +234,7 @@ julia> my_path = Path("file.yaml")
 Path(variables)
 ```
 """
-function Path(file, type = :YAML)
+function Path(file::String)
 
     ## default values
     name = ""
@@ -135,121 +246,26 @@ function Path(file, type = :YAML)
     ## process flags
     POI_PRESENT = false
 
-    ## load from file
-    if type == :YAML
+    data = load(file)
+    if !haskey(data, "paths")
+        error("Can not load '$file'. No collection with 'paths' found!")
+    end
 
-        ## error messages
-        error_msg_format = "\n\tCould not parse file '$file'.\n\tNot a valide railtoolkit/schema format.\n\tCurrently supported version: 2022.05\n\tFor the format see: https://github.com/railtoolkit/schema"
+    length(data["paths"]) > 1 ?
+    (@warn "The loaded file contains more than one path. Using only the first!") :
+    nothing
+    path = data["paths"][1]
 
-        ## JSON schema for YAML-file validation
-        railtoolkit_schema = Schema("""{
-            "required": [ "schema", "schema_version", "paths" ],
-            "properties": {
-                "schema": {
-                "description": "Identifier of the schema",
-                "enum": [ "https://railtoolkit.org/schema/running-path.json" ]
-                },
-                "schema_version": {
-                "description": "Version of the schema",
-                "type": "string",
-                "pattern": "[2-9][0-9][0-9][0-9].[0-1][0-9]"
-                },
-                "paths": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                    "required": [ "name", "id", "characteristic_sections" ],
-                    "type": "object",
-                    "properties": {
-                    "characteristic_sections": {
-                        "description": "",
-                        "type": "array",
-                        "minItems": 2,
-                        "uniqueItems": true,
-                        "items": {
-                        "type": "array",
-                        "minItems": 3,
-                        "maxItems": 3,
-                        "description": "",
-                        "prefixItems": [
-                            {
-                            "description": "milage in meter",
-                            "type": "number"
-                            },
-                            {
-                            "description": "speed in kilometers per hour",
-                            "type": "number",
-                            "exclusiveMinimum": 0
-                            },
-                            {
-                            "description": "resistance in permil",
-                            "type": "number"
-                            }
-                        ]
-                        }
-                    },
-                    "id": {
-                        "description": "Identifier of the path",
-                        "type": "string"
-                    },
-                    "name": {
-                        "description": "Name of the path",
-                        "type": "string"
-                    },
-                    "points_of_interest": {
-                        "description": "",
-                        "type": "array",
-                        "uniqueItems": true,
-                        "items": {
-                        "type": "array",
-                        "minItems": 3,
-                        "maxItems": 3,
-                        "description": "",
-                        "prefixItems": [
-                            { "type": "number" },
-                            { "type": "string" },
-                            { "enum": [ "front", "rear" ] }
-                        ]
-                        }
-                    },
-                    "UUID": {
-                        "description": "The unique identifier for a path",
-                        "type": "string",
-                        "format": "uuid"
-                    }
-                    }
-                }
-                }
-            }
-        }""")
-
-        data = YAML.load(open(file))
-        data["schema"] == "https://railtoolkit.org/schema/running-path.json" ? nothing :
-        throw(DomainError(data["schema"], error_msg_format))
-        data["schema_version"] == "2022.05" ? nothing :
-        throw(DomainError(data["schema_version"], error_msg_format))
-        isvalid(railtoolkit_schema, data["paths"]) ? nothing :
-        throw(DomainError(data["paths"], error_msg_format))
-
-        length(data["paths"]) > 1 ?
-        (@warn "The loaded file contains more than one path. Using only the first!") :
-        nothing
-        path = data["paths"][1]
-
-        ## set the variables in "path"
-        # required
-        name = path["name"]
-        id = path["id"]
-        tmp_sec = path["characteristic_sections"]
-        # optional
-        haskey(path, "UUID") ? uuid = parse(UUID, path["UUID"]) : nothing
-        haskey(path, "points_of_interest") ? POI_PRESENT = true : nothing
-        haskey(path, "points_of_interest") ? tmp_points = path["points_of_interest"] :
-        nothing
-
-    else
-        throw(DomainError("Unknown file type '$type'"))
-    end #if type
+    ## set the variables in "path"
+    # required
+    name = path["name"]
+    id = path["id"]
+    tmp_sec = path["characteristic_sections"]
+    # optional
+    haskey(path, "UUID") ? uuid = parse(UUID, path["UUID"]) : nothing
+    haskey(path, "points_of_interest") ? POI_PRESENT = true : nothing
+    haskey(path, "points_of_interest") ? tmp_points = path["points_of_interest"] :
+    nothing
 
     ## process characteristic sections
     sort!(tmp_sec, by = x -> x[1])
@@ -372,7 +388,7 @@ julia> my_train = Train("file.yaml")
 Train(variables)
 ```
 """
-function Train(file, type = :YAML)
+function Train(file::String)
 
     ## default values
     name = ""            #
@@ -400,175 +416,14 @@ function Train(file, type = :YAML)
     f_Rw2 = 0             # coefficient for the consist's air resistance (in ‰)
     F_v_pairs = []            # [v in m/s, F_T in N]
 
-    ## load from file
-    if type == :YAML
-
-        ## error messages
-        error_msg_format = "\n\tCould not parse file '$file'.\n\tNot a valide railtoolkit/schema format.\n\tCurrently supported version: 2022.05\n\tFor the format see: https://github.com/railtoolkit/schema"
-
-        ## JSON schema for YAML-file validation
-        railtoolkit_schema = Schema(
-            """{
-    "required": [ "schema", "schema_version" ],
-    "anyOf": [
-    {"required": [ "trains" ] },
-    {"required": [ "vehicles" ] }
-    ],
-    "properties": {
-    "schema": {
-        "description": "Identifier of the schema",
-        "enum": [ "https://railtoolkit.org/schema/rolling-stock.json" ]
-    },
-    "schema_version": {
-        "description": "Version of the schema",
-        "type": "string",
-        "pattern": "[2-9][0-9][0-9][0-9].[0-1][0-9]"
-    },
-    "trains": {
-        "type": "array",
-        "minItems": 1,
-        "items": {
-        "required": [ "name", "id", "formation" ],
-        "type": "object",
-        "properties": {
-            "id": {
-            "description": "Identifier of the train",
-            "type": "string"
-            },
-            "name": {
-            "description": "Name of the train",
-            "type": "string"
-            },
-            "UUID": {
-            "description": "The unique identifier for a train",
-            "type": "string",
-            "format": "uuid"
-            },
-            "formation": {
-            "description": "Collection of vehicles that form the train",
-            "type": "array",
-            "minItems": 1,
-            "uniqueItems": false,
-            "items": {
-                "type": "string"
-            }
-            }
-        }
-        }
-    },
-    "vehicles": {
-        "type": "array",
-        "minItems": 1,
-        "items": {
-        "required": [ "name", "id", "vehicle_type", "length", "mass" ],
-        "type": "object",
-        "properties": {
-            "air_resistance": {
-            "description": "coefficient for air resistance in permil",
-            "type": "number",
-            "exclusiveMinimum": 0
-            },
-            "base_resistance": {
-            "description": "coefficient for basic resistance in permil",
-            "type": "number",
-            "exclusiveMinimum": 0
-            },
-            "id": {
-            "description": "Identifier of the vehicle",
-            "type": "string"
-            },
-            "length": {
-            "description": "The length of the vehicle in meter",
-            "type": "number",
-            "exclusiveMinimum": 0
-            },
-            "load_limit": {
-            "description": "The maximum permitted load of the vehicle in metric ton",
-            "type": "number",
-            "exclusiveMinimum": 0
-            },
-            "mass_traction": {
-            "description": "The mass on the powered axles of the vehicle in metric ton",
-            "type": "number",
-            "exclusiveMinimum": 0
-            },
-            "mass": {
-            "description": "The empty mass of the vehicle in metric ton",
-            "type": "number",
-            "exclusiveMinimum": 0
-            },
-            "name": {
-            "description": "Name of the vehicle",
-            "type": "string"
-            },
-            "picture": {
-            "description": "A URI with a picture for humans",
-            "type": "string",
-            "format": "uri"
-            },
-            "power_type": {
-            "description": "Type of propulsion",
-            "enum": [ "diesel", "electric", "steam" ]
-            },
-            "rolling_resistance": {
-            "description": "coefficient for resistance of rolling axles in permil",
-            "type": "number",
-            "exclusiveMinimum": 0
-            },
-            "rotation_mass": {
-            "description": "Factor for rotating mass; >= 1",
-            "type": "number",
-            "minimum": 1
-            },
-            "speed_limit": {
-            "description": "Maximum permitted speed in kilometers per hour",
-            "type": "number",
-            "exclusiveMinimum": 0
-            },
-            "tractive_effort": {
-            "description": "Tractive effort as pairs of speed in kilometers per hour and tractive force in newton",
-            "type": "array",
-            "minItems": 3,
-            "uniqueItems": true,
-            "items": {
-                "type": "array",
-                "minItems": 2,
-                "maxItems": 2,
-                "uniqueItems": true,
-                "items": {
-                "type": "number",
-                "minimum": 0
-                }
-            }
-            },
-            "UUID": {
-            "description": "The unique identifier for a vehicle",
-            "type": "string",
-            "format": "uuid"
-            },
-            "vehicle_type": {
-            "description": "Type of vehicle",
-            "enum": [ "traction unit", "freight", "passenger", "multiple unit" ]
-            }
-        }
-        }
-    }
-    }
-}""",
-        )
-
-        ## validation
-        data = YAML.load(open(file))
-        data["schema"] == "https://railtoolkit.org/schema/rolling-stock.json" ? nothing :
-        throw(DomainError(data["schema"], error_msg_format))
-        data["schema_version"] == "2022.05" ? nothing :
-        throw(DomainError(data["schema_version"], error_msg_format))
-        isvalid(railtoolkit_schema, data) ? nothing :
-        throw(DomainError(data, error_msg_format))
-
-    else
-        throw(DomainError("Unknown file type '$type'"))
-    end #if type
+    ## validation
+    data = load(file)
+    if !haskey(data, "trains")
+        error("Can not load '$file'. No collection with 'trains' found!")
+    end
+    if !haskey(data, "vehicles")
+        error("Can not load '$file'. No collection with 'vehicles' found!")
+    end
 
     trains = data["trains"]
     Base.length(trains) > 1 ?

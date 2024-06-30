@@ -33,7 +33,6 @@ settings = Dict()
     @test typeof(first(paths)[2]) == Path
     @test typeof(first(settings)[2]) == Settings
 
-    @test_throws DomainError Path("data/paths/broken.yaml")
 end
 
 tests = Base.Iterators.product(trains, paths)

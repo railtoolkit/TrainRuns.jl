@@ -1,0 +1,153 @@
+%YAML 1.2
+---
+schema: https://railtoolkit.org/schema/rolling-stock.json
+schema_version: "2022.05"
+trains:
+  - name: Regional Train
+    id: RB50-1
+    formation: [DB_BR_642]
+
+vehicles:
+  - name: Siemens Desiro Classic # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
+    id: DB_BR_642
+    UUID: c915c80d-c63d-490b-879f-c481e4b62b55
+    picture: https://commons.wikimedia.org/wiki/File:Liesel_28-11-10_642_055-8_im_Bahnhof_Scharfenstein.JPG
+    power_type: diesel             # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
+    vehicle_type: multiple unit    # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
+
+    length: 41.7          # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
+    mass: 68.0            # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
+    load_limit: 20.0      # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
+    mass_traction: 45.333 # proportionately to the number of axles: 4 to 2, see: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic)
+    speed_limit: 120      # source: https://de.wikipedia.org/wiki/Siemens_Desiro_Classic
+    a_braking: -0.4253    #
+
+    # coefficients for the vehicle resistance
+    rotation_mass: 1.08     # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 13 for "Zug, überschlägliche Berechnung"
+    base_resistance: 3.0    # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "f_WL0" -> 2.5 ‰ to 3.5 ‰
+    rolling_resistance: 1.4 # source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "f_WW0" -> 1.2 ‰ to 1.6 ‰
+    air_resistance: 3.9  # source: the closest parameters are used: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 151 for "Fzg. vierachsig, abgerundeter Kopf" plus "Sektion bei Mehrteiligkeit"  -> 2200 N + 400 N
+
+    # tractive effort as pairs of speed and tractive effort
+    tractive_effort:
+      - [0.0, 94400]
+      - [1.0, 94400]
+      - [2.0, 92800]
+      - [3.0, 91200]
+      - [4.0, 89600]
+      - [5.0, 88000]
+      - [6.0, 86400]
+      - [7.0, 84800]
+      - [8.0, 83200]
+      - [9.0, 81600]
+      - [10.0, 80000]
+      - [11.0, 78160]
+      - [12.0, 76290]
+      - [13.0, 74420]
+      - [14.0, 72550]
+      - [15.0, 70680]
+      - [16.0, 68810]
+      - [17.0, 66940]
+      - [18.0, 65070]
+      - [19.0, 63200]
+      - [20.0, 61330]
+      - [21.0, 59460]
+      - [22.0, 57590]
+      - [23.0, 55720]
+      - [24.0, 53850]
+      - [25.0, 51980]
+      - [26.0, 50110]
+      - [27.0, 48240]
+      - [28.0, 46370]
+      - [29.0, 44500]
+      - [30.0, 42630]
+      - [31.0, 40760]
+      - [32.0, 38890]
+      - [33.0, 38110]
+      - [34.0, 37330]
+      - [35.0, 36550]
+      - [36.0, 35770]
+      - [37.0, 35600]
+      - [38.0, 35600]
+      - [39.0, 35600]
+      - [40.0, 35600]
+      - [41.0, 35600]
+      - [42.0, 35600]
+      - [43.0, 35550]
+      - [44.0, 35280]
+      - [45.0, 35010]
+      - [46.0, 34740]
+      - [47.0, 34280]
+      - [48.0, 33560]
+      - [49.0, 32880]
+      - [50.0, 32220]
+      - [51.0, 31590]
+      - [52.0, 26300]
+      - [53.0, 26300]
+      - [54.0, 26300]
+      - [55.0, 26300]
+      - [56.0, 26300]
+      - [57.0, 25990]
+      - [58.0, 25840]
+      - [59.0, 25690]
+      - [60.0, 25540]
+      - [61.0, 25390]
+      - [62.0, 25240]
+      - [63.0, 25090]
+      - [64.0, 25140]
+      - [65.0, 24760]
+      - [66.0, 24380]
+      - [67.0, 24020]
+      - [68.0, 23660]
+      - [69.0, 23320]
+      - [70.0, 22990]
+      - [71.0, 19400]
+      - [72.0, 19400]
+      - [73.0, 19400]
+      - [74.0, 19400]
+      - [75.0, 19400]
+      - [76.0, 19400]
+      - [77.0, 19400]
+      - [78.0, 19400]
+      - [79.0, 19400]
+      - [80.0, 19400]
+      - [81.0, 19440]
+      - [82.0, 19310]
+      - [83.0, 19180]
+      - [84.0, 19050]
+      - [85.0, 18920]
+      - [86.0, 18670]
+      - [87.0, 18460]
+      - [88.0, 18250]
+      - [89.0, 15360]
+      - [90.0, 15310]
+      - [91.0, 15260]
+      - [92.0, 15210]
+      - [93.0, 15160]
+      - [94.0, 15110]
+      - [95.0, 15060]
+      - [96.0, 15010]
+      - [97.0, 14960]
+      - [98.0, 14910]
+      - [99.0, 14860]
+      - [100.0, 14810]
+      - [101.0, 14760]
+      - [102.0, 14710]
+      - [103.0, 14660]
+      - [104.0, 14610]
+      - [105.0, 14560]
+      - [106.0, 14510]
+      - [107.0, 14460]
+      - [108.0, 14410]
+      - [109.0, 14360]
+      - [110.0, 14310]
+      - [111.0, 14460]
+      - [112.0, 14340]
+      - [113.0, 14210]
+      - [114.0, 14080]
+      - [115.0, 13960]
+      - [116.0, 13840]
+      - [117.0, 13720]
+      - [118.0, 13610]
+      - [119.0, 13490]
+      - [120.0, 13380]

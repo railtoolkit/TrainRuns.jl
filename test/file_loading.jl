@@ -22,4 +22,3 @@
         @test_throws ErrorException("Can not load 'data/paths/missing_path.yml'. Format not recognized!") TrainRuns.load("data/paths/missing_path.yml")
     end
 end
-# 

@@ -35,7 +35,7 @@ function load(file::String)::Dict
         data = YAML.load(open(file))
     elseif file_extension == "json"
         data = JSON.parsefile(file)
-    #else #new file formats here
+        #else #new file formats here
         #
     else
         @info "The file format with the extension '$file_extension' is not supported."
@@ -95,7 +95,7 @@ function get_schema(data::Dict)::Schema
     schema = split(schema, "/")
     schema_subtype = pop!(schema)
     @debug "loading file - detected schema subtype: $schema_subtype"
-    
+
     push!(schema, schema_version)
     schema = join(schema, "-")
     schema = replace(schema, r"\." => "-")
@@ -584,8 +584,7 @@ function CharacteristicSection(
         s_entry::Real,
         section::Dict,
         v_limit::Real,
-        s_trainLength::Real,
-        MS_poi::Vector{NamedTuple}
+        poi_positions::Vector
 )
     # Create and return a characteristic section dependent on the paths attributes
     characteristicSection::Dict{Symbol, Any} = Dict(
@@ -598,19 +597,16 @@ function CharacteristicSection(
 
     # get the list of positions of every point of interest (POI) in this charateristic section for which support points should be calculated from the list of the whole moving section's POI
     s_exit = characteristicSection[:s_exit]
-    CS_poi = NamedTuple[]
-    if !isempty(MS_poi)
-        for POI in MS_poi
-            s_poi = POI[:s]
-            if s_entry <= s_poi && s_poi <= s_exit
-                push!(CS_poi, POI)
-            end
+    CS_poi_positions = Real[]
+    for position in poi_positions
+        if s_entry <= position && position <= s_exit
+            push!(CS_poi_positions, position)
         end
     end
-    if isempty(CS_poi) || CS_poi[end][:s] < s_exit
-        push!(CS_poi, (s = s_exit, label = ""))     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
+    if isempty(CS_poi_positions) || CS_poi_positions[end] < s_exit
+        push!(CS_poi_positions, s_exit)     # s_exit has to be the last POI so that there will always be a POI to campare the current position with
     end
-    merge!(characteristicSection, Dict(:pointsOfInterest => CS_poi))
+    merge!(characteristicSection, Dict(:pointsOfInterest => CS_poi_positions))
 
     return characteristicSection
 end #function CharacteristicSection
@@ -631,8 +627,7 @@ function SupportPoint()
         :R_path => 0.0,     # path resistance (in N)
         :R_train => 0.0,    # train resistance (in N)
         :R_traction => 0.0, # traction unit resistance (in N)
-        :R_wagons => 0.0,   # set of wagons resistance (in N)
-        :label => ""        # a label for important points
+        :R_wagons => 0.0   # set of wagons resistance (in N)
     )
     return supportPoint
 end #function SupportPoint

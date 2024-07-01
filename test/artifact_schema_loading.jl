@@ -10,11 +10,11 @@ using LazyArtifacts, YAML, JSONSchema
 @testset "artifact schema loading" begin
     railtoolkit_schema_2022_running_path = Dict(
         "schema_version" => "2022.05",
-        "schema"         => "https://railtoolkit.org/schema/running-path.json"
+        "schema" => "https://railtoolkit.org/schema/running-path.json"
     )
     railtoolkit_schema_2022_rolling_stock = Dict(
         "schema_version" => "2022.05",
-        "schema"         => "https://railtoolkit.org/schema/rolling-stock.json"
+        "schema" => "https://railtoolkit.org/schema/rolling-stock.json"
     )
 
     artifactpath_railtoolkit_schema_2022 = artifact"railtoolkit-org-schema-2022-05"
@@ -31,7 +31,7 @@ using LazyArtifacts, YAML, JSONSchema
 
     unrecognized_schema = Dict(
         "schema_version" => "1",
-        "schema"         => "http://unrecognized-schema/subtype"
+        "schema" => "http://unrecognized-schema/subtype"
     )
     logger = ConsoleLogger(stderr, Warn)
     with_logger(logger) do

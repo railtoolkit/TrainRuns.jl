@@ -13,10 +13,10 @@ using CSV, DataFrames
 Saves DataFrames to CSV and compares them.
 To renew snapshot delete the file named like the test.
 """
-macro df_snapshot_test(name, expr::Expr)
+macro df_snapshot_test(dir, name, expr::Expr)
     return quote
         filename = $(esc(name)) * ".csv"
-        filepath = joinpath(Base.source_dir(), "snapshots", filename)
+        filepath = joinpath(Base.source_dir(), "snapshots", $(dir), filename)
         df = $(esc(expr))
 
         if !isfile(filepath)
@@ -113,10 +113,11 @@ anticipated = Dict(
         for test in tests
             train = test[1]
             path = test[2]
-            test_name::String = "poi_" * String(train[1]) * "_" * String(path[1])
+            test_name::String = String(train[1]) * "_" * String(path[1])
 
             @testset "$test_name" begin
-                @df_snapshot_test "$test_name" trainrun(train[2], path[2], settings["poi"])
+                @df_snapshot_test "poi" "$test_name" trainrun(
+                    train[2], path[2], settings["poi"])
             end
         end
     end

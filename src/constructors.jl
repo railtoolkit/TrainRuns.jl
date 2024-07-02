@@ -213,12 +213,11 @@ function Settings(
 end #function Settings() # outer constructor
 
 """
-    Path(file, type=:YAML)
+    Path(file::String)
 
 Create a running path object for [`trainrun`](@ref).
 
 Supported formats are: [railtoolkit/schema (2022.05)](https://doi.org/10.5281/zenodo.6522824).
-As of now only `:YAML` is supported as filetype.
 
 # Example
 ```julia-repl
@@ -227,13 +226,6 @@ Path(variables)
 ```
 """
 function Path(file::String)
-
-    ## default values
-    name = ""
-    id = ""
-    uuid = UUIDs.uuid4()
-    poi = []
-    sections = []
 
     ## process flags
     POI_PRESENT = false
@@ -254,13 +246,14 @@ function Path(file::String)
     id = path["id"]
     tmp_sec = path["characteristic_sections"]
     # optional
-    haskey(path, "UUID") ? uuid = parse(UUID, path["UUID"]) : nothing
+    haskey(path, "UUID") ? uuid = parse(UUID, path["UUID"]) : uuid = UUIDs.uuid4()
     haskey(path, "points_of_interest") ? POI_PRESENT = true : nothing
     haskey(path, "points_of_interest") ? tmp_points = path["points_of_interest"] :
     nothing
 
     ## process characteristic sections
     sort!(tmp_sec, by = x -> x[1])
+    sections = []
     for row in 2:length(tmp_sec)
         s_start = tmp_sec[row - 1][1]     # first point of the section (in m)
         s_end = tmp_sec[row][1]       # first point of the next section (in m)
@@ -275,6 +268,7 @@ function Path(file::String)
     # s_end in last entry defines the path's ending
 
     ## process points of interest
+    poi = []
     if POI_PRESENT
         sort!(tmp_points, by = x -> x[1])
         for elem in tmp_points
@@ -367,12 +361,11 @@ function Path(
 end #function Path() # outer constructor
 
 """
-    Train(file, type=:YAML)
+    Train(file::String)
 
 Create a train object for [`trainrun`](@ref).
 
 Supported formats are: [railtoolkit/schema (2022.05)](https://doi.org/10.5281/zenodo.6522824).
-As of now only `:YAML` is supported as filetype.
 
 # Example
 ```julia-repl
@@ -383,30 +376,27 @@ Train(variables)
 function Train(file::String)
 
     ## default values
-    name = ""            #
-    id = ""            #
-    uuid = UUIDs.uuid4() #
-    length = 0             # in meter
-    m_train_full = 0             # in kilogram
-    m_train_empty = 0             # in kilogram
-    m_loco = 0             # in kilogram
-    m_td = 0             # in kilogram
-    m_tc = 0             # in kilogram
-    m_car_full = 0             # in kilogram
-    m_car_empty = 0             # in kilogram
-    ξ_train = 1.08          # rotation mass factor, source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 13 for "Zug, überschlägliche Berechnung"
-    ξ_loco = 1.09          # rotation mass factor
-    ξ_cars = 1.06          # rotation mass factor
-    transportType = :freight      # "freight" or "passenger" for resistance calculation
-    v_limit = 140           # in m/s (default 504 km/h)
-    a_braking = 0             # in m/s^2, TODO: implement as function
-    f_Rtd0 = 0             # coefficient for basic resistance due to the traction unit's driving axles (in ‰)
-    f_Rtc0 = 0             # coefficient for basic resistance due to the traction unit's carring axles (in ‰)
-    f_Rt2 = 0             # coefficient for air resistance of the traction unit (in ‰)
-    f_Rw0 = 0             # coefficient for the consist's basic resistance (in ‰)
-    f_Rw1 = 0             # coefficient for the consist's resistance to rolling (in ‰)
-    f_Rw2 = 0             # coefficient for the consist's air resistance (in ‰)
-    F_v_pairs = []            # [v in m/s, F_T in N]
+    length = 0               # in meter
+    m_train_full = 0         # in kilogram
+    m_train_empty = 0        # in kilogram
+    m_loco = 0               # in kilogram
+    m_td = 0                 # in kilogram
+    m_tc = 0                 # in kilogram
+    m_car_full = 0           # in kilogram
+    m_car_empty = 0          # in kilogram
+    ξ_train = 1.08           # rotation mass factor, source: "Fahrdynamik des Schienenverkehrs" by Wende, 2003, p. 13 for "Zug, überschlägliche Berechnung"
+    ξ_loco = 1.09            # rotation mass factor
+    ξ_cars = 1.06            # rotation mass factor
+    transportType = :freight # "freight" or "passenger" for resistance calculation
+    v_limit = 140            # in m/s (default 504 km/h)
+    a_braking = 0            # in m/s^2, TODO: implement as function
+    f_Rtd0 = 0               # coefficient for basic resistance due to the traction unit's driving axles (in ‰)
+    f_Rtc0 = 0               # coefficient for basic resistance due to the traction unit's carring axles (in ‰)
+    f_Rt2 = 0                # coefficient for air resistance of the traction unit (in ‰)
+    f_Rw0 = 0                # coefficient for the consist's basic resistance (in ‰)
+    f_Rw1 = 0                # coefficient for the consist's resistance to rolling (in ‰)
+    f_Rw2 = 0                # coefficient for the consist's air resistance (in ‰)
+    F_v_pairs = []           # [v in m/s, F_T in N]
 
     ## validation
     data = load(file)
@@ -453,7 +443,7 @@ function Train(file::String)
     ## set the variables in "train"
     name = train["name"]
     id = train["id"]
-    haskey(train, "UUID") ? uuid = parse(UUID, train["UUID"]) : nothing
+    haskey(train, "UUID") ? uuid = parse(UUID, train["UUID"]) : uuid = UUIDs.uuid4()
     transportType == :freight ? a_braking = -0.225 : a_braking = -0.375  # set a default a_braking value depending on the train type
     #TODO: add source: Brünger, Dahlhaus, 2014 p. 74 (see formulary.jl)
 

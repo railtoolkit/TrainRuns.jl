@@ -9,6 +9,12 @@ Categories: Added, Changed, Deprecated, Removed, Fixed, and Security.
 
 ## [Unreleased]
 
+### Added
+* Loglevel as Setting
+
+### Changed
+* load of Schema via Lazy Artifact instead of hard coded
+* faster poi handling by treating pois as a DataFrame
 
 ## Version [1.0.4] 2023-05-15
 

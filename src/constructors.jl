@@ -88,6 +88,7 @@ function get_schema(data::Dict)::Schema
     fragment = URIs.splitpath(schema)
     schema_subtype = pop!(fragment)
     @debug "loading file - detected schema subtype: $schema_subtype"
+    # discard the rest of the fragment
 
     schema_name = join([schema.host, schema_version], "-")
     schema_name = replace(schema_name, r"\." => "-")

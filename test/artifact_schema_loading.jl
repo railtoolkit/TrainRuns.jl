@@ -17,7 +17,7 @@ using LazyArtifacts, YAML, JSONSchema
         "schema" => "https://railtoolkit.org/schema/rolling-stock.json"
     )
 
-    artifactpath_railtoolkit_schema_2022 = artifact"railtoolkit-org-schema-2022-05"
+    artifactpath_railtoolkit_schema_2022 = artifact"railtoolkit-org-2022-05"
     artifactpath_sha1 = split(artifactpath_railtoolkit_schema_2022, "/")[end]
     @test artifactpath_sha1 == "0dc2382451d64a12b8e8aa95c83a81dc5ac1c108"
 

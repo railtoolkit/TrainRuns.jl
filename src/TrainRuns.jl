@@ -10,7 +10,7 @@ module TrainRuns
 ## loading standard library packages
 using UUIDs, Dates, Statistics, Logging, LazyArtifacts
 ## loading external packages
-using YAML, JSON, JSONSchema, DataFrames, LoggingExtras
+using DataFrames, YAML, JSON, JSONSchema, URIs, LoggingExtras
 
 ## Interface
 export trainrun, Train, Path, Settings

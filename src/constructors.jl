@@ -78,37 +78,29 @@ A JSONSchema
 ```
 """
 function get_schema(data::Dict)::Schema
-    ## assumption: schema come in the form of (http://)schema_name/schema_subtype
+    ## assumption - schema come in the form of a URI: (http://)schema_name/schema_subtype
 
-    provided_schema = data["schema"]
-    @debug "loading file - detected schema: $provided_schema"
+    schema = parse(URI, data["schema"])
+    @debug "loading file - detected schema: $schema"
     schema_version = lowercase(data["schema_version"])
     @debug "loading file - detected schema version: $schema_version"
 
-    schema = lowercase(provided_schema)
-    if startswith(schema, "https://")
-        schema = replace(schema, r"https://" => "")
-    elseif startswith(schema, "http://")
-        schema = replace(schema, r"http://" => "")
-    end
-
-    schema = split(schema, "/")
-    schema_subtype = pop!(schema)
+    fragment = URIs.splitpath(schema)
+    schema_subtype = pop!(fragment)
     @debug "loading file - detected schema subtype: $schema_subtype"
 
-    push!(schema, schema_version)
-    schema = join(schema, "-")
-    schema = replace(schema, r"\." => "-")
+    schema_name = join([schema.host, schema_version], "-")
+    schema_name = replace(schema_name, r"\." => "-")
     @debug "loading file - artifact string: $schema"
 
-    if schema == "railtoolkit-org-schema-2022-05"
-        artifact_path = artifact"railtoolkit-org-schema-2022-05" # definied by Artifacts.toml
+    if schema_name == "railtoolkit-org-2022-05"
+        artifact_path = artifact"railtoolkit-org-2022-05" # definied by Artifacts.toml
         schema_path = joinpath(artifact_path, "schema-2022.05", "src", schema_subtype) # depending on the loaded artifact
     else
-        @info "The schema string '$schema' is not in the list of supported artifacts."
+        @info "The schema string '$schema_name' is not in the list of supported artifacts."
         @info "Currently supported schemas: railtoolkit/schema v2022.05"
         @info "For the schema format see: https://github.com/railtoolkit/schema"
-        error("The provided schema '$provided_schema' version '$schema_version' is not recognized!")
+        error("The provided schema '$schema' version '$schema_version' is not recognized!")
     end
     @debug "loading file - schema path: $schema_path"
 

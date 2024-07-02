@@ -1,0 +1,60 @@
+{
+    "schema": "https://railtoolkit.org/schema/running-path.json",
+    "schema_version": "2022.05",
+    "paths": [
+        {
+            "name": "10 km, no gradient, 160 km/h",
+            "id": "const",
+            "UUID": "23ff336e-9b9a-4535-bdb6-9db488b10945",
+            "points_of_interest": [
+                [
+                    999,
+                    "point_1",
+                    "front"
+                ],
+                [
+                    2000,
+                    "point_2",
+                    "front"
+                ],
+                [
+                    3333.3,
+                    "point_3",
+                    "rear"
+                ],
+                [
+                    5000,
+                    "point_4",
+                    "front"
+                ],
+                [
+                    7777,
+                    "point_5",
+                    "front"
+                ],
+                [
+                    9000,
+                    "point_6",
+                    "front"
+                ],
+                [
+                    9500.95,
+                    "point_7",
+                    "front"
+                ]
+            ],
+            "characteristic_sections": [
+                [
+                    0,
+                    160,
+                    0
+                ],
+                [
+                    10000,
+                    160,
+                    0
+                ]
+            ]
+        }
+    ]
+}

@@ -1,0 +1,28 @@
+# -*- coding: UTF-8 -*-
+# __author__        = "Martin Scheidt"
+# __copyright__     = "2024"
+# __license__       = "ISC"
+
+## use ArtifactUtils.jl to add an artifact
+## Example:
+# using ArtifactUtils
+# add_artifact!(
+#     "Artifacts.toml",
+#     "railtoolkit-org-schema-2022-05",
+#     "https://github.com/railtoolkit/schema/archive/refs/tags/2022.05.tar.gz",
+#     lazy = true,
+# )
+
+## --[ supported schemas ]-- ##
+## adding new schemas:
+## * the name of the artifact must follow the pattern created by get_schema()
+## * the folder structure of the artifact for the sub-schemas must be added in get_schema()
+## * the download of the artefact must be tested in test/artifact_schema_loading.jl
+##
+[railtoolkit-org-2022-05] # railtoolkit schema v2022.05 containing sub-schemas for rolling stock and path
+git-tree-sha1 = "0dc2382451d64a12b8e8aa95c83a81dc5ac1c108"
+lazy = true # it will not be automatically downloaded when the package is installed, but will be downloaded on-demand when it is first used.
+
+    [[railtoolkit-org-2022-05.download]]
+    url = "https://github.com/railtoolkit/schema/archive/refs/tags/2022.05.tar.gz"
+    sha256 = "2f112597fcc1fd67170ee1c3b756fbcecf4839460d623cf0dd37b2bc24cd8b96"

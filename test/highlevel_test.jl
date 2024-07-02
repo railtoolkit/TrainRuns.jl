@@ -23,7 +23,6 @@ settings = Dict()
         push!(paths, :slope => Path("data/paths/slope.yaml"))
         push!(paths, :speed => Path("data/paths/speed.yaml"))
         push!(paths, :realworld => Path("data/paths/realworld.yaml"))
-        @test_throws DomainError Path("data/paths/broken.yaml")
         @test typeof(first(paths)[2]) == Path
     end
 

@@ -16,7 +16,7 @@ jobs:
       new: ${{ steps.version_check.outputs.new }}
     steps:
       - name: "checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "check version number"
         id: version_check
@@ -101,7 +101,7 @@ jobs:
 
       # 1. checkout the repo
       - name: "checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # 2. create release note
       - name: "create release note"
@@ -137,7 +137,7 @@ jobs:
 
       # 3. create release archive
       - name: "create release archive"
-        uses: papeloto/action-zip@v1.1
+        uses: papeloto/action-zip@v1.2
         with:
           files: docs src test README.md LICENSE Project.toml
           recursive: false
@@ -145,7 +145,7 @@ jobs:
       - run: echo "- creating ZIP-Archive for the new release :white_check_mark:" >> $GITHUB_STEP_SUMMARY
 
       # 4. upload artifact to share it with other jobs
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: |
             release-note-v${{ needs.version.outputs.new }}.md
@@ -162,8 +162,8 @@ jobs:
     steps:
       - run: echo "Archiving package on zenodo to get a DOI:" >> $GITHUB_STEP_SUMMARY
       # 1. download artifact in folder artifact/ and move it one level up and checkout the repo
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - run: |
           mv ./artifact/TrainRuns.jl-v${{ needs.version.outputs.new }}.zip ./
           echo "- getting ZIP-Archive and release notes :white_check_mark:" >> $GITHUB_STEP_SUMMARY
@@ -220,7 +220,7 @@ jobs:
       - run: echo "Updating CITATION.cff and CHANGELOG.md:" >> $GITHUB_STEP_SUMMARY
       # 1. checkout the repo
       - name: "checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         # with:
         #   ref: main
 
@@ -279,7 +279,7 @@ jobs:
     name: "Toot about it on fosstodon.org"
     runs-on: ubuntu-latest
     steps:
-      - uses: cbrgm/mastodon-github-action@v1
+      - uses: cbrgm/mastodon-github-action@v2
         with:
           message: "The new version ${{ needs.version.outputs.new }} of TrainRuns.jl is available! DOI: https://doi.org/${{ needs.zenodo.outputs.doi }}."
           visibility: "public" # default: public

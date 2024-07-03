@@ -47,4 +47,6 @@ end
     include("getOutputByDetail.jl")
     include("highlevel_test.jl")
     include("value_changes.jl")
+    include("artifact_schema_loading.jl")
+    include("file_loading.jl")
 end
